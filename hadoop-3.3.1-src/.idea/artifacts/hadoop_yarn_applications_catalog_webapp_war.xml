@@ -1,0 +1,16 @@
+<component name="ArtifactManager">
+  <artifact type="war" name="hadoop-yarn-applications-catalog-webapp:war">
+    <output-path>$PROJECT_DIR$/hadoop-yarn-project/hadoop-yarn/hadoop-yarn-applications/hadoop-yarn-applications-catalog/hadoop-yarn-applications-catalog-webapp/target</output-path>
+    <properties id="maven-jee-properties">
+      <options>
+        <exploded>false</exploded>
+        <module>hadoop-yarn-applications-catalog-webapp</module>
+        <packaging>war</packaging>
+        <unpackNestedArchives>false</unpackNestedArchives>
+      </options>
+    </properties>
+    <root id="archive" name="app.war">
+      <element id="artifact" artifact-name="hadoop-yarn-applications-catalog-webapp:war exploded" />
+    </root>
+  </artifact>
+</component>
