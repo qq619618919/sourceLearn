@@ -99,6 +99,11 @@ public class PacketReceiver implements Closeable {
      * set.
      */
     public void receiveNextPacket(ReadableByteChannel in) throws IOException {
+
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释：
+         */
         doRead(in, null);
     }
 

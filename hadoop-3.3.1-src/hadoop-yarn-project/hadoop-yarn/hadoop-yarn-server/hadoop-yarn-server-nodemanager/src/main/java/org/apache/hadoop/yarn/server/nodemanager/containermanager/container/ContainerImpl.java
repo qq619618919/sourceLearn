@@ -884,6 +884,13 @@ public class ContainerImpl implements Container {
             dispatcher.getEventHandler()
                     .handle(new ContainerResumeEvent(containerId, "Container Resumed as some resources freed up"));
         } else {
+            /*************************************************
+             * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+             *  注释： 封装得到一个 launcherEvent 最终，提交给 AsyncDispatcher
+             *  但是 AsyncDispatcher 经过 dispatch() 找到这个事件的对应 EventHandler
+             *  1、event = ContainersLauncherEventType.LAUNCH_CONTAINER
+             *  2、eventHandler = ContainersLauncher
+             */
             ContainersLauncherEventType launcherEvent = ContainersLauncherEventType.LAUNCH_CONTAINER;
             if (recoveredStatus == RecoveredContainerStatus.LAUNCHED) {
                 // try to recover a container that was previously launched
@@ -893,6 +900,9 @@ public class ContainerImpl implements Container {
             }
 
             containerLaunchStartTime = clock.getTime();
+
+            // TODO_MA 马中华 注释： 提交事件！
+            // TODO_MA 马中华 注释： 搜：  case LAUNCH_CONTAINER
             dispatcher.getEventHandler().handle(new ContainersLauncherEvent(this, launcherEvent));
         }
 

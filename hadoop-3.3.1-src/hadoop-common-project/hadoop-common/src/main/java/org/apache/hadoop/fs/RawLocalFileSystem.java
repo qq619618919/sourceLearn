@@ -315,6 +315,10 @@ public class RawLocalFileSystem extends FileSystem {
                 if (Shell.WINDOWS && NativeIO.isAvailable()) {
                     this.fos = NativeIO.Windows.createFileOutputStreamWithMode(file, append, permission.toShort());
                 } else {
+                    /*************************************************
+                     * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+                     *  注释：
+                     */
                     this.fos = new FileOutputStream(file, append);
                     boolean success = false;
                     try {
@@ -423,6 +427,13 @@ public class RawLocalFileSystem extends FileSystem {
         if (parent != null && !mkdirs(parent)) {
             throw new IOException("Mkdirs failed to create " + parent.toString());
         }
+
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释： FSDataOutputStream 包装 BufferedIOStatisticsOutputStream
+         *  BufferedIOStatisticsOutputStream 包装 LocalFSFileOutputStream
+         *  LocalFSFileOutputStream 包装 FileOutputStream
+         */
         return new FSDataOutputStream(
                 new BufferedIOStatisticsOutputStream(createOutputStreamWithMode(f, false, permission), bufferSize, true),
                 statistics
@@ -434,6 +445,11 @@ public class RawLocalFileSystem extends FileSystem {
     }
 
     protected OutputStream createOutputStreamWithMode(Path f, boolean append, FsPermission permission) throws IOException {
+
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释：
+         */
         return new LocalFSFileOutputStream(f, append, permission);
     }
 
@@ -453,6 +469,10 @@ public class RawLocalFileSystem extends FileSystem {
     public FSDataOutputStream create(Path f, FsPermission permission, boolean overwrite, int bufferSize, short replication,
                                      long blockSize, Progressable progress) throws IOException {
 
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释： 创建本地文件输出流
+         */
         FSDataOutputStream out = create(f, overwrite, true, bufferSize, replication, blockSize, progress, permission);
         return out;
     }

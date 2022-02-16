@@ -72,9 +72,7 @@ public class ReadaheadPool {
     }
 
     private ReadaheadPool() {
-        pool = new ThreadPoolExecutor(POOL_SIZE, MAX_POOL_SIZE, 3L, TimeUnit.SECONDS,
-                new ArrayBlockingQueue<Runnable>(CAPACITY)
-        );
+        pool = new ThreadPoolExecutor(POOL_SIZE, MAX_POOL_SIZE, 3L, TimeUnit.SECONDS, new ArrayBlockingQueue<Runnable>(CAPACITY));
         pool.setRejectedExecutionHandler(new ThreadPoolExecutor.DiscardOldestPolicy());
         pool.setThreadFactory(new ThreadFactoryBuilder().setDaemon(true).setNameFormat("Readahead Thread #%d").build());
     }
@@ -100,8 +98,8 @@ public class ReadaheadPool {
     public ReadaheadRequest readaheadStream(String identifier, FileDescriptor fd, long curPos, long readaheadLength,
                                             long maxOffsetToRead, ReadaheadRequest lastReadahead) {
 
-        Preconditions.checkArgument(curPos <= maxOffsetToRead, "Readahead position %s higher than maxOffsetToRead %s",
-                curPos, maxOffsetToRead
+        Preconditions.checkArgument(curPos <= maxOffsetToRead, "Readahead position %s higher than maxOffsetToRead %s", curPos,
+                maxOffsetToRead
         );
 
         if (readaheadLength <= 0) {
@@ -118,6 +116,11 @@ public class ReadaheadPool {
         // in the previous readahead. This gives the system time
         // to satisfy the readahead before we start reading the data.
         long nextOffset = lastOffset + readaheadLength / 2;
+
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释： 预读取的数据，使用了一半的话，就开始继续预读
+         */
         if (curPos >= nextOffset) {
             // cancel any currently pending readahead, to avoid
             // piling things up in the queue. Each reader should have at most
@@ -134,6 +137,10 @@ public class ReadaheadPool {
                 return null;
             }
 
+            /*************************************************
+             * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+             *  注释： 提交预读任务 ReadaheadRequestImpl
+             */
             return submitReadahead(identifier, fd, curPos, length);
         } else {
             return lastReadahead;
@@ -149,7 +156,17 @@ public class ReadaheadPool {
      * @return an object representing this pending request
      */
     public ReadaheadRequest submitReadahead(String identifier, FileDescriptor fd, long off, long len) {
+
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释： 构建任务
+         */
         ReadaheadRequestImpl req = new ReadaheadRequestImpl(identifier, fd, off, len);
+
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释： 提交到线程池
+         */
         pool.execute(req);
         if (LOG.isTraceEnabled()) {
             LOG.trace("submit readahead: " + req);
@@ -207,8 +224,11 @@ public class ReadaheadPool {
             // other FD, which may be wasted work, but won't cause a problem.
             try {
                 if (fd.valid()) {
-                    NativeIO.POSIX.getCacheManipulator()
-                            .posixFadviseIfPossible(identifier, fd, off, len, POSIX_FADV_WILLNEED);
+                    /*************************************************
+                     * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+                     *  注释： 调用fadvise()系统调用完成预读取
+                     */
+                    NativeIO.POSIX.getCacheManipulator().posixFadviseIfPossible(identifier, fd, off, len, POSIX_FADV_WILLNEED);
                 }
             } catch (IOException ioe) {
                 if (canceled) {

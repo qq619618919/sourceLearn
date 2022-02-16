@@ -39,76 +39,78 @@ import org.apache.hadoop.thirdparty.com.google.common.base.Preconditions;
 @InterfaceAudience.Public
 @InterfaceStability.Evolving
 public class HdfsDataInputStream extends FSDataInputStream {
-  public HdfsDataInputStream(DFSInputStream in) {
-    super(in);
-  }
 
-  public HdfsDataInputStream(CryptoInputStream in) {
-    super(in);
-    Preconditions.checkArgument(in.getWrappedStream() instanceof DFSInputStream,
-        "CryptoInputStream should wrap a DFSInputStream");
-  }
-
-  private DFSInputStream getDFSInputStream() {
-    if (in instanceof CryptoInputStream) {
-      return (DFSInputStream) ((CryptoInputStream) in).getWrappedStream();
+    public HdfsDataInputStream(DFSInputStream in) {
+        super(in);
     }
-    return (DFSInputStream) in;
-  }
 
-  /**
-   * Get a reference to the wrapped output stream. We always want to return the
-   * actual underlying InputStream, even when we're using a CryptoStream. e.g.
-   * in the delegated methods below.
-   *
-   * @return the underlying output stream
-   */
-  public InputStream getWrappedStream() {
-    return in;
-  }
+    public HdfsDataInputStream(CryptoInputStream in) {
+        super(in);
+        Preconditions.checkArgument(in.getWrappedStream() instanceof DFSInputStream,
+                "CryptoInputStream should wrap a DFSInputStream"
+        );
+    }
 
-  /**
-   * Get the datanode from which the stream is currently reading.
-   */
-  public DatanodeInfo getCurrentDatanode() {
-    return getDFSInputStream().getCurrentDatanode();
-  }
+    private DFSInputStream getDFSInputStream() {
+        if (in instanceof CryptoInputStream) {
+            return (DFSInputStream) ((CryptoInputStream) in).getWrappedStream();
+        }
+        return (DFSInputStream) in;
+    }
 
-  /**
-   * Get the block containing the target position.
-   */
-  public ExtendedBlock getCurrentBlock() {
-    return getDFSInputStream().getCurrentBlock();
-  }
+    /**
+     * Get a reference to the wrapped output stream. We always want to return the
+     * actual underlying InputStream, even when we're using a CryptoStream. e.g.
+     * in the delegated methods below.
+     *
+     * @return the underlying output stream
+     */
+    public InputStream getWrappedStream() {
+        return in;
+    }
 
-  /**
-   * Get the collection of blocks that has already been located.
-   */
-  public List<LocatedBlock> getAllBlocks() throws IOException {
-    return getDFSInputStream().getAllBlocks();
-  }
+    /**
+     * Get the datanode from which the stream is currently reading.
+     */
+    public DatanodeInfo getCurrentDatanode() {
+        return getDFSInputStream().getCurrentDatanode();
+    }
 
-  /**
-   * Get the visible length of the file. It will include the length of the last
-   * block even if that is in UnderConstruction state.
-   *
-   * @return The visible length of the file.
-   */
-  public long getVisibleLength() {
-    return getDFSInputStream().getFileLength();
-  }
+    /**
+     * Get the block containing the target position.
+     */
+    public ExtendedBlock getCurrentBlock() {
+        return getDFSInputStream().getCurrentBlock();
+    }
 
-  /**
-   * Get statistics about the reads which this DFSInputStream has done.
-   * Note that because HdfsDataInputStream is buffered, these stats may
-   * be higher than you would expect just by adding up the number of
-   * bytes read through HdfsDataInputStream.
-   */
-  public ReadStatistics getReadStatistics() {
-    return getDFSInputStream().getReadStatistics();
-  }
+    /**
+     * Get the collection of blocks that has already been located.
+     */
+    public List<LocatedBlock> getAllBlocks() throws IOException {
+        return getDFSInputStream().getAllBlocks();
+    }
 
-  public void clearReadStatistics() {
-    getDFSInputStream().clearReadStatistics();
-  }
+    /**
+     * Get the visible length of the file. It will include the length of the last
+     * block even if that is in UnderConstruction state.
+     *
+     * @return The visible length of the file.
+     */
+    public long getVisibleLength() {
+        return getDFSInputStream().getFileLength();
+    }
+
+    /**
+     * Get statistics about the reads which this DFSInputStream has done.
+     * Note that because HdfsDataInputStream is buffered, these stats may
+     * be higher than you would expect just by adding up the number of
+     * bytes read through HdfsDataInputStream.
+     */
+    public ReadStatistics getReadStatistics() {
+        return getDFSInputStream().getReadStatistics();
+    }
+
+    public void clearReadStatistics() {
+        getDFSInputStream().clearReadStatistics();
+    }
 }

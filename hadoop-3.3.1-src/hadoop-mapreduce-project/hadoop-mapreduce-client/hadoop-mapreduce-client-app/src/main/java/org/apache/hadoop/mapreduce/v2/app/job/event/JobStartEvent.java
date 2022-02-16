@@ -22,18 +22,18 @@ import org.apache.hadoop.mapreduce.v2.api.records.JobId;
 
 public class JobStartEvent extends JobEvent {
 
-  long recoveredJobStartTime;
+    long recoveredJobStartTime;
 
-  public JobStartEvent(JobId jobID) {
-    this(jobID, -1L);
-  }
+    public JobStartEvent(JobId jobID) {
+        this(jobID, -1L);
+    }
 
-  public JobStartEvent(JobId jobID, long recoveredJobStartTime) {
-    super(jobID, JobEventType.JOB_START);
-    this.recoveredJobStartTime = recoveredJobStartTime;
-  }
+    public JobStartEvent(JobId jobID, long recoveredJobStartTime) {
+        super(jobID, JobEventType.JOB_START);
+        this.recoveredJobStartTime = recoveredJobStartTime;
+    }
 
-  public long getRecoveredJobStartTime() {
-    return recoveredJobStartTime;
-  }
+    public long getRecoveredJobStartTime() {
+        return recoveredJobStartTime;
+    }
 }

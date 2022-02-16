@@ -76,6 +76,7 @@
     <orderEntry type="library" name="Maven: org.eclipse.jetty:jetty-security:9.4.40.v20210413" level="project" />
     <orderEntry type="library" name="Maven: javax.websocket:javax.websocket-api:1.0" level="project" />
     <orderEntry type="library" name="Maven: io.dropwizard.metrics:metrics-core:3.2.4" level="project" />
+    <orderEntry type="library" name="Maven: org.fusesource.leveldbjni:leveldbjni-all:1.8" level="project" />
     <orderEntry type="library" name="Maven: net.java.dev.jna:jna:5.2.0" level="project" />
     <orderEntry type="module" module-name="hadoop-yarn-server-web-proxy" />
     <orderEntry type="library" name="Maven: org.eclipse.jetty:jetty-server:9.4.40.v20210413" level="project" />

@@ -127,7 +127,7 @@ class AsyncLoggerSet {
     <V> Map<AsyncLogger, V> waitForWriteQuorum(QuorumCall<AsyncLogger, V> q, int timeoutMs,
                                                String operationName) throws IOException {
 
-        // TODO_MA 马中华 注释： 过半通过，也就是 journalnode 总节点数的 半数 +1
+        // TODO_MA 马中华 注释： 过半通过，也就是 journalnode 总节点数的 半数 + 1
         // TODO_MA 马中华 注释： 当然要注意，journalnode 的配置必须是奇数，然后 除2 再加 1
         int majority = getMajoritySize();
 
@@ -135,16 +135,23 @@ class AsyncLoggerSet {
             /*************************************************
              * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
              *  注释： 执行等待
+             *  假设 journalnode 节点个数 = 5， 那么 majority = 3
              */
-            q.waitFor(loggers.size(), // either all respond
+            q.waitFor(
+                    // TODO_MA 马中华 注释： 总 journal 数量 5
+                    loggers.size(), // either all respond
+                    // TODO_MA 马中华 注释： 最小成功数 3
                     majority, // or we get a majority successes
+                    // TODO_MA 马中华 注释： 最大失败数 3
                     majority, // or we get a majority failures,
+                    // TODO_MA 马中华 注释： timeoutMs = 20s
                     timeoutMs, operationName
             );
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             throw new IOException("Interrupted waiting " + timeoutMs + "ms for a " + "quorum of nodes to respond.");
         } catch (TimeoutException e) {
+            // TODO_MA 马中华 注释： 抛出了一个 IO 异常
             throw new IOException("Timed out waiting " + timeoutMs + "ms for a " + "quorum of nodes to respond.");
         }
 
@@ -159,6 +166,7 @@ class AsyncLoggerSet {
      * @return the number of nodes which are required to obtain a quorum.
      */
     int getMajoritySize() {
+        // TODO_MA 马中华 注释： 5 ==> 5/2 = 2 + 1 = 3
         return loggers.size() / 2 + 1;
     }
 
@@ -270,15 +278,19 @@ class AsyncLoggerSet {
 
             /*************************************************
              * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-             *  注释： 发送日志
+             *  注释： 发送日志 IPCLoggerChannel ==> 往一个 JournalNode 中发送日志
              */
             ListenableFuture<Void> future = logger.sendEdits(segmentTxId, firstTxnId, numTxns, data);
             calls.put(logger, future);
         }
 
         // TODO_MA 马中华 注释： 封装回调！处理成功或者失败
+        // TODO_MA 马中华 注释： 一个 QuorumCall 就是针对 QuorumJournal 系统的一个写请求
         return QuorumCall.create(calls);
     }
+
+    // TODO_MA 马中华 注释： 分布式系统的三态
+    // TODO_MA 马中华 注释： 1、一定要拿到一个明确的结果（成功，失败） 2、要么就是超时
 
     public QuorumCall<AsyncLogger, GetJournaledEditsResponseProto> getJournaledEdits(long fromTxnId, int maxTransactions) {
         Map<AsyncLogger, ListenableFuture<GetJournaledEditsResponseProto>> calls = Maps.newHashMap();
@@ -352,8 +364,7 @@ class AsyncLoggerSet {
         return QuorumCall.create(calls);
     }
 
-    public QuorumCall<AsyncLogger, Boolean> canRollBack(StorageInfo storage, StorageInfo prevStorage,
-                                                        int targetLayoutVersion) {
+    public QuorumCall<AsyncLogger, Boolean> canRollBack(StorageInfo storage, StorageInfo prevStorage, int targetLayoutVersion) {
         Map<AsyncLogger, ListenableFuture<Boolean>> calls = Maps.newHashMap();
         for (AsyncLogger logger : loggers) {
             ListenableFuture<Boolean> future = logger.canRollBack(storage, prevStorage, targetLayoutVersion);

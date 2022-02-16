@@ -28,24 +28,28 @@ import org.apache.hadoop.mapreduce.protocol.ClientProtocolProvider;
 
 public class YarnClientProtocolProvider extends ClientProtocolProvider {
 
-  @Override
-  public ClientProtocol create(Configuration conf) throws IOException {
-    if (MRConfig.YARN_FRAMEWORK_NAME.equals(conf.get(MRConfig.FRAMEWORK_NAME))) {
-      return new YARNRunner(conf);
-    }
-    return null;
-  }
+    @Override
+    public ClientProtocol create(Configuration conf) throws IOException {
+        if (MRConfig.YARN_FRAMEWORK_NAME.equals(conf.get(MRConfig.FRAMEWORK_NAME))) {
 
-  @Override
-  public ClientProtocol create(InetSocketAddress addr, Configuration conf)
-      throws IOException {
-    return create(conf);
-  }
-
-  @Override
-  public void close(ClientProtocol clientProtocol) throws IOException {
-    if (clientProtocol instanceof YARNRunner) {
-      ((YARNRunner)clientProtocol).close();
+            /*************************************************
+             * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+             *  注释：
+             */
+            return new YARNRunner(conf);
+        }
+        return null;
     }
-  }
+
+    @Override
+    public ClientProtocol create(InetSocketAddress addr, Configuration conf) throws IOException {
+        return create(conf);
+    }
+
+    @Override
+    public void close(ClientProtocol clientProtocol) throws IOException {
+        if (clientProtocol instanceof YARNRunner) {
+            ((YARNRunner) clientProtocol).close();
+        }
+    }
 }

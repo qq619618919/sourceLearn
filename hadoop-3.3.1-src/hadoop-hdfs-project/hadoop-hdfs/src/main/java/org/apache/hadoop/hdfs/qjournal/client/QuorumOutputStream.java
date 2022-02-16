@@ -94,20 +94,19 @@ class QuorumOutputStream extends EditLogOutputStream {
 
     @Override
     protected void flushAndSync(boolean durable) throws IOException {
+
         int numReadyBytes = buf.countReadyBytes();
+
         if (numReadyBytes > 0) {
             int numReadyTxns = buf.countReadyTxns();
             long firstTxToFlush = buf.getFirstReadyTxId();
 
             assert numReadyTxns > 0;
 
-            // Copy from our double-buffer into a new byte array. This is for
-            // two reasons:
-            // 1) The IPC code has no way of specifying to send only a slice of
-            //    a larger array.
+            // Copy from our double-buffer into a new byte array. This is for two reasons:
+            // 1) The IPC code has no way of specifying to send only a slice of a larger array.
             // 2) because the calls to the underlying nodes are asynchronous, we
-            //    need a defensive copy to avoid accidentally mutating the buffer
-            //    before it is sent.
+            //    need a defensive copy to avoid accidentally mutating the buffer before it is sent.
             DataOutputBuffer bufToSend = new DataOutputBuffer(numReadyBytes);
             buf.flushTo(bufToSend);
 
@@ -124,6 +123,8 @@ class QuorumOutputStream extends EditLogOutputStream {
             /*************************************************
              * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
              *  注释： 等待成功过半
+             *  1、 等待结果： 要么成功，要么失败
+             *  2、 要么超时： writeTimeoutMs = 20s
              */
             loggers.waitForWriteQuorum(qcall, writeTimeoutMs, "sendEdits");
 

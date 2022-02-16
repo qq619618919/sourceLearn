@@ -46,165 +46,132 @@ import java.util.Map;
  */
 public class ContainerRelaunch extends ContainerLaunch {
 
-  private static final Logger LOG =
-       LoggerFactory.getLogger(ContainerRelaunch.class);
+    private static final Logger LOG = LoggerFactory.getLogger(ContainerRelaunch.class);
 
-  public ContainerRelaunch(Context context, Configuration configuration,
-      Dispatcher dispatcher, ContainerExecutor exec, Application app,
-      Container container, LocalDirsHandlerService dirsHandler,
-      ContainerManagerImpl containerManager) {
-    super(context, configuration, dispatcher, exec, app, container, dirsHandler,
-        containerManager);
-  }
-
-  @Override
-  public Integer call() {
-    if (!validateContainerState()) {
-      return 0;
+    public ContainerRelaunch(Context context, Configuration configuration, Dispatcher dispatcher, ContainerExecutor exec,
+                             Application app, Container container, LocalDirsHandlerService dirsHandler,
+                             ContainerManagerImpl containerManager) {
+        super(context, configuration, dispatcher, exec, app, container, dirsHandler, containerManager);
     }
 
-    ContainerId containerId = container.getContainerId();
-    String containerIdStr = containerId.toString();
-    int ret = -1;
-    Path containerLogDir;
-    try {
-      Path containerWorkDir = getContainerWorkDir();
-      // Clean up container's previous files for container relaunch.
-      cleanupContainerFiles(containerWorkDir);
+    @Override
+    public Integer call() {
+        if (!validateContainerState()) {
+            return 0;
+        }
 
-      containerLogDir = getContainerLogDir();
+        ContainerId containerId = container.getContainerId();
+        String containerIdStr = containerId.toString();
+        int ret = -1;
+        Path containerLogDir;
+        try {
+            Path containerWorkDir = getContainerWorkDir();
+            // Clean up container's previous files for container relaunch.
+            cleanupContainerFiles(containerWorkDir);
 
-      Map<Path, List<String>> localResources = getLocalizedResources();
+            containerLogDir = getContainerLogDir();
 
-      String appIdStr = app.getAppId().toString();
-      Path nmPrivateContainerScriptPath =
-          getNmPrivateContainerScriptPath(appIdStr, containerIdStr);
-      Path nmPrivateTokensPath =
-          getNmPrivateTokensPath(appIdStr, containerIdStr);
-      Path nmPrivateKeystorePath = (container.getCredentials().getSecretKey(
-          AMSecretKeys.YARN_APPLICATION_AM_KEYSTORE) == null) ? null :
-          getNmPrivateKeystorePath(appIdStr, containerIdStr);
-      Path nmPrivateTruststorePath = (container.getCredentials().getSecretKey(
-          AMSecretKeys.YARN_APPLICATION_AM_TRUSTSTORE) == null) ? null :
-          getNmPrivateTruststorePath(appIdStr, containerIdStr);
-      try {
-        // try to locate existing pid file.
-        pidFilePath = getPidFilePath(appIdStr, containerIdStr);
-      } catch (IOException e) {
-        // reset pid file path if it did not exist.
-        String pidFileSubpath = getPidFileSubpath(appIdStr, containerIdStr);
-        pidFilePath = dirsHandler.getLocalPathForWrite(pidFileSubpath);
-      }
+            Map<Path, List<String>> localResources = getLocalizedResources();
 
-      LOG.info("Relaunch container with "
-          + "workDir = " + containerWorkDir.toString()
-          + ", logDir = " + containerLogDir.toString()
-          + ", nmPrivateContainerScriptPath = "
-          + nmPrivateContainerScriptPath.toString()
-          + ", nmPrivateTokensPath = " + nmPrivateTokensPath.toString()
-          + ", pidFilePath = " + pidFilePath.toString());
+            String appIdStr = app.getAppId().toString();
+            Path nmPrivateContainerScriptPath = getNmPrivateContainerScriptPath(appIdStr, containerIdStr);
+            Path nmPrivateTokensPath = getNmPrivateTokensPath(appIdStr, containerIdStr);
+            Path nmPrivateKeystorePath = (container.getCredentials().getSecretKey(AMSecretKeys.YARN_APPLICATION_AM_KEYSTORE) == null
+            ) ? null : getNmPrivateKeystorePath(appIdStr, containerIdStr);
+            Path nmPrivateTruststorePath = (container.getCredentials()
+                    .getSecretKey(AMSecretKeys.YARN_APPLICATION_AM_TRUSTSTORE) == null
+            ) ? null : getNmPrivateTruststorePath(appIdStr, containerIdStr);
+            try {
+                // try to locate existing pid file.
+                pidFilePath = getPidFilePath(appIdStr, containerIdStr);
+            } catch (IOException e) {
+                // reset pid file path if it did not exist.
+                String pidFileSubpath = getPidFileSubpath(appIdStr, containerIdStr);
+                pidFilePath = dirsHandler.getLocalPathForWrite(pidFileSubpath);
+            }
 
-      List<String> localDirs = dirsHandler.getLocalDirs();
-      List<String> logDirs = dirsHandler.getLogDirs();
-      List<String> containerLocalDirs = getContainerLocalDirs(localDirs);
-      List<String> containerLogDirs = getContainerLogDirs(logDirs);
-      List<String> filecacheDirs = getNMFilecacheDirs(localDirs);
-      List<String> userLocalDirs = getUserLocalDirs(localDirs);
-      List<String> userFilecacheDirs = getUserFilecacheDirs(localDirs);
-      List<String> applicationLocalDirs = getApplicationLocalDirs(localDirs,
-          appIdStr);
+            LOG.info(
+                    "Relaunch container with " + "workDir = " + containerWorkDir.toString() + ", logDir = " + containerLogDir.toString() + ", nmPrivateContainerScriptPath = " + nmPrivateContainerScriptPath.toString() + ", nmPrivateTokensPath = " + nmPrivateTokensPath.toString() + ", pidFilePath = " + pidFilePath.toString());
 
-      if (!dirsHandler.areDisksHealthy()) {
-        ret = ContainerExitStatus.DISKS_FAILED;
-        throw new IOException("Most of the disks failed. "
-            + dirsHandler.getDisksHealthReport(false));
-      }
+            List<String> localDirs = dirsHandler.getLocalDirs();
+            List<String> logDirs = dirsHandler.getLogDirs();
+            List<String> containerLocalDirs = getContainerLocalDirs(localDirs);
+            List<String> containerLogDirs = getContainerLogDirs(logDirs);
+            List<String> filecacheDirs = getNMFilecacheDirs(localDirs);
+            List<String> userLocalDirs = getUserLocalDirs(localDirs);
+            List<String> userFilecacheDirs = getUserFilecacheDirs(localDirs);
+            List<String> applicationLocalDirs = getApplicationLocalDirs(localDirs, appIdStr);
 
-      ret = relaunchContainer(new ContainerStartContext.Builder()
-          .setContainer(container)
-          .setLocalizedResources(localResources)
-          .setNmPrivateContainerScriptPath(nmPrivateContainerScriptPath)
-          .setNmPrivateTokensPath(nmPrivateTokensPath)
-          .setNmPrivateKeystorePath(nmPrivateKeystorePath)
-          .setNmPrivateTruststorePath(nmPrivateTruststorePath)
-          .setUser(container.getUser())
-          .setAppId(appIdStr)
-          .setContainerWorkDir(containerWorkDir)
-          .setLocalDirs(localDirs)
-          .setLogDirs(logDirs)
-          .setFilecacheDirs(filecacheDirs)
-          .setUserLocalDirs(userLocalDirs)
-          .setContainerLocalDirs(containerLocalDirs)
-          .setContainerLogDirs(containerLogDirs)
-          .setUserFilecacheDirs(userFilecacheDirs)
-          .setApplicationLocalDirs(applicationLocalDirs)
-          .build());
-    } catch (ConfigurationException e) {
-      LOG.error("Failed to launch container due to configuration error.", e);
-      dispatcher.getEventHandler().handle(new ContainerExitEvent(
-          containerId, ContainerEventType.CONTAINER_EXITED_WITH_FAILURE, ret,
-          e.getMessage()));
-      // Mark the node as unhealthy
-      getContext().getNodeStatusUpdater().reportException(e);
-      return ret;
-    } catch (Throwable e) {
-      LOG.warn("Failed to relaunch container.", e);
-      dispatcher.getEventHandler().handle(new ContainerExitEvent(
-          containerId, ContainerEventType.CONTAINER_EXITED_WITH_FAILURE, ret,
-          e.getMessage()));
-      return ret;
-    } finally {
-      setContainerCompletedStatus(ret);
+            if (!dirsHandler.areDisksHealthy()) {
+                ret = ContainerExitStatus.DISKS_FAILED;
+                throw new IOException("Most of the disks failed. " + dirsHandler.getDisksHealthReport(false));
+            }
+
+            ret = relaunchContainer(
+                    new ContainerStartContext.Builder().setContainer(container).setLocalizedResources(localResources)
+                            .setNmPrivateContainerScriptPath(nmPrivateContainerScriptPath)
+                            .setNmPrivateTokensPath(nmPrivateTokensPath).setNmPrivateKeystorePath(nmPrivateKeystorePath)
+                            .setNmPrivateTruststorePath(nmPrivateTruststorePath).setUser(container.getUser()).setAppId(appIdStr)
+                            .setContainerWorkDir(containerWorkDir).setLocalDirs(localDirs).setLogDirs(logDirs)
+                            .setFilecacheDirs(filecacheDirs).setUserLocalDirs(userLocalDirs)
+                            .setContainerLocalDirs(containerLocalDirs).setContainerLogDirs(containerLogDirs)
+                            .setUserFilecacheDirs(userFilecacheDirs).setApplicationLocalDirs(applicationLocalDirs).build());
+        } catch (ConfigurationException e) {
+            LOG.error("Failed to launch container due to configuration error.", e);
+            dispatcher.getEventHandler()
+                    .handle(new ContainerExitEvent(containerId, ContainerEventType.CONTAINER_EXITED_WITH_FAILURE, ret,
+                            e.getMessage()
+                    ));
+            // Mark the node as unhealthy
+            getContext().getNodeStatusUpdater().reportException(e);
+            return ret;
+        } catch (Throwable e) {
+            LOG.warn("Failed to relaunch container.", e);
+            dispatcher.getEventHandler()
+                    .handle(new ContainerExitEvent(containerId, ContainerEventType.CONTAINER_EXITED_WITH_FAILURE, ret,
+                            e.getMessage()
+                    ));
+            return ret;
+        } finally {
+            setContainerCompletedStatus(ret);
+        }
+
+        handleContainerExitCode(ret, containerLogDir);
+
+        return ret;
     }
 
-    handleContainerExitCode(ret, containerLogDir);
 
-    return ret;
-  }
+    private Path getContainerLogDir() throws IOException {
+        String containerLogDir = container.getLogDir();
+        if (containerLogDir == null || !dirsHandler.isGoodLogDir(containerLogDir)) {
+            throw new IOException("Could not find a good log dir " + containerLogDir + " for container " + container);
+        }
 
-
-  private Path getContainerLogDir() throws IOException {
-    String containerLogDir = container.getLogDir();
-    if (containerLogDir == null || !dirsHandler.isGoodLogDir(containerLogDir)) {
-      throw new IOException("Could not find a good log dir " + containerLogDir
-          + " for container " + container);
+        return new Path(containerLogDir);
     }
 
-    return new Path(containerLogDir);
-  }
+    private Path getNmPrivateContainerScriptPath(String appIdStr, String containerIdStr) throws IOException {
+        return dirsHandler.getLocalPathForRead(
+                getContainerPrivateDir(appIdStr, containerIdStr) + Path.SEPARATOR + CONTAINER_SCRIPT);
+    }
 
-  private Path getNmPrivateContainerScriptPath(String appIdStr,
-      String containerIdStr) throws IOException {
-    return dirsHandler.getLocalPathForRead(
-        getContainerPrivateDir(appIdStr, containerIdStr) + Path.SEPARATOR
-            + CONTAINER_SCRIPT);
-  }
+    private Path getNmPrivateTokensPath(String appIdStr, String containerIdStr) throws IOException {
+        return dirsHandler.getLocalPathForRead(getContainerPrivateDir(appIdStr, containerIdStr) + Path.SEPARATOR + String.format(
+                ContainerExecutor.TOKEN_FILE_NAME_FMT, containerIdStr));
+    }
 
-  private Path getNmPrivateTokensPath(String appIdStr,
-       String containerIdStr) throws IOException {
-    return dirsHandler.getLocalPathForRead(
-        getContainerPrivateDir(appIdStr, containerIdStr) + Path.SEPARATOR
-            + String.format(ContainerExecutor.TOKEN_FILE_NAME_FMT,
-            containerIdStr));
-  }
+    private Path getNmPrivateKeystorePath(String appIdStr, String containerIdStr) throws IOException {
+        return dirsHandler.getLocalPathForRead(
+                getContainerPrivateDir(appIdStr, containerIdStr) + Path.SEPARATOR + ContainerLaunch.KEYSTORE_FILE);
+    }
 
-  private Path getNmPrivateKeystorePath(String appIdStr,
-      String containerIdStr) throws IOException {
-    return dirsHandler.getLocalPathForRead(
-        getContainerPrivateDir(appIdStr, containerIdStr) + Path.SEPARATOR
-            + ContainerLaunch.KEYSTORE_FILE);
-  }
+    private Path getNmPrivateTruststorePath(String appIdStr, String containerIdStr) throws IOException {
+        return dirsHandler.getLocalPathForRead(
+                getContainerPrivateDir(appIdStr, containerIdStr) + Path.SEPARATOR + ContainerLaunch.TRUSTSTORE_FILE);
+    }
 
-  private Path getNmPrivateTruststorePath(String appIdStr,
-      String containerIdStr) throws IOException {
-    return dirsHandler.getLocalPathForRead(
-        getContainerPrivateDir(appIdStr, containerIdStr) + Path.SEPARATOR
-            + ContainerLaunch.TRUSTSTORE_FILE);
-  }
-
-  private Path getPidFilePath(String appIdStr,
-      String containerIdStr) throws IOException {
-    return dirsHandler.getLocalPathForRead(
-        getPidFileSubpath(appIdStr, containerIdStr));
-  }
+    private Path getPidFilePath(String appIdStr, String containerIdStr) throws IOException {
+        return dirsHandler.getLocalPathForRead(getPidFileSubpath(appIdStr, containerIdStr));
+    }
 }

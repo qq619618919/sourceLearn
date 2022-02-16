@@ -2391,8 +2391,14 @@ public abstract class FileSystem extends Configured implements Closeable, Delega
      * @param src path src file in the remote filesystem
      * @param dst path local destination
      * @throws IOException IO failure
+     * // TODO_MA 马中华 注释： 下载
      */
     public void copyToLocalFile(Path src, Path dst) throws IOException {
+
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释： 
+         */
         copyToLocalFile(false, src, dst);
     }
 
@@ -2416,6 +2422,11 @@ public abstract class FileSystem extends Configured implements Closeable, Delega
      * @throws IOException IO failure
      */
     public void copyToLocalFile(boolean delSrc, Path src, Path dst) throws IOException {
+
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释：
+         */
         copyToLocalFile(delSrc, src, dst, false);
     }
 
@@ -2446,6 +2457,11 @@ public abstract class FileSystem extends Configured implements Closeable, Delega
         } else {
             local = getLocal(conf);
         }
+
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释：
+         */
         FileUtil.copy(this, src, local, dst, delSrc, conf);
     }
 

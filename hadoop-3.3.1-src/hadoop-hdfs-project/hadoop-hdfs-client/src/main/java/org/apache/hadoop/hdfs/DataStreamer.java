@@ -234,6 +234,9 @@ class DataStreamer extends Daemon {
      * @param length the pipeline length
      * @param client client
      * @return the socket connected to the first datanode
+     *
+     * // TODO_MA 马中华 注释： 这个方法，是 client 和 datanode 之间建立连接
+     * datanode 得运行了一个服务端：DataXceiverServer
      */
     static Socket createSocketForPipeline(final DatanodeInfo first, final int length, final DFSClient client) throws IOException {
         final DfsClientConf conf = client.getConf();
@@ -243,7 +246,7 @@ class DataStreamer extends Daemon {
 
         /*************************************************
          * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-         *  注释：
+         *  注释： 通过工厂，创建一个 Socket 客户端
          */
         final Socket sock = client.socketFactory.createSocket();
 
@@ -251,7 +254,7 @@ class DataStreamer extends Daemon {
 
         /*************************************************
          * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-         *  注释：
+         *  注释： 发起链接请求！
          */
         NetUtils.connect(sock, isa, client.getRandomLocalInterfaceAddr(), conf.getSocketTimeout());
 
@@ -753,6 +756,7 @@ class DataStreamer extends Daemon {
                 /*************************************************
                  * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
                  *  注释： 如果是第一个 packet, 则建立 pipline 数据传输管道
+                 *  如果是要传输某个 block 的第一个 packet 的话，就要执行下面这个分支
                  */
                 if (stage == BlockConstructionStage.PIPELINE_SETUP_CREATE) {
                     LOG.debug("Allocating new block: {}", this);
@@ -760,7 +764,7 @@ class DataStreamer extends Daemon {
                     /*************************************************
                      * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
                      *  注释：
-                     *  1、申请 block
+                     *  1、申请 block, 得到存储这个 block 的默认 3 个副本的 三个 datanode 列表
                      *  2、建立 pipline 数据传输管道
                      */
                     setPipeline(nextBlockOutputStream());
@@ -779,6 +783,8 @@ class DataStreamer extends Daemon {
                     }
                     initDataStreaming();
                 }
+
+                // TODO_MA 马中华 注释： 如果代码执行到这儿， 数据传输管道是存在的
 
                 long lastByteOffsetInBlock = one.getLastByteOffsetBlock();
                 if (lastByteOffsetInBlock > stat.getBlockSize()) {
@@ -832,6 +838,7 @@ class DataStreamer extends Daemon {
                  */
                 // write out data to remote datanode
                 try (TraceScope ignored = dfsClient.getTracer().newScope("DataStreamer#writeTo", spanId)) {
+                    // TODO_MA 马中华 注释： 客户端发给 第一个 datanode
                     sendPacket(one);
                 } catch (IOException e) {
                     // HDFS-3398 treat primary DN is down since client is unable to
@@ -945,7 +952,7 @@ class DataStreamer extends Daemon {
         try {
             /*************************************************
              * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-             *  注释：
+             *  注释： 客户端就是通过 blockStream 写给 第一个 datanode 了。
              */
             packet.writeTo(blockStream);
             blockStream.flush();
@@ -1710,7 +1717,7 @@ class DataStreamer extends Daemon {
             // set up the pipeline again with the remaining nodes
             /*************************************************
              * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-             *  注释：
+             *  注释： 重建数据管道
              */
             success = createBlockOutputStream(nodes, storageTypes, storageIDs, newGS, isRecovery);
 
@@ -1887,7 +1894,14 @@ class DataStreamer extends Daemon {
 
             /*************************************************
              * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-             *  注释： 申请 block，同时携带 datanode 黑名单
+             *  注释： 重点1： 申请 block，同时携带 datanode 黑名单
+             *  excluded = datanode 黑名单， 就是前面的 block 的传输中，如果某个 datanode 曾经有报错导致 数据传输管道断开了
+             *  // TODO_MA 马中华 注释： 那么这个 datanode 就要加入黑名单！
+             *  -
+             *  如何得到这个 block 的 datanode 的存放列表呢？
+             *  1、replica1  当前机架的一个随机 datanode 节点， 跳板机
+             *  2、replica2  额外选择一个机架中的一个 datanode 进行存储
+             *  3、replica3  这两个机架中，再随便挑选一个 datanode 来存储
              */
             lb = locateFollowingBlock(excluded.length > 0 ? excluded : null, oldBlock);
 
@@ -1902,7 +1916,7 @@ class DataStreamer extends Daemon {
             // Connect to first DataNode in the list.
             /*************************************************
              * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-             *  注释： 构建 数据传输管道 pipline
+             *  注释： 重点2： 构建 数据传输管道 pipline
              *  nodes 就是 datanode 的数据块存储列表
              */
             success = createBlockOutputStream(nodes, nextStorageTypes, nextStorageIDs, 0L, false);
@@ -2002,6 +2016,11 @@ class DataStreamer extends Daemon {
                  * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
                  *  注释： 发送请求给 第一个 DataNode，同时也吧 nodes 发送给该 DataNode
                  *  注意： DataNode 和 DataNode 之间的数据传输协议是： DataTransferProtocol
+                 *  -
+                 *  new Sender(out).writeBlock()      客户端里面你，数据上传过程中，重要的工作组件
+                 *  new Receiver(in).receiveBlock()   客户端里面你，数据下载过程中，重要的工作组件
+                 *  -
+                 *  Sender 和 Receiver 并没有直接和使用 Hadoop PRC , 而是单独构造的，只是用来做数据传送
                  */
                 new Sender(out).writeBlock(blockCopy, nodeStorageTypes[0], accessToken, dfsClient.clientName, nodes,
                         nodeStorageTypes, null, bcs, nodes.length, block.getNumBytes(), bytesSent, newGS, checksum4WriteBlock,

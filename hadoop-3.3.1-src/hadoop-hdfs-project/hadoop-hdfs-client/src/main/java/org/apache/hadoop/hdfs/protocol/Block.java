@@ -166,6 +166,7 @@ public class Block implements Writable, Comparable<Block> {
      * @return the block name
      */
     public String getBlockName() {
+        // TODO_MA 马中华 注释： blk_blockId
         return BLOCK_FILE_PREFIX + blockId;
     }
 

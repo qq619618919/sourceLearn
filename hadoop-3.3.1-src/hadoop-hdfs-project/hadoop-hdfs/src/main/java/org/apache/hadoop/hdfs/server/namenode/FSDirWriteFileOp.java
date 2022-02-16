@@ -242,21 +242,21 @@ class FSDirWriteFileOp {
 
         /*************************************************
          * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-         *  注释： 创建一个 Block
+         *  注释： 1、创建一个 Block
          */
         // allocate new block, record block locations in INode.
         Block newBlock = fsn.createNewBlock(blockType);
 
         /*************************************************
          * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-         *  注释： 将 Block 加入到 INodeFile 的 BlockInfo[] 列表最后
+         *  注释： 2、将 Block 加入到 INodeFile 的 BlockInfo[] 列表最后
          */
         INodesInPath inodesInPath = INodesInPath.fromINode(pendingFile);
         saveAllocatedBlock(fsn, src, inodesInPath, newBlock, targets, blockType);
 
         /*************************************************
          * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-         *  注释： 记录日志
+         *  注释： 3、记录日志
          */
         persistNewBlock(fsn, src, pendingFile);
         offset = pendingFile.computeFileSize();
@@ -522,6 +522,11 @@ class FSDirWriteFileOp {
                 fsd.updateCount(inodesInPath, 0, fileINode.getPreferredBlockSize(), fileINode.getFileReplication(), true);
 
                 short numLocations = fileINode.getFileReplication();
+
+                /*************************************************
+                 * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+                 *  注释：
+                 */
                 blockInfo = new BlockInfoContiguous(block, numLocations);
                 blockInfo.convertToBlockUnderConstruction(HdfsServerConstants.BlockUCState.UNDER_CONSTRUCTION, targets);
             }
@@ -757,6 +762,8 @@ class FSDirWriteFileOp {
          *  注释：
          */
         fsn.getEditLog().logAddBlock(path, file);
+        // TODO_MA 马中华 注释： logMkdir()
+        // TODO_MA 马中华 注释： logRename()
 
         if (NameNode.stateChangeLog.isDebugEnabled()) {
             NameNode.stateChangeLog.debug("persistNewBlock: " + path + " with new block " + file.getLastBlock()

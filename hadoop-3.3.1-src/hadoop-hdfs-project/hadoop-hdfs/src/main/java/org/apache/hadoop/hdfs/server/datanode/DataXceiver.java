@@ -134,7 +134,8 @@ class DataXceiver extends Receiver implements Runnable {
     public static DataXceiver create(Peer peer, DataNode dn, DataXceiverServer dataXceiverServer) throws IOException {
         /*************************************************
          * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-         *  注释：
+         *  注释： 构造一个 DataXceiver 为一个客户端提供数据读写服务
+         *  1、peer = 代表了某个一个 Socket 客户端
          */
         return new DataXceiver(peer, dn, dataXceiverServer);
     }
@@ -143,8 +144,11 @@ class DataXceiver extends Receiver implements Runnable {
         super(datanode.getTracer());
         this.peer = peer;
         this.dnConf = datanode.getDnConf();
+
+        // TODO_MA 马中华 注释： 输入输出流
         this.socketIn = peer.getInputStream();
         this.socketOut = peer.getOutputStream();
+
         this.datanode = datanode;
         this.dataXceiverServer = dataXceiverServer;
         this.connectToDnViaHostname = datanode.getDnConf().connectToDnViaHostname;
@@ -233,7 +237,7 @@ class DataXceiver extends Receiver implements Runnable {
             }
             /*************************************************
              * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-             *  注释：
+             *  注释： 注册
              */
             dataXceiverServer.addPeer(peer, Thread.currentThread(), this);
             peer.setWriteTimeout(datanode.getDnConf().socketWriteTimeout);
@@ -241,13 +245,13 @@ class DataXceiver extends Receiver implements Runnable {
             try {
                 /*************************************************
                  * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-                 *  注释：
+                 *  注释： 对输入输出流进行包装
                  */
                 IOStreamPair saslStreams = datanode.saslServer.receive(peer, socketOut, socketIn,
                         datanode.getXferAddress().getPort(), datanode.getDatanodeId()
                 );
 
-                // TODO_MA 马中华 注释： 初始化得到输入流
+                // TODO_MA 马中华 注释： 获取输入输出流
                 input = new BufferedInputStream(saslStreams.in, smallBufferSize);
                 socketOut = saslStreams.out;
 
@@ -278,6 +282,7 @@ class DataXceiver extends Receiver implements Runnable {
             // We process requests in a loop, and stay around for a short timeout.
             // This optimistic behaviour allows the other end to reuse connections.
             // Setting keepalive timeout to 0 disable this behavior.
+
             /*************************************************
              * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
              *  注释： 进入一个处理循环，处理相关请求
@@ -294,7 +299,7 @@ class DataXceiver extends Receiver implements Runnable {
                     }
                     /*************************************************
                      * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-                     *  注释： 读取操作符
+                     *  注释： 读取操作符,  OP 就代表了  客户端/上游 datanode 想要干嘛
                      */
                     op = readOp();
                 } catch (InterruptedIOException ignored) {
@@ -571,6 +576,17 @@ class DataXceiver extends Receiver implements Runnable {
         peer = null;
     }
 
+    /*************************************************
+     * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+     *  注释：
+     *  1、block = 要读取的数据块
+     *  2、blockToken = 数据块的访问令牌
+     *  3、clientName = 客户端的名称
+     *  4、blockOffset =  要读取数据在数据块中的位置
+     *  5、length = 读取数据的长度
+     *  6、Datanode = 是否发送校验数据
+     *  7、cachingStrategy = 缓存策略
+     */
     @Override
     public void readBlock(final ExtendedBlock block, final Token<BlockTokenIdentifier> blockToken, final String clientName,
                           final long blockOffset, final long length, final boolean sendChecksum,
@@ -592,6 +608,10 @@ class DataXceiver extends Receiver implements Runnable {
 
         try {
             try {
+                /*************************************************
+                 * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+                 *  注释： 创建BlockSender对象
+                 */
                 blockSender = new BlockSender(block, blockOffset, length, true, false, sendChecksum, datanode,
                         clientTraceFmt, cachingStrategy
                 );
@@ -603,11 +623,23 @@ class DataXceiver extends Receiver implements Runnable {
             }
 
             // send op status
+            // TODO_MA 马中华 注释： 返回 ReadOpChecksumInfoProto 响应给客户端
             writeSuccessWithChecksumInfo(blockSender, new DataOutputStream(getOutputStream()));
 
             long beginRead = Time.monotonicNow();
+
+            /*************************************************
+             * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+             *  注释： 发送数据块
+             */
             read = blockSender.sendBlock(out, baseStream, null); // send data
+
             long duration = Time.monotonicNow() - beginRead;
+
+            /*************************************************
+             * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+             *  注释： 等待客户端返回一个状态码，看是否是成功
+             */
             if (blockSender.didSendEntireByteRange()) {
                 // If we sent the entire range, then we should expect the client
                 // to respond with a Status enum.
@@ -748,6 +780,8 @@ class DataXceiver extends Receiver implements Runnable {
                         /*************************************************
                          * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
                          *  注释： 构建 BlickReceiver 用于接收 Block 写到本地磁盘
+                         *  1、创建一个本地 block 文件
+                         *  2、构建一个 block 文件输出流
                          */
                         getBlockReceiver(block, storageType, in, peer.getRemoteAddressString(), peer.getLocalAddressString(),
                                 stage, latestGenerationStamp, minBytesRcvd, maxBytesRcvd, clientname, srcDataNode, datanode,
@@ -763,6 +797,9 @@ class DataXceiver extends Receiver implements Runnable {
             /*************************************************
              * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
              *  注释： 当前 datanode 和下游 datanode 之间建立数据管道
+             *  如果这个代码，此时时候在 第三个 datanode 里面执行，则不用执行 if 里面的代码了。
+             *  如果执行 if 中的代码，就是当前 datanode 和 下一个 datanode 建立连接
+             *  如果不执行 if 中的代码 ，表示当前 datanode 就是数据管道上的最后一个 dataonde
              */
             // Connect to downstream machine, if appropriate
             if (targets.length > 0) {
@@ -833,6 +870,8 @@ class DataXceiver extends Receiver implements Runnable {
                     /*************************************************
                      * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
                      *  注释： 写 Block
+                     *  在这个上面 已经完成 当前 datanode 和 下一个 datanode 的链接建立
+                     *  当前 datnaode 把意图 发给 下一个 datanode
                      */
                     if (targetPinnings != null && targetPinnings.length > 0) {
                         new Sender(mirrorOut).writeBlock(originalBlock, targetStorageTypes[0], blockToken, clientname,
@@ -916,6 +955,7 @@ class DataXceiver extends Receiver implements Runnable {
                 );
 
                 // send close-ack for transfer-RBW/Finalized
+                // TODO_MA 马中华 注释： 返回 SUCCESS
                 if (isTransfer) {
                     LOG.trace("TRANSFER: send close-ack");
                     writeResponse(SUCCESS, null, replyOut);
@@ -928,13 +968,12 @@ class DataXceiver extends Receiver implements Runnable {
                 block.setNumBytes(minBytesRcvd);
             }
 
-            // if this write is for a replication request or recovering
-            // a failed close for client, then confirm block. For other client-writes,
-            // the block is finalized in the PacketResponder.
+            // if this write is for a replication request or recovering a failed close for client, then confirm block.
+            // For other client-writes, the block is finalized in the PacketResponder.
             if (isDatanode || stage == BlockConstructionStage.PIPELINE_CLOSE_RECOVERY) {
                 /*************************************************
                  * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-                 *  注释：
+                 *  注释： 关闭 Block
                  */
                 datanode.closeBlock(block, null, storageUuid, isOnTransientStorage);
                 LOG.info("Received {} src: {} dest: {} of size {}", block, remoteAddress, localAddress, block.getNumBytes());

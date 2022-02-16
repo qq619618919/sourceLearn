@@ -102,22 +102,28 @@ public abstract class Receiver implements DataTransferProtocol {
     /** Process op by the corresponding method. */
     /*************************************************
      * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-     *  注释：
+     *  注释： 这个是重点！
+     *  上游 datanode 作为客户端，联系 下游 datanode , 具体的操作抽象就是：Op
      */
     protected final void processOp(Op op) throws IOException {
         switch (op) {
+
+            /*************************************************
+             * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+             *  注释： 读数据块
+             */
             case READ_BLOCK:
                 opReadBlock();
                 break;
 
             /*************************************************
              * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-             *  注释：
+             *  注释： 写数据块
              */
             case WRITE_BLOCK:
                 opWriteBlock(in);
                 break;
-                
+
             case REPLACE_BLOCK:
                 opReplaceBlock(in);
                 break;
@@ -158,6 +164,10 @@ public abstract class Receiver implements DataTransferProtocol {
         OpReadBlockProto proto = OpReadBlockProto.parseFrom(vintPrefixed(in));
         TraceScope traceScope = continueTraceSpan(proto.getHeader(), proto.getClass().getSimpleName());
         try {
+            /*************************************************
+             * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+             *  注释：
+             */
             readBlock(PBHelperClient.convert(proto.getHeader().getBaseHeader().getBlock()),
                     PBHelperClient.convert(proto.getHeader().getBaseHeader().getToken()), proto.getHeader().getClientName(),
                     proto.getOffset(), proto.getLen(), proto.getSendChecksums(), (proto.hasCachingStrategy() ? getCachingStrategy(
@@ -178,7 +188,9 @@ public abstract class Receiver implements DataTransferProtocol {
 
             /*************************************************
              * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-             *  注释：
+             *  注释： 接收到上一个 datanode/客户端的 连接请求之后 发送过来的 OP 来进行相关操作
+             *  1、创建一个 BlockReceiver 用来接收数据
+             *  2、发送链接请求给下一个 datanode
              */
             writeBlock(PBHelperClient.convert(proto.getHeader().getBaseHeader().getBlock()),
                     PBHelperClient.convertStorageType(proto.getStorageType()),

@@ -41,95 +41,91 @@ import org.apache.hadoop.yarn.util.Records;
  */
 public abstract class NodeStatus {
 
-  /**
-   * Create a new {@code NodeStatus}.
-   * @param nodeId Identifier for this node.
-   * @param responseId Identifier for the response.
-   * @param containerStatuses Status of the containers running in this node.
-   * @param keepAliveApplications Applications to keep alive.
-   * @param nodeHealthStatus Health status of the node.
-   * @param containersUtilization Utilization of the containers in this node.
-   * @param nodeUtilization Utilization of the node.
-   * @param increasedContainers Containers whose resource has been increased.
-   * @return New {@code NodeStatus} with the provided information.
-   */
-  public static NodeStatus newInstance(NodeId nodeId, int responseId,
-      List<ContainerStatus> containerStatuses,
-      List<ApplicationId> keepAliveApplications,
-      NodeHealthStatus nodeHealthStatus,
-      ResourceUtilization containersUtilization,
-      ResourceUtilization nodeUtilization,
-      List<Container> increasedContainers) {
-    NodeStatus nodeStatus = Records.newRecord(NodeStatus.class);
-    nodeStatus.setResponseId(responseId);
-    nodeStatus.setNodeId(nodeId);
-    nodeStatus.setContainersStatuses(containerStatuses);
-    nodeStatus.setKeepAliveApplications(keepAliveApplications);
-    nodeStatus.setNodeHealthStatus(nodeHealthStatus);
-    nodeStatus.setContainersUtilization(containersUtilization);
-    nodeStatus.setNodeUtilization(nodeUtilization);
-    nodeStatus.setIncreasedContainers(increasedContainers);
-    return nodeStatus;
-  }
+    /**
+     * Create a new {@code NodeStatus}.
+     * @param nodeId Identifier for this node.
+     * @param responseId Identifier for the response.
+     * @param containerStatuses Status of the containers running in this node.
+     * @param keepAliveApplications Applications to keep alive.
+     * @param nodeHealthStatus Health status of the node.
+     * @param containersUtilization Utilization of the containers in this node.
+     * @param nodeUtilization Utilization of the node.
+     * @param increasedContainers Containers whose resource has been increased.
+     * @return New {@code NodeStatus} with the provided information.
+     */
+    public static NodeStatus newInstance(NodeId nodeId, int responseId, List<ContainerStatus> containerStatuses,
+                                         List<ApplicationId> keepAliveApplications, NodeHealthStatus nodeHealthStatus,
+                                         ResourceUtilization containersUtilization, ResourceUtilization nodeUtilization,
+                                         List<Container> increasedContainers) {
+        NodeStatus nodeStatus = Records.newRecord(NodeStatus.class);
+        nodeStatus.setResponseId(responseId);
+        nodeStatus.setNodeId(nodeId);
+        nodeStatus.setContainersStatuses(containerStatuses);
+        nodeStatus.setKeepAliveApplications(keepAliveApplications);
+        nodeStatus.setNodeHealthStatus(nodeHealthStatus);
+        nodeStatus.setContainersUtilization(containersUtilization);
+        nodeStatus.setNodeUtilization(nodeUtilization);
+        nodeStatus.setIncreasedContainers(increasedContainers);
+        return nodeStatus;
+    }
 
-  public abstract NodeId getNodeId();
-  public abstract int getResponseId();
-  
-  public abstract List<ContainerStatus> getContainersStatuses();
-  public abstract void setContainersStatuses(
-      List<ContainerStatus> containersStatuses);
+    public abstract NodeId getNodeId();
 
-  public abstract List<ApplicationId> getKeepAliveApplications();
-  public abstract void setKeepAliveApplications(List<ApplicationId> appIds);
-  
-  public abstract NodeHealthStatus getNodeHealthStatus();
-  public abstract void setNodeHealthStatus(NodeHealthStatus healthStatus);
+    public abstract int getResponseId();
 
-  public abstract void setNodeId(NodeId nodeId);
-  public abstract void setResponseId(int responseId);
+    public abstract List<ContainerStatus> getContainersStatuses();
 
-  /**
-   * Get the <em>resource utilization</em> of the containers.
-   * @return <em>resource utilization</em> of the containers
-   */
-  @Public
-  @Stable
-  public abstract ResourceUtilization getContainersUtilization();
+    public abstract void setContainersStatuses(List<ContainerStatus> containersStatuses);
 
-  @Private
-  @Unstable
-  public abstract void setContainersUtilization(
-      ResourceUtilization containersUtilization);
+    public abstract List<ApplicationId> getKeepAliveApplications();
 
-  /**
-   * Get the <em>resource utilization</em> of the node.
-   * @return <em>resource utilization</em> of the node
-   */
-  @Public
-  @Stable
-  public abstract ResourceUtilization getNodeUtilization();
+    public abstract void setKeepAliveApplications(List<ApplicationId> appIds);
 
-  @Private
-  @Unstable
-  public abstract void setNodeUtilization(
-      ResourceUtilization nodeUtilization);
+    public abstract NodeHealthStatus getNodeHealthStatus();
 
-  @Public
-  @Unstable
-  public abstract List<Container> getIncreasedContainers();
+    public abstract void setNodeHealthStatus(NodeHealthStatus healthStatus);
 
-  @Private
-  @Unstable
-  public abstract void setIncreasedContainers(
-      List<Container> increasedContainers);
+    public abstract void setNodeId(NodeId nodeId);
 
-  @Private
-  @Unstable
-  public abstract OpportunisticContainersStatus
-      getOpportunisticContainersStatus();
+    public abstract void setResponseId(int responseId);
 
-  @Private
-  @Unstable
-  public abstract void setOpportunisticContainersStatus(
-      OpportunisticContainersStatus opportunisticContainersStatus);
+    /**
+     * Get the <em>resource utilization</em> of the containers.
+     * @return <em>resource utilization</em> of the containers
+     */
+    @Public
+    @Stable
+    public abstract ResourceUtilization getContainersUtilization();
+
+    @Private
+    @Unstable
+    public abstract void setContainersUtilization(ResourceUtilization containersUtilization);
+
+    /**
+     * Get the <em>resource utilization</em> of the node.
+     * @return <em>resource utilization</em> of the node
+     */
+    @Public
+    @Stable
+    public abstract ResourceUtilization getNodeUtilization();
+
+    @Private
+    @Unstable
+    public abstract void setNodeUtilization(ResourceUtilization nodeUtilization);
+
+    @Public
+    @Unstable
+    public abstract List<Container> getIncreasedContainers();
+
+    @Private
+    @Unstable
+    public abstract void setIncreasedContainers(List<Container> increasedContainers);
+
+    @Private
+    @Unstable
+    public abstract OpportunisticContainersStatus getOpportunisticContainersStatus();
+
+    @Private
+    @Unstable
+    public abstract void setOpportunisticContainersStatus(OpportunisticContainersStatus opportunisticContainersStatus);
 }

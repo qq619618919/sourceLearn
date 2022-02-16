@@ -170,7 +170,8 @@ public class DFSUtilClient {
                 nextIndex++;
             }
             result[i] = (nextIndex > 0) ? Arrays.copyOfRange(bytes, startIndex,
-                    nextIndex) : DFSUtilClient.EMPTY_BYTES; // reuse empty bytes for root.
+                    nextIndex
+            ) : DFSUtilClient.EMPTY_BYTES; // reuse empty bytes for root.
             do { // skip over separators.
                 nextIndex++;
             } while (nextIndex < len && bytes[nextIndex] == separator);
@@ -302,7 +303,8 @@ public class DFSUtilClient {
                 cachedHosts[i] = cachedLocations[i].getHostName();
             }
             blkLocations[idx] = new BlockLocation(xferAddrs, hosts, cachedHosts, racks, blk.getStorageIDs(), blk.getStorageTypes(),
-                    blk.getStartOffset(), blk.getBlockSize(), blk.isCorrupt());
+                    blk.getStartOffset(), blk.getBlockSize(), blk.isCorrupt()
+            );
             idx++;
         }
         return blkLocations;
@@ -391,7 +393,8 @@ public class DFSUtilClient {
      * @param keys Set of keys to look for in the order of preference
      * @return a map(nameserviceId to map(namenodeId to InetSocketAddress))
      */
-    public static Map<String, Map<String, InetSocketAddress>> getAddresses(Configuration conf, String defaultAddress, String... keys) {
+    public static Map<String, Map<String, InetSocketAddress>> getAddresses(Configuration conf, String defaultAddress,
+                                                                           String... keys) {
         Collection<String> nameserviceIds = getNameServiceIds(conf);
         return getAddressesForNsIds(conf, nameserviceIds, defaultAddress, keys);
     }
@@ -404,8 +407,8 @@ public class DFSUtilClient {
      *
      * @return a map(nameserviceId to map(namenodeId to InetSocketAddress))
      */
-    static Map<String, Map<String, InetSocketAddress>> getAddressesForNsIds(Configuration conf, Collection<String> nsIds, String defaultAddress,
-                                                                            String... keys) {
+    static Map<String, Map<String, InetSocketAddress>> getAddressesForNsIds(Configuration conf, Collection<String> nsIds,
+                                                                            String defaultAddress, String... keys) {
         // Look for configurations of the form <key>[.<nameserviceId>][.<namenodeId>]
         // across all of the configured nameservices and namenodes.
         Map<String, Map<String, InetSocketAddress>> ret = Maps.newLinkedHashMap();
@@ -430,7 +433,8 @@ public class DFSUtilClient {
                 if (isa.isUnresolved()) {
                     LOG.warn(
                             "Namenode for {} remains unresolved for ID {}. Check your " + "hdfs-site.xml file to ensure namenodes are configured " + "properly.",
-                            nsId, nnId);
+                            nsId, nnId
+                    );
                 }
                 ret.put(nnId, isa);
             }
@@ -628,26 +632,29 @@ public class DFSUtilClient {
     }
 
     /** Create a {@link ClientDatanodeProtocol} proxy */
-    public static ClientDatanodeProtocol createClientDatanodeProtocolProxy(DatanodeID datanodeid, Configuration conf, int socketTimeout,
-                                                                           boolean connectToDnViaHostname,
+    public static ClientDatanodeProtocol createClientDatanodeProtocolProxy(DatanodeID datanodeid, Configuration conf,
+                                                                           int socketTimeout, boolean connectToDnViaHostname,
                                                                            LocatedBlock locatedBlock) throws IOException {
         return new ClientDatanodeProtocolTranslatorPB(datanodeid, conf, socketTimeout, connectToDnViaHostname, locatedBlock);
     }
 
     /** Create {@link ClientDatanodeProtocol} proxy using kerberos ticket */
-    public static ClientDatanodeProtocol createClientDatanodeProtocolProxy(DatanodeID datanodeid, Configuration conf, int socketTimeout,
+    public static ClientDatanodeProtocol createClientDatanodeProtocolProxy(DatanodeID datanodeid, Configuration conf,
+                                                                           int socketTimeout,
                                                                            boolean connectToDnViaHostname) throws IOException {
         return new ClientDatanodeProtocolTranslatorPB(datanodeid, conf, socketTimeout, connectToDnViaHostname);
     }
 
     /** Create a {@link ClientDatanodeProtocol} proxy */
     public static ClientDatanodeProtocol createClientDatanodeProtocolProxy(InetSocketAddress addr, UserGroupInformation ticket,
-                                                                           Configuration conf, SocketFactory factory) throws IOException {
+                                                                           Configuration conf,
+                                                                           SocketFactory factory) throws IOException {
         return new ClientDatanodeProtocolTranslatorPB(addr, ticket, conf, factory);
     }
 
     public static ReconfigurationProtocol createReconfigurationProtocolProxy(InetSocketAddress addr, UserGroupInformation ticket,
-                                                                             Configuration conf, SocketFactory factory) throws IOException {
+                                                                             Configuration conf,
+                                                                             SocketFactory factory) throws IOException {
         return new ReconfigurationProtocolTranslatorPB(addr, ticket, conf, factory);
     }
 
@@ -707,7 +714,10 @@ public class DFSUtilClient {
     }
 
     public static int getIoFileBufferSize(Configuration conf) {
-        return conf.getInt(CommonConfigurationKeysPublic.IO_FILE_BUFFER_SIZE_KEY, CommonConfigurationKeysPublic.IO_FILE_BUFFER_SIZE_DEFAULT);
+        // TODO_MA 马中华 注释： io.file.buffer.size = 4096
+        return conf.getInt(CommonConfigurationKeysPublic.IO_FILE_BUFFER_SIZE_KEY,
+                CommonConfigurationKeysPublic.IO_FILE_BUFFER_SIZE_DEFAULT
+        );
     }
 
     public static int getSmallBufferSize(Configuration conf) {
@@ -742,14 +752,15 @@ public class DFSUtilClient {
     public static InetSocketAddress getNNAddress(URI filesystemURI) {
         String authority = filesystemURI.getAuthority();
         if (authority == null) {
-            throw new IllegalArgumentException(
-                    String.format("Invalid URI for NameNode address (check %s): %s has no authority.", FileSystem.FS_DEFAULT_NAME_KEY,
-                            filesystemURI.toString()));
+            throw new IllegalArgumentException(String.format("Invalid URI for NameNode address (check %s): %s has no authority.",
+                    FileSystem.FS_DEFAULT_NAME_KEY, filesystemURI.toString()
+            ));
         }
         if (!HdfsConstants.HDFS_URI_SCHEME.equalsIgnoreCase(filesystemURI.getScheme())) {
             throw new IllegalArgumentException(
-                    String.format("Invalid URI for NameNode address (check %s): " + "%s is not of scheme '%s'.", FileSystem.FS_DEFAULT_NAME_KEY,
-                            filesystemURI.toString(), HdfsConstants.HDFS_URI_SCHEME));
+                    String.format("Invalid URI for NameNode address (check %s): " + "%s is not of scheme '%s'.",
+                            FileSystem.FS_DEFAULT_NAME_KEY, filesystemURI.toString(), HdfsConstants.HDFS_URI_SCHEME
+                    ));
         }
         return getNNAddress(authority);
     }
@@ -765,7 +776,9 @@ public class DFSUtilClient {
     public static InetSocketAddress getNNAddressCheckLogical(Configuration conf, URI filesystemURI) {
         InetSocketAddress retAddr;
         if (HAUtilClient.isLogicalUri(conf, filesystemURI)) {
-            retAddr = InetSocketAddress.createUnresolved(filesystemURI.getAuthority(), HdfsClientConfigKeys.DFS_NAMENODE_RPC_PORT_DEFAULT);
+            retAddr = InetSocketAddress.createUnresolved(filesystemURI.getAuthority(),
+                    HdfsClientConfigKeys.DFS_NAMENODE_RPC_PORT_DEFAULT
+            );
         } else {
             retAddr = getNNAddress(filesystemURI);
         }
@@ -823,7 +836,8 @@ public class DFSUtilClient {
      * the resulting IOStreamPair. This includes encryption wrapping, etc.
      */
     public static IOStreamPair connectToDN(DatanodeInfo dn, int timeout, Configuration conf, SaslDataTransferClient saslClient,
-                                           SocketFactory socketFactory, boolean connectToDnViaHostname, DataEncryptionKeyFactory dekFactory,
+                                           SocketFactory socketFactory, boolean connectToDnViaHostname,
+                                           DataEncryptionKeyFactory dekFactory,
                                            Token<BlockTokenIdentifier> blockToken) throws IOException {
 
         boolean success = false;
@@ -841,7 +855,8 @@ public class DFSUtilClient {
             IOStreamPair pair = saslClient.newSocketSend(sock, unbufOut, unbufIn, dekFactory, blockToken, dn);
 
             IOStreamPair result = new IOStreamPair(new DataInputStream(pair.in),
-                    new DataOutputStream(new BufferedOutputStream(pair.out, DFSUtilClient.getSmallBufferSize(conf))));
+                    new DataOutputStream(new BufferedOutputStream(pair.out, DFSUtilClient.getSmallBufferSize(conf)))
+            );
 
             success = true;
             return result;
@@ -868,9 +883,11 @@ public class DFSUtilClient {
      *        ThreadPoolExecutor are run in the context of calling thread
      * @return ThreadPoolExecutor
      */
-    public static ThreadPoolExecutor getThreadPoolExecutor(int corePoolSize, int maxPoolSize, long keepAliveTimeSecs, String threadNamePrefix,
-                                                           boolean runRejectedExec) {
-        return getThreadPoolExecutor(corePoolSize, maxPoolSize, keepAliveTimeSecs, new SynchronousQueue<>(), threadNamePrefix, runRejectedExec);
+    public static ThreadPoolExecutor getThreadPoolExecutor(int corePoolSize, int maxPoolSize, long keepAliveTimeSecs,
+                                                           String threadNamePrefix, boolean runRejectedExec) {
+        return getThreadPoolExecutor(corePoolSize, maxPoolSize, keepAliveTimeSecs, new SynchronousQueue<>(), threadNamePrefix,
+                runRejectedExec
+        );
     }
 
     /**
@@ -887,19 +904,21 @@ public class DFSUtilClient {
      * @return ThreadPoolExecutor
      */
     public static ThreadPoolExecutor getThreadPoolExecutor(int corePoolSize, int maxPoolSize, long keepAliveTimeSecs,
-                                                           BlockingQueue<Runnable> queue, String threadNamePrefix, boolean runRejectedExec) {
+                                                           BlockingQueue<Runnable> queue, String threadNamePrefix,
+                                                           boolean runRejectedExec) {
         Preconditions.checkArgument(corePoolSize > 0);
-        ThreadPoolExecutor threadPoolExecutor = new ThreadPoolExecutor(corePoolSize, maxPoolSize, keepAliveTimeSecs, TimeUnit.SECONDS, queue,
-                new Daemon.DaemonFactory() {
-                    private final AtomicInteger threadIndex = new AtomicInteger(0);
+        ThreadPoolExecutor threadPoolExecutor = new ThreadPoolExecutor(corePoolSize, maxPoolSize, keepAliveTimeSecs,
+                TimeUnit.SECONDS, queue, new Daemon.DaemonFactory() {
+            private final AtomicInteger threadIndex = new AtomicInteger(0);
 
-                    @Override
-                    public Thread newThread(Runnable r) {
-                        Thread t = super.newThread(r);
-                        t.setName(threadNamePrefix + threadIndex.getAndIncrement());
-                        return t;
-                    }
-                });
+            @Override
+            public Thread newThread(Runnable r) {
+                Thread t = super.newThread(r);
+                t.setName(threadNamePrefix + threadIndex.getAndIncrement());
+                return t;
+            }
+        }
+        );
         if (runRejectedExec) {
             threadPoolExecutor.setRejectedExecutionHandler(new ThreadPoolExecutor.CallerRunsPolicy() {
                 @Override
@@ -925,8 +944,8 @@ public class DFSUtilClient {
      */
     public static Path makePathFromFileId(long fileId) {
         StringBuilder sb = new StringBuilder(INODE_PATH_MAX_LENGTH);
-        sb.append(Path.SEPARATOR).append(HdfsConstants.DOT_RESERVED_STRING).append(Path.SEPARATOR).append(HdfsConstants.DOT_INODES_STRING)
-                .append(Path.SEPARATOR).append(fileId);
+        sb.append(Path.SEPARATOR).append(HdfsConstants.DOT_RESERVED_STRING).append(Path.SEPARATOR)
+                .append(HdfsConstants.DOT_INODES_STRING).append(Path.SEPARATOR).append(fileId);
         return new Path(sb.toString());
     }
 
@@ -942,7 +961,9 @@ public class DFSUtilClient {
     public static String getHomeDirectory(Configuration conf, UserGroupInformation ugi) {
         String userHomePrefix = HdfsClientConfigKeys.DFS_USER_HOME_DIR_PREFIX_DEFAULT;
         if (conf != null) {
-            userHomePrefix = conf.get(HdfsClientConfigKeys.DFS_USER_HOME_DIR_PREFIX_KEY, HdfsClientConfigKeys.DFS_USER_HOME_DIR_PREFIX_DEFAULT);
+            userHomePrefix = conf.get(HdfsClientConfigKeys.DFS_USER_HOME_DIR_PREFIX_KEY,
+                    HdfsClientConfigKeys.DFS_USER_HOME_DIR_PREFIX_DEFAULT
+            );
         }
         return userHomePrefix + Path.SEPARATOR + ugi.getShortUserName();
     }
@@ -965,6 +986,7 @@ public class DFSUtilClient {
      */
     public static String getEZTrashRoot(EncryptionZone ez, UserGroupInformation ugi) {
         String ezpath = ez.getPath();
-        return (ezpath.equals("/") ? ezpath : ezpath + Path.SEPARATOR) + FileSystem.TRASH_PREFIX + Path.SEPARATOR + ugi.getShortUserName();
+        return (ezpath.equals("/") ? ezpath : ezpath + Path.SEPARATOR
+        ) + FileSystem.TRASH_PREFIX + Path.SEPARATOR + ugi.getShortUserName();
     }
 }

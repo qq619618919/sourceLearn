@@ -482,7 +482,7 @@ public class JournalSet implements JournalManager {
                          *  2、对于journal来说，对于 QuorumJournalManager 来说，创建的 Stream = QuorumOutputStream
                          *  -
                          *  补充一个背景知识： 当 NameNode 启动的时候，会打开对应的日志系统的输出流
-                         *  1、往 anemndoe 本地写： EditLogFileOutputStream
+                         *  1、往 namenode 本地写： EditLogFileOutputStream
                          *  2、往 journal 中写：QuorumOutputStream
                          */
                         jas.getCurrentStream().write(op);
@@ -723,8 +723,7 @@ public class JournalSet implements JournalManager {
                     break;
                 } else {
                     if (LOG.isDebugEnabled()) {
-                        LOG.debug(
-                                "Found gap in logs at " + curStartTxId + ": " + "not returning previous logs in manifest.");
+                        LOG.debug("Found gap in logs at " + curStartTxId + ": " + "not returning previous logs in manifest.");
                     }
                     logs.clear();
                     curStartTxId = startTxIds.first();

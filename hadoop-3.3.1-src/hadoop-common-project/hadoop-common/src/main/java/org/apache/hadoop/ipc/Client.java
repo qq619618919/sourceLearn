@@ -737,6 +737,10 @@ public class Client implements AutoCloseable {
                             LOG.warn("Exception when handle ConnectionFailure: " + ioe.getMessage());
                         }
                     } else {
+                        /*************************************************
+                         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+                         *  注释：
+                         */
                         handleConnectionFailure(ioFailures++, ie);
                     }
                 }
@@ -965,6 +969,10 @@ public class Client implements AutoCloseable {
 
             final RetryAction action;
             try {
+                /*************************************************
+                 * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+                 *  注释：
+                 */
                 action = connectionRetryPolicy.shouldRetry(ioe, curRetries, 0, true);
             } catch (Exception e) {
                 throw e instanceof IOException ? (IOException) e : new IOException(e);
@@ -985,11 +993,20 @@ public class Client implements AutoCloseable {
             }
 
             try {
+                /*************************************************
+                 * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+                 *  注释：
+                 */
                 Thread.sleep(action.delayMillis);
             } catch (InterruptedException e) {
                 throw (IOException) new InterruptedIOException(
                         "Interrupted: action=" + action + ", retry policy=" + connectionRetryPolicy).initCause(e);
             }
+
+            /*************************************************
+             * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+             *  注释： JournalNode 死亡一个节点的重试日志
+             */
             LOG.info(
                     "Retrying connect to server: " + server + ". Already tried " + curRetries + " time(s); retry policy is " + connectionRetryPolicy);
         }
@@ -1837,10 +1854,16 @@ public class Client implements AutoCloseable {
                 final int max = conf.getInt(CommonConfigurationKeysPublic.IPC_CLIENT_CONNECT_MAX_RETRIES_KEY,
                         CommonConfigurationKeysPublic.IPC_CLIENT_CONNECT_MAX_RETRIES_DEFAULT
                 );
+
+                // TODO_MA 马中华 注释： 重试时间： ipc.client.connect.retry.interval = 1s
                 final int retryInterval = conf.getInt(CommonConfigurationKeysPublic.IPC_CLIENT_CONNECT_RETRY_INTERVAL_KEY,
                         CommonConfigurationKeysPublic.IPC_CLIENT_CONNECT_RETRY_INTERVAL_DEFAULT
                 );
 
+                /*************************************************
+                 * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+                 *  注释：
+                 */
                 connectionRetryPolicy = RetryPolicies.retryUpToMaximumCountWithFixedSleep(max, retryInterval,
                         TimeUnit.MILLISECONDS
                 );

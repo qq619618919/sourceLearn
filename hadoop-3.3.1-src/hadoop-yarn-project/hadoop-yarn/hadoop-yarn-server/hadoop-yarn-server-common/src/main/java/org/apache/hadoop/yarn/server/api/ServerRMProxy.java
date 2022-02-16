@@ -66,7 +66,7 @@ public class ServerRMProxy<T> extends RMProxy<T> {
 
         /*************************************************
          * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-         *  注释：
+         *  注释： 创建 RM 代理
          */
         return createRMProxy(configuration, protocol, serverRMProxy, nmRmConnectWait, nmRmRetryInterval);
     }

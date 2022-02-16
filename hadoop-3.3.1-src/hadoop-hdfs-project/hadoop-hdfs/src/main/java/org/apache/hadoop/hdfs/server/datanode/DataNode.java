@@ -1146,16 +1146,19 @@ public class DataNode extends ReconfigurableBase implements InterDatanodeProtoco
 
         /*************************************************
          * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-         *  注释：
+         *  注释： 内部根据是否执行写超时时间来决定创建的是 NIO 服务端 还是 BIO 服务端
          */
         // find free port or use privileged port provided
         TcpPeerServer tcpPeerServer;
         if (secureResources != null) {
             tcpPeerServer = new TcpPeerServer(secureResources);
         } else {
+            // TODO_MA 马中华 注释： ipc.server.listen.queue.size = 256
             int backlogLength = getConf().getInt(CommonConfigurationKeysPublic.IPC_SERVER_LISTEN_QUEUE_SIZE_KEY,
                     CommonConfigurationKeysPublic.IPC_SERVER_LISTEN_QUEUE_SIZE_DEFAULT
             );
+            // TODO_MA 马中华 注释： dfs.datanode.socket.write.timeout = 8分钟
+            // TODO_MA 马中华 注释： dfs.datanode.address = 9866
             tcpPeerServer = new TcpPeerServer(dnConf.socketWriteTimeout, DataNode.getStreamingAddr(getConf()), backlogLength);
         }
         if (dnConf.getTransferSocketRecvBufferSize() > 0) {
@@ -1179,6 +1182,7 @@ public class DataNode extends ReconfigurableBase implements InterDatanodeProtoco
         ) || getConf().getBoolean(HdfsClientConfigKeys.DFS_CLIENT_DOMAIN_SOCKET_DATA_TRAFFIC,
                 HdfsClientConfigKeys.DFS_CLIENT_DOMAIN_SOCKET_DATA_TRAFFIC_DEFAULT
         )) {
+            // TODO_MA 马中华 注释： 构造 DomainPeerServer (底层基于 DomainSocket,用于本进程间通信）
             DomainPeerServer domainPeerServer = getDomainPeerServer(getConf(), streamingAddr.getPort());
             if (domainPeerServer != null) {
                 // TODO_MA 马中华 注释：
@@ -1186,6 +1190,7 @@ public class DataNode extends ReconfigurableBase implements InterDatanodeProtoco
                 LOG.info("Listening on UNIX domain socket: {}", domainPeerServer.getBindPath());
             }
         }
+        // TODO_MA 马中华 注释： 创建 ShortCircuitRegistry 对象
         this.shortCircuitRegistry = new ShortCircuitRegistry(getConf());
     }
 
@@ -3216,6 +3221,7 @@ public class DataNode extends ReconfigurableBase implements InterDatanodeProtoco
     }
 
     static InetSocketAddress getStreamingAddr(Configuration conf) {
+        // TODO_MA 马中华 注释： dfs.datanode.address = 9866
         return NetUtils.createSocketAddr(conf.getTrimmed(DFS_DATANODE_ADDRESS_KEY, DFS_DATANODE_ADDRESS_DEFAULT));
     }
 

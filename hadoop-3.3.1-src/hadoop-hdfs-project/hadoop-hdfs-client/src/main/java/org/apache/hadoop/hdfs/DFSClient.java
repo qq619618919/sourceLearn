@@ -876,6 +876,11 @@ public class DFSClient implements java.io.Closeable, RemotePeerFactory, DataEncr
     }
 
     public LocatedBlocks getLocatedBlocks(String src, long start) throws IOException {
+
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释：
+         */
         return getLocatedBlocks(src, start, dfsClientConf.getPrefetchSize());
     }
 
@@ -886,6 +891,11 @@ public class DFSClient implements java.io.Closeable, RemotePeerFactory, DataEncr
     @VisibleForTesting
     public LocatedBlocks getLocatedBlocks(String src, long start, long length) throws IOException {
         try (TraceScope ignored = newPathTraceScope("getBlockLocations", src)) {
+
+            /*************************************************
+             * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+             *  注释：
+             */
             return callGetBlockLocations(namenode, src, start, length);
         }
     }
@@ -895,6 +905,10 @@ public class DFSClient implements java.io.Closeable, RemotePeerFactory, DataEncr
      */
     static LocatedBlocks callGetBlockLocations(ClientProtocol namenode, String src, long start, long length) throws IOException {
         try {
+            /*************************************************
+             * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+             *  注释：
+             */
             return namenode.getBlockLocations(src, start, length);
         } catch (RemoteException re) {
             throw re.unwrapRemoteException(AccessControlException.class, FileNotFoundException.class,
@@ -964,6 +978,10 @@ public class DFSClient implements java.io.Closeable, RemotePeerFactory, DataEncr
             return new HdfsDataInputStream(cryptoIn);
         } else {
             // No FileEncryptionInfo so no encryption.
+            /*************************************************
+             * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+             *  注释： HdfsDataInputStream 是 FSDataInputStream 的子类, 是 DataInputStream 的子类
+             */
             return new HdfsDataInputStream(dfsis);
         }
     }
@@ -1045,7 +1063,17 @@ public class DFSClient implements java.io.Closeable, RemotePeerFactory, DataEncr
         checkOpen();
         //    Get block info from namenode
         try (TraceScope ignored = newPathTraceScope("newDFSInputStream", src)) {
+
+            /*************************************************
+             * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+             *  注释： 首先获取文件的数据块信息
+             */
             LocatedBlocks locatedBlocks = getLocatedBlocks(src, 0);
+
+            /*************************************************
+             * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+             *  注释： 根据获取到的 Block 的信息创建输入流
+             */
             return openInternal(locatedBlocks, src, verifyChecksum);
         }
     }
@@ -1075,11 +1103,23 @@ public class DFSClient implements java.io.Closeable, RemotePeerFactory, DataEncr
     }
 
     private DFSInputStream openInternal(LocatedBlocks locatedBlocks, String src, boolean verifyChecksum) throws IOException {
+
+        // TODO_MA 马中华 注释： 创建输入流
         if (locatedBlocks != null) {
+
+            /*************************************************
+             * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+             *  注释： 纠删码
+             */
             ErasureCodingPolicy ecPolicy = locatedBlocks.getErasureCodingPolicy();
             if (ecPolicy != null) {
                 return new DFSStripedInputStream(this, src, verifyChecksum, ecPolicy, locatedBlocks);
             }
+
+            /*************************************************
+             * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+             *  注释： 副本机制
+             */
             return new DFSInputStream(this, src, verifyChecksum, locatedBlocks);
         } else {
             throw new IOException("Cannot open filename " + src);
@@ -2895,8 +2935,17 @@ public class DFSClient implements java.io.Closeable, RemotePeerFactory, DataEncr
         Socket sock = null;
         final int socketTimeout = dfsClientConf.getSocketTimeout();
         try {
+            /*************************************************
+             * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+             *  注释：
+             */
             sock = socketFactory.createSocket();
             NetUtils.connect(sock, addr, getRandomLocalInterfaceAddr(), socketTimeout);
+
+            /*************************************************
+             * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+             *  注释：
+             */
             peer = DFSUtilClient.peerFromSocketAndKey(saslClient, sock, this, blockToken, datanodeId, socketTimeout);
             success = true;
             return peer;

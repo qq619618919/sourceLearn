@@ -752,6 +752,11 @@ public class NameNodeRpcServer implements NamenodeProtocols {
     public LocatedBlocks getBlockLocations(String src, long offset, long length) throws IOException {
         checkNNStartup();
         metrics.incrGetBlockLocations();
+
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释：
+         */
         LocatedBlocks locatedBlocks = namesystem.getBlockLocations(getClientMachine(), src, offset, length);
         return locatedBlocks;
     }
@@ -886,6 +891,8 @@ public class NameNodeRpcServer implements NamenodeProtocols {
         namesystem.setOwner(src, username, groupname);
     }
 
+    // TODO_MA 马中华 注释： 创建 DFSOutputStream 的时候，发送 RPC 请求创建文件节点，返回 HdfsFileStatus
+    // TODO_MA 马中华 注释： LocatedBlock File中的饿一个 数据块的元数据
     @Override
     public LocatedBlock addBlock(String src, String clientName, ExtendedBlock previous, DatanodeInfo[] excludedNodes, long fileId,
                                  String[] favoredNodes, EnumSet<AddBlockFlag> addBlockFlags) throws IOException {
@@ -907,6 +914,7 @@ public class NameNodeRpcServer implements NamenodeProtocols {
         }
 
         // TODO_MA 马中华 注释： 返回：LocatedBlock
+        // TODO_MA 马中华 注释： 客户端需要拿到的 3 个datanode 列表也在里面！
         return locatedBlock;
     }
 

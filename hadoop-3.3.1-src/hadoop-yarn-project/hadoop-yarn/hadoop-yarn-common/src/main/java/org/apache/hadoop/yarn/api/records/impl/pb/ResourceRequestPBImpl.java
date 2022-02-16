@@ -32,223 +32,212 @@ import org.apache.hadoop.yarn.proto.YarnProtos.ResourceRequestProtoOrBuilder;
 
 @Private
 @Unstable
-public class ResourceRequestPBImpl extends  ResourceRequest {
-  ResourceRequestProto proto = ResourceRequestProto.getDefaultInstance();
-  ResourceRequestProto.Builder builder = null;
-  boolean viaProto = false;
-  
-  private Priority priority = null;
-  private Resource capability = null;
-  private ExecutionTypeRequest executionTypeRequest = null;
+public class ResourceRequestPBImpl extends ResourceRequest {
+    ResourceRequestProto proto = ResourceRequestProto.getDefaultInstance();
+    ResourceRequestProto.Builder builder = null;
+    boolean viaProto = false;
 
-  
-  public ResourceRequestPBImpl() {
-    builder = ResourceRequestProto.newBuilder();
-  }
+    private Priority priority = null;
+    private Resource capability = null;
+    private ExecutionTypeRequest executionTypeRequest = null;
 
-  public ResourceRequestPBImpl(ResourceRequestProto proto) {
-    this.proto = proto;
-    viaProto = true;
-  }
-  
-  public ResourceRequestProto getProto() {
-    mergeLocalToProto();
-    proto = viaProto ? proto : builder.build();
-    viaProto = true;
-    return proto;
-  }
 
-  private void mergeLocalToBuilder() {
-    if (this.priority != null) {
-      builder.setPriority(convertToProtoFormat(this.priority));
+    public ResourceRequestPBImpl() {
+        builder = ResourceRequestProto.newBuilder();
     }
-    if (this.capability != null) {
-      builder.setCapability(convertToProtoFormat(this.capability));
+
+    public ResourceRequestPBImpl(ResourceRequestProto proto) {
+        this.proto = proto;
+        viaProto = true;
     }
-    if (this.executionTypeRequest != null) {
-      builder.setExecutionTypeRequest(
-          ProtoUtils.convertToProtoFormat(this.executionTypeRequest));
+
+    public ResourceRequestProto getProto() {
+        mergeLocalToProto();
+        proto = viaProto ? proto : builder.build();
+        viaProto = true;
+        return proto;
     }
-  }
 
-  private void mergeLocalToProto() {
-    if (viaProto) 
-      maybeInitBuilder();
-    mergeLocalToBuilder();
-    proto = builder.build();
-    viaProto = true;
-  }
-
-  private void maybeInitBuilder() {
-    if (viaProto || builder == null) {
-      builder = ResourceRequestProto.newBuilder(proto);
+    private void mergeLocalToBuilder() {
+        if (this.priority != null) {
+            builder.setPriority(convertToProtoFormat(this.priority));
+        }
+        if (this.capability != null) {
+            builder.setCapability(convertToProtoFormat(this.capability));
+        }
+        if (this.executionTypeRequest != null) {
+            builder.setExecutionTypeRequest(ProtoUtils.convertToProtoFormat(this.executionTypeRequest));
+        }
     }
-    viaProto = false;
-  }
-    
-  
-  @Override
-  public Priority getPriority() {
-    ResourceRequestProtoOrBuilder p = viaProto ? proto : builder;
-    if (this.priority != null) {
-      return this.priority;
+
+    private void mergeLocalToProto() {
+        if (viaProto) maybeInitBuilder();
+        mergeLocalToBuilder();
+        proto = builder.build();
+        viaProto = true;
     }
-    if (!p.hasPriority()) {
-      return null;
+
+    private void maybeInitBuilder() {
+        if (viaProto || builder == null) {
+            builder = ResourceRequestProto.newBuilder(proto);
+        }
+        viaProto = false;
     }
-    this.priority = convertFromProtoFormat(p.getPriority());
-    return this.priority;
-  }
-
-  @Override
-  public void setPriority(Priority priority) {
-    maybeInitBuilder();
-    if (priority == null) 
-      builder.clearPriority();
-    this.priority = priority;
-  }
 
 
-  public ExecutionTypeRequest getExecutionTypeRequest() {
-    ResourceRequestProtoOrBuilder p = viaProto ? proto : builder;
-    if (this.executionTypeRequest != null) {
-      return this.executionTypeRequest;
+    @Override
+    public Priority getPriority() {
+        ResourceRequestProtoOrBuilder p = viaProto ? proto : builder;
+        if (this.priority != null) {
+            return this.priority;
+        }
+        if (!p.hasPriority()) {
+            return null;
+        }
+        this.priority = convertFromProtoFormat(p.getPriority());
+        return this.priority;
     }
-    if (!p.hasExecutionTypeRequest()) {
-      return null;
+
+    @Override
+    public void setPriority(Priority priority) {
+        maybeInitBuilder();
+        if (priority == null) builder.clearPriority();
+        this.priority = priority;
     }
-    this.executionTypeRequest =
-        ProtoUtils.convertFromProtoFormat(p.getExecutionTypeRequest());
-    return this.executionTypeRequest;
-  }
 
-  public void setExecutionTypeRequest(ExecutionTypeRequest execSpec) {
-    maybeInitBuilder();
-    if (execSpec == null) {
-      builder.clearExecutionTypeRequest();
+
+    public ExecutionTypeRequest getExecutionTypeRequest() {
+        ResourceRequestProtoOrBuilder p = viaProto ? proto : builder;
+        if (this.executionTypeRequest != null) {
+            return this.executionTypeRequest;
+        }
+        if (!p.hasExecutionTypeRequest()) {
+            return null;
+        }
+        this.executionTypeRequest = ProtoUtils.convertFromProtoFormat(p.getExecutionTypeRequest());
+        return this.executionTypeRequest;
     }
-    this.executionTypeRequest = execSpec;
-  }
 
-  @Override
-  public String getResourceName() {
-    ResourceRequestProtoOrBuilder p = viaProto ? proto : builder;
-    if (!p.hasResourceName()) {
-      return null;
+    public void setExecutionTypeRequest(ExecutionTypeRequest execSpec) {
+        maybeInitBuilder();
+        if (execSpec == null) {
+            builder.clearExecutionTypeRequest();
+        }
+        this.executionTypeRequest = execSpec;
     }
-    return (p.getResourceName());
-  }
 
-  @Override
-  public void setResourceName(String resourceName) {
-    maybeInitBuilder();
-    if (resourceName == null) {
-      builder.clearResourceName();
-      return;
+    @Override
+    public String getResourceName() {
+        ResourceRequestProtoOrBuilder p = viaProto ? proto : builder;
+        if (!p.hasResourceName()) {
+            return null;
+        }
+        return (p.getResourceName());
     }
-    builder.setResourceName((resourceName));
-  }
-  @Override
-  public Resource getCapability() {
-    ResourceRequestProtoOrBuilder p = viaProto ? proto : builder;
-    if (this.capability != null) {
-      return this.capability;
+
+    @Override
+    public void setResourceName(String resourceName) {
+        maybeInitBuilder();
+        if (resourceName == null) {
+            builder.clearResourceName();
+            return;
+        }
+        builder.setResourceName((resourceName));
     }
-    if (!p.hasCapability()) {
-      return null;
+
+    @Override
+    public Resource getCapability() {
+        ResourceRequestProtoOrBuilder p = viaProto ? proto : builder;
+        if (this.capability != null) {
+            return this.capability;
+        }
+        if (!p.hasCapability()) {
+            return null;
+        }
+        this.capability = convertFromProtoFormat(p.getCapability());
+        return this.capability;
     }
-    this.capability = convertFromProtoFormat(p.getCapability());
-    return this.capability;
-  }
 
-  @Override
-  public void setCapability(Resource capability) {
-    maybeInitBuilder();
-    if (capability == null) 
-      builder.clearCapability();
-    this.capability = capability;
-  }
-  @Override
-  public synchronized int getNumContainers() {
-    ResourceRequestProtoOrBuilder p = viaProto ? proto : builder;
-    return (p.getNumContainers());
-  }
-
-  @Override
-  public synchronized void setNumContainers(int numContainers) {
-    maybeInitBuilder();
-    builder.setNumContainers((numContainers));
-  }
-  
-  @Override
-  public boolean getRelaxLocality() {
-    ResourceRequestProtoOrBuilder p = viaProto ? proto : builder;
-    return p.getRelaxLocality();
-  }
-
-  @Override
-  public void setRelaxLocality(boolean relaxLocality) {
-    maybeInitBuilder();
-    builder.setRelaxLocality(relaxLocality);
-  }
-
-  @Override
-  public long getAllocationRequestId() {
-    ResourceRequestProtoOrBuilder p = viaProto ? proto : builder;
-    return (p.getAllocationRequestId());
-  }
-
-  @Override
-  public void setAllocationRequestId(long allocationRequestID) {
-    maybeInitBuilder();
-    builder.setAllocationRequestId(allocationRequestID);
-  }
-
-  private PriorityPBImpl convertFromProtoFormat(PriorityProto p) {
-    return new PriorityPBImpl(p);
-  }
-
-  private PriorityProto convertToProtoFormat(Priority t) {
-    return ((PriorityPBImpl)t).getProto();
-  }
-
-  private ResourcePBImpl convertFromProtoFormat(ResourceProto p) {
-    return new ResourcePBImpl(p);
-  }
-
-  private ResourceProto convertToProtoFormat(Resource t) {
-    return ProtoUtils.convertToProtoFormat(t);
-  }
-  
-  @Override
-  public String toString() {
-    return "{AllocationRequestId: " + getAllocationRequestId()
-        + ", Priority: " + getPriority()
-        + ", Capability: " + getCapability()
-        + ", # Containers: " + getNumContainers()
-        + ", Location: " + getResourceName()
-        + ", Relax Locality: " + getRelaxLocality()
-        + ", Execution Type Request: " + getExecutionTypeRequest()
-        + ", Node Label Expression: " + getNodeLabelExpression()
-        + "}";
-  }
-
-  @Override
-  public String getNodeLabelExpression() {
-    ResourceRequestProtoOrBuilder p = viaProto ? proto : builder;
-    if (!p.hasNodeLabelExpression()) {
-      return null;
+    @Override
+    public void setCapability(Resource capability) {
+        maybeInitBuilder();
+        if (capability == null) builder.clearCapability();
+        this.capability = capability;
     }
-    return (p.getNodeLabelExpression().trim());
-  }
 
-  @Override
-  public void setNodeLabelExpression(String nodeLabelExpression) {
-    maybeInitBuilder();
-    if (nodeLabelExpression == null) {
-      builder.clearNodeLabelExpression();
-      return;
+    @Override
+    public synchronized int getNumContainers() {
+        ResourceRequestProtoOrBuilder p = viaProto ? proto : builder;
+        return (p.getNumContainers());
     }
-    builder.setNodeLabelExpression(nodeLabelExpression);
-  }
+
+    @Override
+    public synchronized void setNumContainers(int numContainers) {
+        maybeInitBuilder();
+        builder.setNumContainers((numContainers));
+    }
+
+    @Override
+    public boolean getRelaxLocality() {
+        ResourceRequestProtoOrBuilder p = viaProto ? proto : builder;
+        return p.getRelaxLocality();
+    }
+
+    @Override
+    public void setRelaxLocality(boolean relaxLocality) {
+        maybeInitBuilder();
+        builder.setRelaxLocality(relaxLocality);
+    }
+
+    @Override
+    public long getAllocationRequestId() {
+        ResourceRequestProtoOrBuilder p = viaProto ? proto : builder;
+        return (p.getAllocationRequestId());
+    }
+
+    @Override
+    public void setAllocationRequestId(long allocationRequestID) {
+        maybeInitBuilder();
+        builder.setAllocationRequestId(allocationRequestID);
+    }
+
+    private PriorityPBImpl convertFromProtoFormat(PriorityProto p) {
+        return new PriorityPBImpl(p);
+    }
+
+    private PriorityProto convertToProtoFormat(Priority t) {
+        return ((PriorityPBImpl) t).getProto();
+    }
+
+    private ResourcePBImpl convertFromProtoFormat(ResourceProto p) {
+        return new ResourcePBImpl(p);
+    }
+
+    private ResourceProto convertToProtoFormat(Resource t) {
+        return ProtoUtils.convertToProtoFormat(t);
+    }
+
+    @Override
+    public String toString() {
+        return "{AllocationRequestId: " + getAllocationRequestId() + ", Priority: " + getPriority() + ", Capability: " + getCapability() + ", # Containers: " + getNumContainers() + ", Location: " + getResourceName() + ", Relax Locality: " + getRelaxLocality() + ", Execution Type Request: " + getExecutionTypeRequest() + ", Node Label Expression: " + getNodeLabelExpression() + "}";
+    }
+
+    @Override
+    public String getNodeLabelExpression() {
+        ResourceRequestProtoOrBuilder p = viaProto ? proto : builder;
+        if (!p.hasNodeLabelExpression()) {
+            return null;
+        }
+        return (p.getNodeLabelExpression().trim());
+    }
+
+    @Override
+    public void setNodeLabelExpression(String nodeLabelExpression) {
+        maybeInitBuilder();
+        if (nodeLabelExpression == null) {
+            builder.clearNodeLabelExpression();
+            return;
+        }
+        builder.setNodeLabelExpression(nodeLabelExpression);
+    }
 }

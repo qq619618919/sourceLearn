@@ -236,6 +236,10 @@ public class ContainerManagerImpl extends CompositeService implements ContainerM
     private NMTimelinePublisher nmMetricsPublisher;
     private boolean timelineServiceV2Enabled;
 
+    /*************************************************
+     * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+     *  注释：
+     */
     public ContainerManagerImpl(Context context, ContainerExecutor exec, DeletionService deletionContext,
                                 NodeStatusUpdater nodeStatusUpdater, NodeManagerMetrics metrics,
                                 LocalDirsHandlerService dirsHandler) {
@@ -253,7 +257,7 @@ public class ContainerManagerImpl extends CompositeService implements ContainerM
 
         /*************************************************
          * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-         *  注释：
+         *  注释： NodeManager 中启动 ContainersLauncher 服务，用来给 NodeManager 启动 Container
          */
         containersLauncher = createContainersLauncher(context, exec);
         addService(containersLauncher);
@@ -327,6 +331,11 @@ public class ContainerManagerImpl extends CompositeService implements ContainerM
         ) + SHUTDOWN_CLEANUP_SLOP_MS;
 
         super.serviceInit(conf);
+
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释：
+         */
         recover();
     }
 
@@ -387,8 +396,11 @@ public class ContainerManagerImpl extends CompositeService implements ContainerM
             //Dispatching the RECOVERY_COMPLETED event through the dispatcher
             //so that all the paused, scheduled and queued containers will
             //be scheduled for execution on availability of resources.
-            dispatcher.getEventHandler()
-                    .handle(new ContainerSchedulerEvent(null, ContainerSchedulerEventType.RECOVERY_COMPLETED));
+            /*************************************************
+             * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+             *  注释：  搜： case RECOVERY_COMPLETED
+             */
+            dispatcher.getEventHandler().handle(new ContainerSchedulerEvent(null, ContainerSchedulerEventType.RECOVERY_COMPLETED));
         } else {
             LOG.info("Not a recoverable state store. Nothing to recover.");
         }
@@ -421,9 +433,7 @@ public class ContainerManagerImpl extends CompositeService implements ContainerM
             fc = new FlowContext(TimelineUtils.generateDefaultFlowName(null, appId), YarnConfiguration.DEFAULT_FLOW_VERSION,
                     appId.getClusterTimestamp()
             );
-            LOG.debug("No prior existing flow context found. Using default Flow context: " + "{} for an application {}", fc,
-                    appId
-            );
+            LOG.debug("No prior existing flow context found. Using default Flow context: " + "{} for an application {}", fc, appId);
         }
 
         LOG.info("Recovering application " + appId);
@@ -445,9 +455,8 @@ public class ContainerManagerImpl extends CompositeService implements ContainerM
                     originalToken.getNmHostAddress(), originalToken.getApplicationSubmitter(), rcs.getCapability(),
                     originalToken.getExpiryTimeStamp(), originalToken.getMasterKeyId(), originalToken.getRMIdentifier(),
                     originalToken.getPriority(), originalToken.getCreationTime(), originalToken.getLogAggregationContext(),
-                    originalToken.getNodeLabelExpression(), originalToken.getContainerType(),
-                    originalToken.getExecutionType(), originalToken.getAllocationRequestId(),
-                    originalToken.getAllcationTags()
+                    originalToken.getNodeLabelExpression(), originalToken.getContainerType(), originalToken.getExecutionType(),
+                    originalToken.getAllocationRequestId(), originalToken.getAllcationTags()
             );
 
         } else {
@@ -480,12 +489,10 @@ public class ContainerManagerImpl extends CompositeService implements ContainerM
      * Recover a running container.
      */
     @SuppressWarnings("unchecked")
-    protected void recoverActiveContainer(Application app, ContainerLaunchContext launchContext,
-                                          ContainerTokenIdentifier token, RecoveredContainerState rcs) throws IOException {
+    protected void recoverActiveContainer(Application app, ContainerLaunchContext launchContext, ContainerTokenIdentifier token,
+                                          RecoveredContainerState rcs) throws IOException {
         Credentials credentials = YarnServerSecurityUtils.parseCredentials(launchContext);
-        Container container = new ContainerImpl(getConfig(), dispatcher, launchContext, credentials, metrics, token, context,
-                rcs
-        );
+        Container container = new ContainerImpl(getConfig(), dispatcher, launchContext, credentials, metrics, token, context, rcs);
         context.getContainers().put(token.getContainerID(), container);
         containerScheduler.recoverActiveContainer(container, rcs);
         app.handle(new ApplicationContainerInitEvent(container));
@@ -526,10 +533,8 @@ public class ContainerManagerImpl extends CompositeService implements ContainerM
         return this.containersMonitor;
     }
 
-    protected ResourceLocalizationService createResourceLocalizationService(ContainerExecutor exec,
-                                                                            DeletionService deletionContext,
-                                                                            Context nmContext,
-                                                                            NodeManagerMetrics nmMetrics) {
+    protected ResourceLocalizationService createResourceLocalizationService(ContainerExecutor exec, DeletionService deletionContext,
+                                                                            Context nmContext, NodeManagerMetrics nmMetrics) {
         return new ResourceLocalizationService(this.dispatcher, exec, deletionContext, dirsHandler, nmContext, nmMetrics);
     }
 
@@ -545,13 +550,29 @@ public class ContainerManagerImpl extends CompositeService implements ContainerM
     }
 
     protected AbstractContainersLauncher createContainersLauncher(Context ctxt, ContainerExecutor exec) {
+
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释：
+         */
         Class<? extends AbstractContainersLauncher> containersLauncherClass = ctxt.getConf()
+                // TODO_MA 马中华 注释： yarn.nodemanager.containers-launcher.clas = ContainersLauncher
                 .getClass(YarnConfiguration.NM_CONTAINERS_LAUNCHER_CLASS, ContainersLauncher.class,
                         AbstractContainersLauncher.class
                 );
+
         AbstractContainersLauncher launcher;
         try {
+            /*************************************************
+             * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+             *  注释： 通过反射创建这个实例
+             */
             launcher = ReflectionUtils.newInstance(containersLauncherClass, ctxt.getConf());
+
+            /*************************************************
+             * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+             *  注释： 做了初始化
+             */
             launcher.init(ctxt, this.dispatcher, exec, dirsHandler, this);
         } catch (Exception e) {
             throw new RuntimeException(e);
@@ -569,8 +590,8 @@ public class ContainerManagerImpl extends CompositeService implements ContainerM
         // Enqueue user dirs in deletion context
 
         Configuration conf = getConfig();
-        final InetSocketAddress initialAddress = conf.getSocketAddr(YarnConfiguration.NM_BIND_HOST,
-                YarnConfiguration.NM_ADDRESS, YarnConfiguration.DEFAULT_NM_ADDRESS, YarnConfiguration.DEFAULT_NM_PORT
+        final InetSocketAddress initialAddress = conf.getSocketAddr(YarnConfiguration.NM_BIND_HOST, YarnConfiguration.NM_ADDRESS,
+                YarnConfiguration.DEFAULT_NM_ADDRESS, YarnConfiguration.DEFAULT_NM_PORT
         );
         boolean usingEphemeralPort = (initialAddress.getPort() == 0);
         if (context.getNMStateStore().canRecover() && usingEphemeralPort) {
@@ -585,9 +606,7 @@ public class ContainerManagerImpl extends CompositeService implements ContainerM
         Configuration serverConf = new Configuration(conf);
 
         // always enforce it to be token-based.
-        serverConf.set(CommonConfigurationKeysPublic.HADOOP_SECURITY_AUTHENTICATION,
-                SaslRpcServer.AuthMethod.TOKEN.toString()
-        );
+        serverConf.set(CommonConfigurationKeysPublic.HADOOP_SECURITY_AUTHENTICATION, SaslRpcServer.AuthMethod.TOKEN.toString());
 
         YarnRPC rpc = YarnRPC.create(conf);
 
@@ -731,8 +750,7 @@ public class ContainerManagerImpl extends CompositeService implements ContainerM
 
         LOG.info("Waiting for containers to be killed");
 
-        this.handle(
-                new CMgrCompletedContainersEvent(containerIds, CMgrCompletedContainersEvent.Reason.ON_NODEMANAGER_RESYNC));
+        this.handle(new CMgrCompletedContainersEvent(containerIds, CMgrCompletedContainersEvent.Reason.ON_NODEMANAGER_RESYNC));
 
         /*
          * We will wait till all the containers change their state to COMPLETE. We
@@ -845,8 +863,8 @@ public class ContainerManagerImpl extends CompositeService implements ContainerM
         } else if (containerTokenIdentifier.getExpiryTimeStamp() < System.currentTimeMillis()) {
             // Ensure the token is not expired.
             unauthorized = true;
-            messageBuilder.append("\nThis token is expired. current time is ").append(System.currentTimeMillis())
-                    .append(" found ").append(containerTokenIdentifier.getExpiryTimeStamp());
+            messageBuilder.append("\nThis token is expired. current time is ").append(System.currentTimeMillis()).append(" found ")
+                    .append(containerTokenIdentifier.getExpiryTimeStamp());
             messageBuilder.append("\nNote: System times on machines may be out of sync.")
                     .append(" Check system time and time zones.");
         }
@@ -858,14 +876,19 @@ public class ContainerManagerImpl extends CompositeService implements ContainerM
         if (containerTokenIdentifier.getRMIdentifier() != nodeStatusUpdater.getRMIdentifier()) {
             // Is the container coming from unknown RM
             StringBuilder sb = new StringBuilder("\nContainer ");
-            sb.append(containerTokenIdentifier.getContainerID().toString())
-                    .append(" rejected as it is allocated by a previous RM");
+            sb.append(containerTokenIdentifier.getContainerID().toString()).append(" rejected as it is allocated by a previous RM");
             throw new InvalidContainerException(sb.toString());
         }
     }
 
     /**
      * Start a list of containers on this NodeManager.
+     * // TODO_MA 马中华 注释： 这个代码是在 NM 中执行的， 启动 MRAppMaster
+     * // TODO_MA 马中华 注释： 负责启动一个 YarnChild
+     * -
+     * 唯一的区别，就是具体怎么用不一样：
+     * 1、如果是 MRAppMaster；  shell 命令： java MRAppMaster
+     * 2、如果是 YarnChild；  shell 命令： java YarnChild
      */
     @Override
     public StartContainersResponse startContainers(StartContainersRequest requests) throws YarnException, IOException {
@@ -894,12 +917,17 @@ public class ContainerManagerImpl extends CompositeService implements ContainerM
 
                     // Initialize the AMRMProxy service instance only if the container is of
                     // type AM and if the AMRMProxy service is enabled
-                    if (amrmProxyEnabled && containerTokenIdentifier.getContainerType()
-                            .equals(ContainerType.APPLICATION_MASTER)) {
+                    if (amrmProxyEnabled && containerTokenIdentifier.getContainerType().equals(ContainerType.APPLICATION_MASTER)) {
                         this.getAMRMProxyService().processApplicationStartRequest(request);
                     }
                     performContainerPreStartChecks(nmTokenIdentifier, request, containerTokenIdentifier);
+
+                    /*************************************************
+                     * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+                     *  注释：
+                     */
                     startContainerInternal(containerTokenIdentifier, request, remoteUser);
+
                     succeededContainers.add(containerId);
                 } catch (YarnException e) {
                     failedContainers.put(containerId, SerializedException.newInstance(e));
@@ -920,8 +948,7 @@ public class ContainerManagerImpl extends CompositeService implements ContainerM
          * 1) It should save the NMToken into NMTokenSecretManager. This is done
          * here instead of RPC layer because at the time of opening/authenticating
          * the connection it doesn't know what all RPC calls user will make on it.
-         * Also new NMToken is issued only at startContainer (once it gets
-         * renewed).
+         * Also new NMToken is issued only at startContainer (once it gets renewed).
          *
          * 2) It should validate containerToken. Need to check below things. a) It
          * is signed by correct master key (part of retrieve password). b) It
@@ -946,8 +973,7 @@ public class ContainerManagerImpl extends CompositeService implements ContainerM
 
     private ContainerManagerApplicationProto buildAppProto(ApplicationId appId, String user, Credentials credentials,
                                                            Map<ApplicationAccessType, String> appAcls,
-                                                           LogAggregationContext logAggregationContext,
-                                                           FlowContext flowContext) {
+                                                           LogAggregationContext logAggregationContext, FlowContext flowContext) {
 
         ContainerManagerApplicationProto.Builder builder = ContainerManagerApplicationProto.newBuilder();
         builder.setId(((ApplicationIdPBImpl) appId).getProto());
@@ -1008,14 +1034,20 @@ public class ContainerManagerImpl extends CompositeService implements ContainerM
             } else if (rsrc.getValue().getType() == null) {
                 throw new YarnException("Null resource type for local resource " + rsrc.getKey() + " : " + rsrc.getValue());
             } else if (rsrc.getValue().getVisibility() == null) {
-                throw new YarnException(
-                        "Null resource visibility for local resource " + rsrc.getKey() + " : " + rsrc.getValue());
+                throw new YarnException("Null resource visibility for local resource " + rsrc.getKey() + " : " + rsrc.getValue());
             }
         }
 
         Credentials credentials = YarnServerSecurityUtils.parseCredentials(launchContext);
 
         long containerStartTime = SystemClock.getInstance().getTime();
+
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释： 这个是存在于 NM 中的一个用来管理 NM 自己身上的一个 Container 状态的状态机
+         *  1、NM 管理 Contianer: Container
+         *  2、RM 管理 Container： RMContainer
+         */
         Container container = new ContainerImpl(getConfig(), this.dispatcher, launchContext, credentials, metrics,
                 containerTokenIdentifier, context, containerStartTime
         );
@@ -1036,6 +1068,12 @@ public class ContainerManagerImpl extends CompositeService implements ContainerM
                     // service v.2 is enabled
                     FlowContext flowContext = getFlowContext(launchContext, applicationID);
 
+                    /*************************************************
+                     * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+                     *  注释： 这个 Application 是存在于 NM 中的一个用来管理 Application, 就是对应到 MRAppMaster
+                     *  1、NM 管理 Application:  Application
+                     *  2、RM 管理 Application： RMApp 和 RMAppAttemp
+                     */
                     Application application = new ApplicationImpl(dispatcher, user, flowContext, applicationID, credentials,
                             context
                     );
@@ -1044,9 +1082,13 @@ public class ContainerManagerImpl extends CompositeService implements ContainerM
                         LOG.info("Creating a new application reference for app " + applicationID);
                         LogAggregationContext logAggregationContext = containerTokenIdentifier.getLogAggregationContext();
                         Map<ApplicationAccessType, String> appAcls = container.getLaunchContext().getApplicationACLs();
+
+                        // TODO_MA 马中华 注释： 提交事件
                         context.getNMStateStore().storeApplication(applicationID,
                                 buildAppProto(applicationID, user, credentials, appAcls, logAggregationContext, flowContext)
                         );
+
+                        // TODO_MA 马中华 注释： 提交事件
                         dispatcher.getEventHandler()
                                 .handle(new ApplicationInitEvent(applicationID, appAcls, logAggregationContext));
                     }
@@ -1060,14 +1102,12 @@ public class ContainerManagerImpl extends CompositeService implements ContainerM
 
                         // Required to update state store for recovery.
                         context.getNMStateStore().storeApplication(applicationID,
-                                buildAppProto(applicationID, user, credentials,
-                                        container.getLaunchContext().getApplicationACLs(),
+                                buildAppProto(applicationID, user, credentials, container.getLaunchContext().getApplicationACLs(),
                                         containerTokenIdentifier.getLogAggregationContext(), flowContext
                                 )
                         );
 
-                        LOG.info(
-                                "Updated application reference with flowContext " + flowContext + " for app " + applicationID);
+                        LOG.info("Updated application reference with flowContext " + flowContext + " for app " + applicationID);
                     } else {
                         LOG.info(
                                 "TimelineService V2.0 is not enabled. Skipping updating " + "flowContext for application " + applicationID);
@@ -1115,8 +1155,7 @@ public class ContainerManagerImpl extends CompositeService implements ContainerM
         byte[] password = context.getContainerTokenSecretManager().retrievePassword(containerTokenIdentifier);
         byte[] tokenPass = token.getPassword().array();
         if (password == null || tokenPass == null || !Arrays.equals(password, tokenPass)) {
-            throw new InvalidToken(
-                    "Invalid container token used for starting container on : " + context.getNodeId().toString());
+            throw new InvalidToken("Invalid container token used for starting container on : " + context.getNodeId().toString());
         }
         return containerTokenIdentifier;
     }
@@ -1128,11 +1167,8 @@ public class ContainerManagerImpl extends CompositeService implements ContainerM
     @Deprecated
     public IncreaseContainersResourceResponse increaseContainersResource(
             IncreaseContainersResourceRequest requests) throws YarnException, IOException {
-        ContainerUpdateResponse resp = updateContainer(
-                ContainerUpdateRequest.newInstance(requests.getContainersToIncrease()));
-        return IncreaseContainersResourceResponse.newInstance(resp.getSuccessfullyUpdatedContainers(),
-                resp.getFailedRequests()
-        );
+        ContainerUpdateResponse resp = updateContainer(ContainerUpdateRequest.newInstance(requests.getContainersToIncrease()));
+        return IncreaseContainersResourceResponse.newInstance(resp.getSuccessfullyUpdatedContainers(), resp.getFailedRequests());
     }
 
     /**
@@ -1185,11 +1221,9 @@ public class ContainerManagerImpl extends CompositeService implements ContainerM
         // Check container existence
         if (container == null) {
             if (nodeStatusUpdater.isContainerRecentlyStopped(containerId)) {
-                throw RPCUtil.getRemoteException(
-                        "Container " + containerId.toString() + " was recently stopped on node manager.");
+                throw RPCUtil.getRemoteException("Container " + containerId.toString() + " was recently stopped on node manager.");
             } else {
-                throw RPCUtil.getRemoteException(
-                        "Container " + containerId.toString() + " is not handled by this NodeManager");
+                throw RPCUtil.getRemoteException("Container " + containerId.toString() + " is not handled by this NodeManager");
             }
         }
         // Check container version.
@@ -1212,9 +1246,7 @@ public class ContainerManagerImpl extends CompositeService implements ContainerM
         boolean isIncrease = false;
         if (!currentResource.equals(targetResource)) {
             isResourceChange = true;
-            isIncrease = Resources.fitsIn(currentResource, targetResource) && !Resources.fitsIn(targetResource,
-                    currentResource
-            );
+            isIncrease = Resources.fitsIn(currentResource, targetResource) && !Resources.fitsIn(targetResource, currentResource);
         } else if (!currentExecType.equals(targetExecType)) {
             isExecTypeUpdate = true;
             isIncrease = currentExecType == ExecutionType.OPPORTUNISTIC && targetExecType == ExecutionType.GUARANTEED;
@@ -1383,8 +1415,7 @@ public class ContainerManagerImpl extends CompositeService implements ContainerM
     @Private
     @VisibleForTesting
     protected void authorizeGetAndStopContainerRequest(ContainerId containerId, Container container, boolean stopRequest,
-                                                       NMTokenIdentifier identifier,
-                                                       String remoteUser) throws YarnException {
+                                                       NMTokenIdentifier identifier, String remoteUser) throws YarnException {
         if (identifier == null) {
             throw RPCUtil.getRemoteException(INVALID_NMTOKEN_MSG);
         }
@@ -1397,8 +1428,7 @@ public class ContainerManagerImpl extends CompositeService implements ContainerM
         ApplicationId nmTokenAppId = identifier.getApplicationAttemptId().getApplicationId();
 
         if ((!nmTokenAppId.equals(containerId.getApplicationAttemptId().getApplicationId())
-        ) || (container != null && !nmTokenAppId.equals(
-                container.getContainerId().getApplicationAttemptId().getApplicationId())
+        ) || (container != null && !nmTokenAppId.equals(container.getContainerId().getApplicationAttemptId().getApplicationId())
         )) {
             String msg;
             if (stopRequest) {
@@ -1798,8 +1828,7 @@ public class ContainerManagerImpl extends CompositeService implements ContainerM
         return GetLocalizationStatusesResponse.newInstance(allStatuses, failedRequests);
     }
 
-    private List<LocalizationStatus> getLocalizationStatusesInternal(ContainerId containerID,
-                                                                     NMTokenIdentifier nmTokenIdentifier,
+    private List<LocalizationStatus> getLocalizationStatusesInternal(ContainerId containerID, NMTokenIdentifier nmTokenIdentifier,
                                                                      String remoteUser) throws YarnException {
         Container container = this.context.getContainers().get(containerID);
 

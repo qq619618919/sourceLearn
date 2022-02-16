@@ -173,12 +173,21 @@ class FSDirStatAndListingOp {
             final FileEncryptionInfo feInfo = FSDirEncryptionZoneOp.getFileEncryptionInfo(fsd, iip);
             final ErasureCodingPolicy ecPolicy = FSDirErasureCodingOp.unprotectedGetErasureCodingPolicy(fsd.getFSNamesystem(), iip);
 
+            /*************************************************
+             * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+             *  注释： 
+             */
             final LocatedBlocks blocks = bm.createLocatedBlocks(inode.getBlocks(iip.getPathSnapshotId()), fileSize, isUc, offset,
                     length, needBlockToken, iip.isSnapshot(), feInfo, ecPolicy
             );
 
             final long now = now();
             boolean updateAccessTime = fsd.isAccessTimeSupported() && !iip.isSnapshot() && now > inode.getAccessTime() + fsd.getAccessTimePrecision();
+
+            /*************************************************
+             * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+             *  注释：
+             */
             return new GetBlockLocationsResult(updateAccessTime, blocks, iip);
         } finally {
             fsd.readUnlock();

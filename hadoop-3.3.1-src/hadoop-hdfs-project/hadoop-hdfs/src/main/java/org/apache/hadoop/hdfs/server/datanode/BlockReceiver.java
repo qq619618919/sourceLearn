@@ -147,6 +147,13 @@ class BlockReceiver implements Closeable {
     private final AtomicLong lastSentTime = new AtomicLong(0L);
     private long maxSendIdleTime;
 
+    /*************************************************
+     * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+     *  注释： 负责接收数据块！
+     *  1、创建一个数据块文件！
+     *  2、创建 输出组件 往 block 文件中写数据
+     *  3、生成一个校验输出流
+     */
     BlockReceiver(final ExtendedBlock block, final StorageType storageType, final DataInputStream in, final String inAddr,
                   final String myAddr, final BlockConstructionStage stage, final long newGs, final long minBytesRcvd,
                   final long maxBytesRcvd, final String clientname, final DatanodeInfo srcDataNode, final DataNode datanode,
@@ -195,13 +202,17 @@ class BlockReceiver implements Closeable {
                     case PIPELINE_SETUP_CREATE:
                         /*************************************************
                          * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-                         *  注释：
+                         *  注释： 正在执行数据写入的 数据块在  RBW 目录，
+                         *  如果写完了，则移动到 finalized 目录
                          */
                         replicaHandler = datanode.data.createRbw(storageType, storageId, block, allowLazyPersist);
 
                         /*************************************************
                          * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-                         *  注释：
+                         *  注释： DatanNode 发送 RPC 请求给 NameNode 我正在执行一个 block 的数据接收！
+                         *  为什么要做这个事儿？
+                         *  1、最开始申请 block ： client 发送RPC 请求给 namenode，namenode 处理生成一个 block
+                         *  2、namenode 也会给 client 返回关于 该这个块的 3 个 datanode 存储列表
                          */
                         datanode.notifyNamenodeReceivingBlock(block, replicaHandler.getReplica().getStorageUuid());
                         break;
@@ -238,6 +249,7 @@ class BlockReceiver implements Closeable {
             /*************************************************
              * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
              *  注释： 创建输出流，用于写数据到本地磁盘
+             *  负责把 接收到的 packet 数据写入到 blk_blockid 数据块文件中。 FileOutpuStream
              */
             streams = replicaInfo.createStreams(isCreate, requestedChecksum);
 
@@ -502,8 +514,7 @@ class BlockReceiver implements Closeable {
      * pipeline and clientName is non-null. i.e. Checksum is verified
      * on all the datanodes when the data is being written by a
      * datanode rather than a client. Whe client is writing the data,
-     * protocol includes acks and only the last datanode needs to verify
-     * checksum.
+     * protocol includes acks and only the last datanode needs to verify checksum.
      * @return true if checksum verification is needed, otherwise false.
      */
     private boolean shouldVerifyChecksum() {
@@ -513,6 +524,14 @@ class BlockReceiver implements Closeable {
     /**
      * Receives and processes a packet. It can contain many chunks.
      * returns the number of data bytes that the packet has.
+     */
+    /*************************************************
+     * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+     *  注释： 接收数据包
+     *  1、接收上游（Client、Datanode） 发送过给来的数据
+     *  2、先把接收到的数据，发给下游
+     *  3、做数据校验
+     *  4、写到 block 文件中
      */
     private int receivePacket() throws IOException {
 
@@ -624,6 +643,7 @@ class BlockReceiver implements Closeable {
                     /*************************************************
                      * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
                      *  注释： 数据校验
+                     *  一个 packet = 126 个 chunk，做校验！
                      */
                     verifyChunks(dataBuf, checksumBuf);
                 } catch (IOException ioe) {
@@ -816,6 +836,11 @@ class BlockReceiver implements Closeable {
 
         // if sync was requested, put in queue for pending acks here
         // (after the fsync finished)
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释：   PacketResponder 线程
+         *
+         */
         if (responder != null && (syncBlock || shouldVerifyChecksum())) {
             ((PacketResponder) responder.getRunnable()).enqueue(seqno, lastPacketInBlock, offsetInBlock, Status.SUCCESS);
         }
@@ -832,6 +857,10 @@ class BlockReceiver implements Closeable {
             lastResponseTime = Time.monotonicNow();
         }
 
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释： IO 限流
+         */
         if (throttler != null) { // throttle I/O
             throttler.throttle(len);
         }
@@ -926,6 +955,7 @@ class BlockReceiver implements Closeable {
         ((PacketResponder) responder.getRunnable()).sendOOBResponse(PipelineAck.getRestartOOBStatus());
     }
 
+    // TODO_MA 马中华 注释： 这个方法执行完，表示数据接收完了。
     void receiveBlock(DataOutputStream mirrOut, // output to next datanode
                       DataInputStream mirrIn,   // input from next datanode
                       DataOutputStream replyOut,  // output to previous datanode
@@ -957,6 +987,8 @@ class BlockReceiver implements Closeable {
             /*************************************************
              * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
              *  注释： 不停的接收 packet 然后通过上面启动的 PacketResponder 发送反馈
+             *  -
+             *  每一个block 的最后一个 packet 是一个空 packet
              */
             while (receivePacket() >= 0) { /* Receive until the last packet */ }
 
@@ -1246,6 +1278,8 @@ class BlockReceiver implements Closeable {
         void enqueue(final long seqno, final boolean lastPacketInBlock, final long offsetInBlock, final Status ackStatus) {
 
             // TODO_MA 马中华 注释： ack Packet
+            // TODO_MA 马中华 注释： 上游发送给下游的是 Packet 是真实数据
+            // TODO_MA 马中华 注释： 下游给上游发的是也是 Packet 但是是反馈
             final Packet p = new Packet(seqno, lastPacketInBlock, offsetInBlock, System.nanoTime(), ackStatus);
             LOG.debug("{}: enqueue {}", this, p);
             synchronized (ackQueue) {
@@ -1395,6 +1429,11 @@ class BlockReceiver implements Closeable {
                             seqno = ack.getSeqno();
                         }
                         if (seqno != PipelineAck.UNKOWN_SEQNO || type == PacketResponderType.LAST_IN_PIPELINE) {
+
+                            /*************************************************
+                             * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+                             *  注释： 消费
+                             */
                             pkt = waitForAckHead(seqno);
                             if (!isRunning()) {
                                 break;

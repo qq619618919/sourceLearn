@@ -2235,7 +2235,13 @@ public class FSNamesystem implements Namesystem, FSNamesystemMBean, NameNodeMXBe
             readLock();
             try {
                 checkOperation(OperationCategory.READ);
+
+                /*************************************************
+                 * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+                 *  注释：
+                 */
                 res = FSDirStatAndListingOp.getBlockLocations(dir, pc, srcArg, offset, length, true);
+
                 inode = res.getIIp().getLastINode();
                 if (isInSafeMode()) {
                     for (LocatedBlock b : res.blocks.getLocatedBlocks()) {
@@ -2283,6 +2289,10 @@ public class FSNamesystem implements Namesystem, FSNamesystemMBean, NameNodeMXBe
                             final INodesInPath iip = dir.resolvePath(pc, src, DirOp.READ);
                             boolean changed = FSDirAttrOp.setTimes(dir, iip, -1, now, false);
                             if (changed) {
+                                /*************************************************
+                                 * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+                                 *  注释：
+                                 */
                                 getEditLog().logTimes(src, -1, now);
                             }
                         }
@@ -2296,7 +2306,14 @@ public class FSNamesystem implements Namesystem, FSNamesystemMBean, NameNodeMXBe
         }
 
         LocatedBlocks blocks = res.blocks;
+
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释：
+         */
         sortLocatedBlocks(clientMachine, blocks);
+
+        // TODO_MA 马中华 注释：
         return blocks;
     }
 
@@ -3055,6 +3072,7 @@ public class FSNamesystem implements Namesystem, FSNamesystemMBean, NameNodeMXBe
         /*************************************************
          * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
          *  注释： 为新添加的数据块选择存放副本的 Datanode
+         *  DatanodeStorageInfo 这个数组，就是要返回给客户端的，用来存储当前 block 的三个 datanode
          */
         DatanodeStorageInfo[] targets = FSDirWriteFileOp.chooseTargetForNewBlock(blockManager, src, excludedNodes, favoredNodes,
                 flags, r
@@ -3069,6 +3087,8 @@ public class FSNamesystem implements Namesystem, FSNamesystemMBean, NameNodeMXBe
             /*************************************************
              * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
              *  注释： 将 Block 对象加入文件对应的 INodeFile 对象中，并且记录日志
+             *  1、构建 BlockInfo 加入到 INodeFile 的 BlockInfo[] 中
+             *  2、记录日志  logEdit()
              */
             lb = FSDirWriteFileOp.storeAllocatedBlock(this, src, fileId, clientName, previous, targets);
         } finally {
@@ -3563,6 +3583,9 @@ public class FSNamesystem implements Namesystem, FSNamesystemMBean, NameNodeMXBe
                  *  2、FSDirRenameOp = 重命名
                  */
                 auditStat = FSDirMkdirOp.mkdirs(this, pc, src, permissions, createParent);
+                // TODO_MA 马中华 注释： 里面两个重要动作： 1、完成 FSDirecotry 内存操作
+                // TODO_MA 马中华 注释： 2、记录操作日志到双写缓冲
+
             } finally {
                 writeUnlock(operationName);
             }

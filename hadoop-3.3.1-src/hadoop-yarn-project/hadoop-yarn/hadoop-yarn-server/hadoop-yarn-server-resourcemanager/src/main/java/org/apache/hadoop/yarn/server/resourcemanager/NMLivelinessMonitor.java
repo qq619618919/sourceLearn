@@ -28,6 +28,10 @@ import org.apache.hadoop.yarn.server.resourcemanager.rmnode.RMNodeEvent;
 import org.apache.hadoop.yarn.server.resourcemanager.rmnode.RMNodeEventType;
 import org.apache.hadoop.yarn.util.AbstractLivelinessMonitor;
 
+/*************************************************
+ * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+ *  注释：
+ */
 public class NMLivelinessMonitor extends AbstractLivelinessMonitor<NodeId> {
 
     private EventHandler<Event> dispatcher;
@@ -37,11 +41,24 @@ public class NMLivelinessMonitor extends AbstractLivelinessMonitor<NodeId> {
         this.dispatcher = d.getEventHandler();
     }
 
+    /*************************************************
+     * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+     *  注释： 验活机制
+     *  1、其实就是设计一个 for 循环，每隔一段时间，针对注册成功的 NodeManager 执行心跳超时判断
+     *  2、如果发现某个 nodemanager 的上一次心跳时间 距离 现在超过了 规定的超时时间，则认为超时了，进行超时处理
+     *  3、超时处理，就是调用：expire() 方法
+     *  -
+     *  步骤1 和 步骤2 这两件事，其实是通用的，抽象出来这个工作机制，放在父类中做实现，
+     *  具体的 超时处理逻辑，有 expire() 方法去完成， 具体实现逻辑就交给 子类
+     */
     public void serviceInit(Configuration conf) throws Exception {
+        // TODO_MA 马中华 注释： yarn.nm.liveness-monitor.expiry-interval-ms = 600000 = 10min
         int expireIntvl = conf.getInt(YarnConfiguration.RM_NM_EXPIRY_INTERVAL_MS,
                 YarnConfiguration.DEFAULT_RM_NM_EXPIRY_INTERVAL_MS
         );
+        // TODO_MA 马中华 注释： 10min
         setExpireInterval(expireIntvl);
+        // TODO_MA 马中华 注释： 每多久判断一次： 200s
         setMonitorInterval(expireIntvl / 3);
         super.serviceInit(conf);
     }
@@ -60,5 +77,6 @@ public class NMLivelinessMonitor extends AbstractLivelinessMonitor<NodeId> {
          *       去看 DeactivateNodeTransition 的 transition()
          */
         dispatcher.handle(new RMNodeEvent(id, RMNodeEventType.EXPIRE));
+        // TODO_MA 马中华 注释： 这个事件最终是由： RMNode 这个状态机处理
     }
 }

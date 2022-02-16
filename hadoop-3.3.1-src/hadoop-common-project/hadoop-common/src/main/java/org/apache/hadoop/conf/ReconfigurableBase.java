@@ -39,11 +39,9 @@ import java.util.Optional;
  * properties and getReconfigurableProperties to get all properties that
  * can be changed at run time.
  */
-public abstract class ReconfigurableBase
-        extends Configured implements Reconfigurable {
+public abstract class ReconfigurableBase extends Configured implements Reconfigurable {
 
-    private static final Logger LOG =
-            LoggerFactory.getLogger(ReconfigurableBase.class);
+    private static final Logger LOG = LoggerFactory.getLogger(ReconfigurableBase.class);
     // Use for testing purpose.
     private ReconfigurationUtil reconfigurationUtil = new ReconfigurationUtil();
 
@@ -95,8 +93,7 @@ public abstract class ReconfigurableBase
     protected abstract Configuration getNewConf();
 
     @VisibleForTesting
-    public Collection<PropertyChange> getChangedProperties(
-            Configuration newConf, Configuration oldConf) {
+    public Collection<PropertyChange> getChangedProperties(Configuration newConf, Configuration oldConf) {
         return reconfigurationUtil.parseChangedProperties(newConf, oldConf);
     }
 
@@ -115,8 +112,7 @@ public abstract class ReconfigurableBase
             LOG.info("Starting reconfiguration task.");
             final Configuration oldConf = parent.getConf();
             final Configuration newConf = parent.getNewConf();
-            final Collection<PropertyChange> changes =
-                    parent.getChangedProperties(newConf, oldConf);
+            final Collection<PropertyChange> changes = parent.getChangedProperties(newConf, oldConf);
             Map<PropertyChange, Optional<String>> results = Maps.newHashMap();
             ConfigRedactor oldRedactor = new ConfigRedactor(oldConf);
             ConfigRedactor newRedactor = new ConfigRedactor(newConf);
@@ -125,21 +121,15 @@ public abstract class ReconfigurableBase
                 String oldValRedacted = oldRedactor.redact(change.prop, change.oldVal);
                 String newValRedacted = newRedactor.redact(change.prop, change.newVal);
                 if (!parent.isPropertyReconfigurable(change.prop)) {
-                    LOG.info(String.format(
-                            "Property %s is not configurable: old value: %s, new value: %s",
-                            change.prop,
-                            oldValRedacted,
-                            newValRedacted));
+                    LOG.info(String.format("Property %s is not configurable: old value: %s, new value: %s", change.prop,
+                            oldValRedacted, newValRedacted
+                    ));
                     continue;
                 }
-                LOG.info("Change property: " + change.prop + " from \""
-                        + ((change.oldVal == null) ? "<default>" : oldValRedacted)
-                        + "\" to \""
-                        + ((change.newVal == null) ? "<default>" : newValRedacted)
-                        + "\".");
+                LOG.info(
+                        "Change property: " + change.prop + " from \"" + ((change.oldVal == null) ? "<default>" : oldValRedacted) + "\" to \"" + ((change.newVal == null) ? "<default>" : newValRedacted) + "\".");
                 try {
-                    String effectiveValue =
-                            parent.reconfigurePropertyImpl(change.prop, change.newVal);
+                    String effectiveValue = parent.reconfigurePropertyImpl(change.prop, change.newVal);
                     if (change.newVal != null) {
                         oldConf.set(change.prop, effectiveValue);
                     } else {
@@ -218,8 +208,7 @@ public abstract class ReconfigurableBase
      * reconfigurePropertyImpl.
      */
     @Override
-    public final void reconfigureProperty(String property, String newVal)
-            throws ReconfigurationException {
+    public final void reconfigureProperty(String property, String newVal) throws ReconfigurationException {
         if (isPropertyReconfigurable(property)) {
             LOG.info("changing property " + property + " to " + newVal);
             synchronized (getConf()) {
@@ -232,8 +221,7 @@ public abstract class ReconfigurableBase
                 }
             }
         } else {
-            throw new ReconfigurationException(property, newVal,
-                    getConf().get(property));
+            throw new ReconfigurationException(property, newVal, getConf().get(property));
         }
     }
 
@@ -272,7 +260,6 @@ public abstract class ReconfigurableBase
      *
      * @throws ReconfigurationException if there was an error applying newVal.
      */
-    protected abstract String reconfigurePropertyImpl(
-            String property, String newVal) throws ReconfigurationException;
+    protected abstract String reconfigurePropertyImpl(String property, String newVal) throws ReconfigurationException;
 
 }

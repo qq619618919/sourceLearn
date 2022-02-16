@@ -106,6 +106,11 @@ class BPServiceActor implements Runnable {
     private final Scheduler scheduler;
 
     Thread bpThread;
+
+    /*************************************************
+     * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+     *  注释： NameNode 代理
+     */
     DatanodeProtocolClientSideTranslatorPB bpNamenode;
 
     enum RunningState {

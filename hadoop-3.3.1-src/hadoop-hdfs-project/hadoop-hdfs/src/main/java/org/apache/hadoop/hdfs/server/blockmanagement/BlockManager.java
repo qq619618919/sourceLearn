@@ -1437,6 +1437,10 @@ public class BlockManager implements BlockStatsMXBean {
 
         long endOff = offset + length;
         do {
+            /*************************************************
+             * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+             *  注释：
+             */
             locatedBlocks.addBlock(createLocatedBlock(locatedBlocks, blocks[curBlk], curPos, mode));
             curPos += blocks[curBlk].getNumBytes();
             curBlk++;
@@ -1462,6 +1466,11 @@ public class BlockManager implements BlockStatsMXBean {
 
     private LocatedBlock createLocatedBlock(LocatedBlockBuilder locatedBlocks, final BlockInfo blk, final long pos,
                                             final AccessMode mode) throws IOException {
+
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释：
+         */
         final LocatedBlock lb = createLocatedBlock(locatedBlocks, blk, pos);
         if (mode != null) {
             setBlockToken(lb, mode);
@@ -1540,6 +1549,11 @@ public class BlockManager implements BlockStatsMXBean {
 
         assert j == machines.length : "isCorrupt: " + isCorrupt + " numMachines: " + numMachines + " numNodes: " + numNodes + " numCorrupt: " + numCorruptNodes + " numCorruptRepls: " + numCorruptReplicas;
         final ExtendedBlock eb = new ExtendedBlock(getBlockPoolId(), blk);
+
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释：
+         */
         return blockIndices == null ? null == locatedBlocks ? newLocatedBlock(eb, machines, pos,
                 isCorrupt
         ) : locatedBlocks.newLocatedBlock(eb, machines, pos, isCorrupt) : newLocatedStripedBlock(eb, machines, blockIndices, pos,
@@ -1569,7 +1583,12 @@ public class BlockManager implements BlockStatsMXBean {
                     .fileLength(fileSizeExcludeBlocksUnderConstruction).lastUC(isFileUnderConstruction).encryption(feInfo)
                     .erasureCoding(ecPolicy);
 
+            /*************************************************
+             * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+             *  注释：
+             */
             createLocatedBlockList(locatedBlocks, blocks, offset, length, mode);
+
             if (!inSnapshot) {
                 final BlockInfo last = blocks[blocks.length - 1];
                 final long lastPos = last.isComplete() ? fileSizeExcludeBlocksUnderConstruction - last.getNumBytes() : fileSizeExcludeBlocksUnderConstruction;
@@ -2339,6 +2358,8 @@ public class BlockManager implements BlockStatsMXBean {
         // TODO_MA 马中华 注释： 获取副本存放策略对象
         List<DatanodeDescriptor> favoredDatanodeDescriptors = getDatanodeDescriptors(favoredNodes);
         final BlockStoragePolicy storagePolicy = storagePolicySuite.getPolicy(storagePolicyID);
+
+        // TODO_MA 马中华 注释： BlockPlacementPolicy = BlockPlacementPolicyDefault
         final BlockPlacementPolicy blockplacement = placementPolicies.getPolicy(blockType);
 
         /*************************************************

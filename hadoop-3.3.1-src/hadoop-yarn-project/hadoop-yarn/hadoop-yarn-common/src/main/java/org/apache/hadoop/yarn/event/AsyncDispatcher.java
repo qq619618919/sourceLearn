@@ -82,6 +82,11 @@ public class AsyncDispatcher extends AbstractService implements Dispatcher {
     // For drainEventsOnStop enabled only, block newly coming events into the
     // queue while stopping.
     private volatile boolean blockNewEvents = false;
+
+    /*************************************************
+     * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+     *  注释： 负责提交事件到 AsyncDispatcher 内部的事件队列里面
+     */
     private final EventHandler<Event> handlerInstance = new GenericEventHandler();
 
     // TODO_MA 马中华 注释： 消费线程

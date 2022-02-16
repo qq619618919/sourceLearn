@@ -104,21 +104,23 @@ public class Sender implements DataTransferProtocol {
 
         OpReadBlockProto proto = OpReadBlockProto.newBuilder()
                 .setHeader(DataTransferProtoUtil.buildClientHeader(blk, clientName, blockToken)).setOffset(blockOffset)
-                .setLen(length).setSendChecksums(sendChecksum).setCachingStrategy(getCachingStrategy(cachingStrategy))
-                .build();
+                .setLen(length).setSendChecksums(sendChecksum).setCachingStrategy(getCachingStrategy(cachingStrategy)).build();
 
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释： 发送 READ_BLOCK 请求给 DataNode 的 DataXceiver
+         */
         send(out, Op.READ_BLOCK, proto);
     }
 
 
     @Override
-    public void writeBlock(final ExtendedBlock blk, final StorageType storageType,
-                           final Token<BlockTokenIdentifier> blockToken, final String clientName,
-                           final DatanodeInfo[] targets, final StorageType[] targetStorageTypes, final DatanodeInfo source,
-                           final BlockConstructionStage stage, final int pipelineSize, final long minBytesRcvd,
-                           final long maxBytesRcvd, final long latestGenerationStamp, DataChecksum requestedChecksum,
-                           final CachingStrategy cachingStrategy, final boolean allowLazyPersist, final boolean pinning,
-                           final boolean[] targetPinnings, final String storageId,
+    public void writeBlock(final ExtendedBlock blk, final StorageType storageType, final Token<BlockTokenIdentifier> blockToken,
+                           final String clientName, final DatanodeInfo[] targets, final StorageType[] targetStorageTypes,
+                           final DatanodeInfo source, final BlockConstructionStage stage, final int pipelineSize,
+                           final long minBytesRcvd, final long maxBytesRcvd, final long latestGenerationStamp,
+                           DataChecksum requestedChecksum, final CachingStrategy cachingStrategy, final boolean allowLazyPersist,
+                           final boolean pinning, final boolean[] targetPinnings, final String storageId,
                            final String[] targetStorageIds) throws IOException {
         ClientOperationHeaderProto header = DataTransferProtoUtil.buildClientHeader(blk, clientName, blockToken);
 
@@ -129,13 +131,12 @@ public class Sender implements DataTransferProtocol {
          *  注释： 构建请求数据格式
          */
         OpWriteBlockProto.Builder proto = OpWriteBlockProto.newBuilder().setHeader(header)
-                .setStorageType(PBHelperClient.convertStorageType(storageType))
-                .addAllTargets(PBHelperClient.convert(targets, 1))
+                .setStorageType(PBHelperClient.convertStorageType(storageType)).addAllTargets(PBHelperClient.convert(targets, 1))
                 .addAllTargetStorageTypes(PBHelperClient.convertStorageTypes(targetStorageTypes, 1)).setStage(toProto(stage))
                 .setPipelineSize(pipelineSize).setMinBytesRcvd(minBytesRcvd).setMaxBytesRcvd(maxBytesRcvd)
                 .setLatestGenerationStamp(latestGenerationStamp).setRequestedChecksum(checksumProto)
-                .setCachingStrategy(getCachingStrategy(cachingStrategy)).setAllowLazyPersist(allowLazyPersist)
-                .setPinning(pinning).addAllTargetPinnings(PBHelperClient.convert(targetPinnings, 1))
+                .setCachingStrategy(getCachingStrategy(cachingStrategy)).setAllowLazyPersist(allowLazyPersist).setPinning(pinning)
+                .addAllTargetPinnings(PBHelperClient.convert(targetPinnings, 1))
                 .addAllTargetStorageIds(PBHelperClient.convert(targetStorageIds, 1));
         if (source != null) {
             proto.setSource(PBHelperClient.convertDatanodeInfo(source));
@@ -184,8 +185,7 @@ public class Sender implements DataTransferProtocol {
                 .setSlotId(PBHelperClient.convert(slotId));
         SpanId spanId = Tracer.getCurrentSpanId();
         if (spanId.isValid()) {
-            builder.setTraceInfo(
-                    DataTransferTraceInfoProto.newBuilder().setTraceId(spanId.getHigh()).setParentId(spanId.getLow()));
+            builder.setTraceInfo(DataTransferTraceInfoProto.newBuilder().setTraceId(spanId.getHigh()).setParentId(spanId.getLow()));
         }
         ReleaseShortCircuitAccessRequestProto proto = builder.build();
         send(out, Op.RELEASE_SHORT_CIRCUIT_FDS, proto);
@@ -196,17 +196,15 @@ public class Sender implements DataTransferProtocol {
         ShortCircuitShmRequestProto.Builder builder = ShortCircuitShmRequestProto.newBuilder().setClientName(clientName);
         SpanId spanId = Tracer.getCurrentSpanId();
         if (spanId.isValid()) {
-            builder.setTraceInfo(
-                    DataTransferTraceInfoProto.newBuilder().setTraceId(spanId.getHigh()).setParentId(spanId.getLow()));
+            builder.setTraceInfo(DataTransferTraceInfoProto.newBuilder().setTraceId(spanId.getHigh()).setParentId(spanId.getLow()));
         }
         ShortCircuitShmRequestProto proto = builder.build();
         send(out, Op.REQUEST_SHORT_CIRCUIT_SHM, proto);
     }
 
     @Override
-    public void replaceBlock(final ExtendedBlock blk, final StorageType storageType,
-                             final Token<BlockTokenIdentifier> blockToken, final String delHint, final DatanodeInfo source,
-                             final String storageId) throws IOException {
+    public void replaceBlock(final ExtendedBlock blk, final StorageType storageType, final Token<BlockTokenIdentifier> blockToken,
+                             final String delHint, final DatanodeInfo source, final String storageId) throws IOException {
         OpReplaceBlockProto.Builder proto = OpReplaceBlockProto.newBuilder()
                 .setHeader(DataTransferProtoUtil.buildBaseHeader(blk, blockToken))
                 .setStorageType(PBHelperClient.convertStorageType(storageType)).setDelHint(delHint)
@@ -220,8 +218,8 @@ public class Sender implements DataTransferProtocol {
 
     @Override
     public void copyBlock(final ExtendedBlock blk, final Token<BlockTokenIdentifier> blockToken) throws IOException {
-        OpCopyBlockProto proto = OpCopyBlockProto.newBuilder()
-                .setHeader(DataTransferProtoUtil.buildBaseHeader(blk, blockToken)).build();
+        OpCopyBlockProto proto = OpCopyBlockProto.newBuilder().setHeader(DataTransferProtoUtil.buildBaseHeader(blk, blockToken))
+                .build();
 
         send(out, Op.COPY_BLOCK, proto);
     }
@@ -245,8 +243,8 @@ public class Sender implements DataTransferProtocol {
                 .addAllBlockTokens(PBHelperClient.convert(stripedBlockInfo.getBlockTokens()))
                 .addAllBlockIndices(PBHelperClient.convertBlockIndices(stripedBlockInfo.getBlockIndices()))
                 .setEcPolicy(PBHelperClient.convertErasureCodingPolicy(stripedBlockInfo.getErasureCodingPolicy()))
-                .setRequestedNumBytes(requestedNumBytes)
-                .setBlockChecksumOptions(PBHelperClient.convert(blockChecksumOptions)).build();
+                .setRequestedNumBytes(requestedNumBytes).setBlockChecksumOptions(PBHelperClient.convert(blockChecksumOptions))
+                .build();
 
         send(out, Op.BLOCK_GROUP_CHECKSUM, proto);
     }

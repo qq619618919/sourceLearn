@@ -77,16 +77,14 @@ import static org.apache.hadoop.yarn.server.nodemanager.containermanager.launche
  * underlying OS.  All executor implementations must extend ContainerExecutor.
  */
 public abstract class ContainerExecutor implements Configurable {
-    private static final Logger LOG =
-            LoggerFactory.getLogger(ContainerExecutor.class);
+    private static final Logger LOG = LoggerFactory.getLogger(ContainerExecutor.class);
     protected static final String WILDCARD = "*";
     public static final String TOKEN_FILE_NAME_FMT = "%s.tokens";
 
     /**
      * The permissions to use when creating the launch script.
      */
-    public static final FsPermission TASK_LAUNCH_SCRIPT_PERMISSION =
-            FsPermission.createImmutable((short) 0700);
+    public static final FsPermission TASK_LAUNCH_SCRIPT_PERMISSION = FsPermission.createImmutable((short) 0700);
 
     /**
      * The relative path to which debug information will be written.
@@ -96,22 +94,19 @@ public abstract class ContainerExecutor implements Configurable {
     public static final String DIRECTORY_CONTENTS = "directory.info";
 
     private Configuration conf;
-    private final ConcurrentMap<ContainerId, Path> pidFiles =
-            new ConcurrentHashMap<>();
+    private final ConcurrentMap<ContainerId, Path> pidFiles = new ConcurrentHashMap<>();
     private final ReentrantReadWriteLock lock = new ReentrantReadWriteLock();
     private String[] whitelistVars;
-    private int exitCodeFileTimeout =
-            YarnConfiguration.DEFAULT_NM_CONTAINER_EXECUTOR_EXIT_FILE_TIMEOUT;
+    private int exitCodeFileTimeout = YarnConfiguration.DEFAULT_NM_CONTAINER_EXECUTOR_EXIT_FILE_TIMEOUT;
 
     @Override
     public void setConf(Configuration conf) {
         this.conf = conf;
         if (conf != null) {
-            whitelistVars = conf.get(YarnConfiguration.NM_ENV_WHITELIST,
-                    YarnConfiguration.DEFAULT_NM_ENV_WHITELIST).split(",");
-            exitCodeFileTimeout = conf.getInt(
-                    YarnConfiguration.NM_CONTAINER_EXECUTOR_EXIT_FILE_TIMEOUT,
-                    YarnConfiguration.DEFAULT_NM_CONTAINER_EXECUTOR_EXIT_FILE_TIMEOUT);
+            whitelistVars = conf.get(YarnConfiguration.NM_ENV_WHITELIST, YarnConfiguration.DEFAULT_NM_ENV_WHITELIST).split(",");
+            exitCodeFileTimeout = conf.getInt(YarnConfiguration.NM_CONTAINER_EXECUTOR_EXIT_FILE_TIMEOUT,
+                    YarnConfiguration.DEFAULT_NM_CONTAINER_EXECUTOR_EXIT_FILE_TIMEOUT
+            );
         }
     }
 
@@ -150,8 +145,7 @@ public abstract class ContainerExecutor implements Configurable {
      * @return the path to the localized JAR file
      * @throws IOException if localization fails
      */
-    public Path localizeClasspathJar(Path jarPath, Path target, String owner)
-            throws IOException {
+    public Path localizeClasspathJar(Path jarPath, Path target, String owner) throws IOException {
         return jarPath;
     }
 
@@ -173,16 +167,14 @@ public abstract class ContainerExecutor implements Configurable {
      * @throws IOException for most application init failures
      * @throws InterruptedException if application init thread is halted by NM
      */
-    public abstract void startLocalizer(LocalizerStartContext ctx)
-            throws IOException, InterruptedException;
+    public abstract void startLocalizer(LocalizerStartContext ctx) throws IOException, InterruptedException;
 
     /**
      * Prepare the container prior to the launch environment being written.
      * @param ctx Encapsulates information necessary for launching containers.
      * @throws IOException if errors occur during container preparation
      */
-    public void prepareContainer(ContainerPrepareContext ctx) throws
-            IOException {
+    public void prepareContainer(ContainerPrepareContext ctx) throws IOException {
     }
 
     /**
@@ -193,8 +185,7 @@ public abstract class ContainerExecutor implements Configurable {
      * @throws IOException if the container launch fails
      * @throws ConfigurationException if config error was found
      */
-    public abstract int launchContainer(ContainerStartContext ctx) throws
-            IOException, ConfigurationException;
+    public abstract int launchContainer(ContainerStartContext ctx) throws IOException, ConfigurationException;
 
     /**
      * Relaunch the container on the node. This is a blocking call and returns
@@ -204,8 +195,7 @@ public abstract class ContainerExecutor implements Configurable {
      * @throws IOException if the container relaunch fails
      * @throws ConfigurationException if config error was found
      */
-    public abstract int relaunchContainer(ContainerStartContext ctx) throws
-            IOException, ConfigurationException;
+    public abstract int relaunchContainer(ContainerStartContext ctx) throws IOException, ConfigurationException;
 
     /**
      * Signal container with the specified signal.
@@ -214,8 +204,7 @@ public abstract class ContainerExecutor implements Configurable {
      * @return returns true if the operation succeeded
      * @throws IOException if signaling the container fails
      */
-    public abstract boolean signalContainer(ContainerSignalContext ctx)
-            throws IOException;
+    public abstract boolean signalContainer(ContainerSignalContext ctx) throws IOException;
 
     /**
      * Perform the steps necessary to reap the container.
@@ -224,8 +213,7 @@ public abstract class ContainerExecutor implements Configurable {
      * @return returns true if the operation succeeded.
      * @throws IOException if reaping the container fails.
      */
-    public abstract boolean reapContainer(ContainerReapContext ctx)
-            throws IOException;
+    public abstract boolean reapContainer(ContainerReapContext ctx) throws IOException;
 
     /**
      * Perform interactive docker command into running container.
@@ -234,8 +222,7 @@ public abstract class ContainerExecutor implements Configurable {
      * @return return input/output stream if the operation succeeded.
      * @throws ContainerExecutionException if container exec fails.
      */
-    public abstract IOStreamPair execContainer(ContainerExecContext ctx)
-            throws ContainerExecutionException;
+    public abstract IOStreamPair execContainer(ContainerExecContext ctx) throws ContainerExecutionException;
 
     /**
      * Delete specified directories as a given user.
@@ -245,8 +232,7 @@ public abstract class ContainerExecutor implements Configurable {
      * @throws InterruptedException if interrupted while waiting for the deletion
      * operation to complete
      */
-    public abstract void deleteAsUser(DeletionAsUserContext ctx)
-            throws IOException, InterruptedException;
+    public abstract void deleteAsUser(DeletionAsUserContext ctx) throws IOException, InterruptedException;
 
     /**
      * Create a symlink file which points to the target.
@@ -254,8 +240,7 @@ public abstract class ContainerExecutor implements Configurable {
      * @param symlink the symlink file
      * @throws IOException Error when creating symlinks
      */
-    public abstract void symLink(String target, String symlink)
-            throws IOException;
+    public abstract void symLink(String target, String symlink) throws IOException;
 
     /**
      * Check if a container is alive.
@@ -264,12 +249,10 @@ public abstract class ContainerExecutor implements Configurable {
      * @throws IOException if there is a failure while checking the container
      * status
      */
-    public abstract boolean isContainerAlive(ContainerLivenessContext ctx)
-            throws IOException;
+    public abstract boolean isContainerAlive(ContainerLivenessContext ctx) throws IOException;
 
 
-    public Map<String, LocalResource> getLocalResources(Container container)
-            throws IOException {
+    public Map<String, LocalResource> getLocalResources(Container container) throws IOException {
         return container.getLaunchContext().getLocalResources();
     }
 
@@ -282,8 +265,7 @@ public abstract class ContainerExecutor implements Configurable {
      * @param spec Service Specification
      * @throws IOException if there is a failure while writing spec to disk
      */
-    public abstract void updateYarnSysFS(Context ctx, String user,
-                                         String appId, String spec) throws IOException;
+    public abstract void updateYarnSysFS(Context ctx, String user, String appId, String spec) throws IOException;
 
     /**
      * Recover an already existing container. This is a blocking call and returns
@@ -296,8 +278,7 @@ public abstract class ContainerExecutor implements Configurable {
      * @throws InterruptedException if interrupted while waiting to reacquire
      * the container
      */
-    public int reacquireContainer(ContainerReacquisitionContext ctx)
-            throws IOException, InterruptedException {
+    public int reacquireContainer(ContainerReacquisitionContext ctx) throws IOException, InterruptedException {
         Container container = ctx.getContainer();
         String user = ctx.getUser();
         ContainerId containerId = ctx.getContainerId();
@@ -317,12 +298,8 @@ public abstract class ContainerExecutor implements Configurable {
 
         LOG.info("Reacquiring {} with pid {}", containerId, pid);
 
-        ContainerLivenessContext livenessContext = new ContainerLivenessContext
-                .Builder()
-                .setContainer(container)
-                .setUser(user)
-                .setPid(pid)
-                .build();
+        ContainerLivenessContext livenessContext = new ContainerLivenessContext.Builder().setContainer(container).setUser(user)
+                .setPid(pid).build();
 
         while (isContainerAlive(livenessContext)) {
             Thread.sleep(1000);
@@ -347,13 +324,11 @@ public abstract class ContainerExecutor implements Configurable {
         }
 
         if (msecLeft < 0) {
-            throw new IOException("Timeout while waiting for exit code from "
-                    + containerId);
+            throw new IOException("Timeout while waiting for exit code from " + containerId);
         }
 
         try {
-            return Integer.parseInt(
-                    FileUtils.readFileToString(file, Charset.defaultCharset()).trim());
+            return Integer.parseInt(FileUtils.readFileToString(file, Charset.defaultCharset()).trim());
         } catch (NumberFormatException e) {
             throw new IOException("Error parsing exit code from pid " + pid, e);
         }
@@ -376,11 +351,9 @@ public abstract class ContainerExecutor implements Configurable {
      * @throws IOException if any errors happened writing to the OutputStream,
      * while creating symlinks
      */
-    public void writeLaunchEnv(OutputStream out, Map<String, String> environment,
-                               Map<Path, List<String>> resources, List<String> command, Path logDir,
-                               String user, LinkedHashSet<String> nmVars) throws IOException {
-        this.writeLaunchEnv(out, environment, resources, command, logDir, user,
-                ContainerLaunch.CONTAINER_SCRIPT, nmVars);
+    public void writeLaunchEnv(OutputStream out, Map<String, String> environment, Map<Path, List<String>> resources,
+                               List<String> command, Path logDir, String user, LinkedHashSet<String> nmVars) throws IOException {
+        this.writeLaunchEnv(out, environment, resources, command, logDir, user, ContainerLaunch.CONTAINER_SCRIPT, nmVars);
     }
 
     /**
@@ -401,13 +374,11 @@ public abstract class ContainerExecutor implements Configurable {
      * while creating symlinks
      */
     @VisibleForTesting
-    public void writeLaunchEnv(OutputStream out, Map<String, String> environment,
-                               Map<Path, List<String>> resources, List<String> command, Path logDir,
-                               String user, String outFilename, LinkedHashSet<String> nmVars)
-            throws IOException {
+    public void writeLaunchEnv(OutputStream out, Map<String, String> environment, Map<Path, List<String>> resources,
+                               List<String> command, Path logDir, String user, String outFilename,
+                               LinkedHashSet<String> nmVars) throws IOException {
 
-        ContainerLaunch.ShellScriptBuilder sb =
-                ContainerLaunch.ShellScriptBuilder.create();
+        ContainerLaunch.ShellScriptBuilder sb = ContainerLaunch.ShellScriptBuilder.create();
 
         // Add "set -o pipefail -e" to validate launch_container script.
         sb.setExitOnFailure();
@@ -438,8 +409,7 @@ public abstract class ContainerExecutor implements Configurable {
                 sb.env(nmEnvVar, environment.get(nmEnvVar));
             }
             // Now write the remaining environment variables.
-            for (Map.Entry<String, String> env :
-                    sb.orderEnvByDependencies(environment).entrySet()) {
+            for (Map.Entry<String, String> env : sb.orderEnvByDependencies(environment).entrySet()) {
                 if (!nmVars.contains(env.getKey())) {
                     sb.env(env.getKey(), env.getValue());
                 }
@@ -455,12 +425,11 @@ public abstract class ContainerExecutor implements Configurable {
         }
 
         // dump debugging information if configured
-        if (getConf() != null &&
-                getConf().getBoolean(YarnConfiguration.NM_LOG_CONTAINER_DEBUG_INFO,
-                        YarnConfiguration.DEFAULT_NM_LOG_CONTAINER_DEBUG_INFO)) {
+        if (getConf() != null && getConf().getBoolean(YarnConfiguration.NM_LOG_CONTAINER_DEBUG_INFO,
+                YarnConfiguration.DEFAULT_NM_LOG_CONTAINER_DEBUG_INFO
+        )) {
             sb.echo("Copying debugging information");
-            sb.copyDebugInformation(new Path(outFilename),
-                    new Path(logDir, outFilename));
+            sb.copyDebugInformation(new Path(outFilename), new Path(logDir, outFilename));
             sb.listDebugInformation(new Path(logDir, DIRECTORY_CONTENTS));
         }
         sb.echo("Launching container");
@@ -588,8 +557,7 @@ public abstract class ContainerExecutor implements Configurable {
      * @param config the configuration
      * @return the command line to execute
      */
-    protected String[] getRunCommand(String command, String groupId,
-                                     String userName, Path pidFile, Configuration config) {
+    protected String[] getRunCommand(String command, String groupId, String userName, Path pidFile, Configuration config) {
         return getRunCommand(command, groupId, userName, pidFile, config, null);
     }
 
@@ -611,11 +579,10 @@ public abstract class ContainerExecutor implements Configurable {
      * If null, no limits are set. On other operating systems it is ignored.
      * @return the command line to execute
      */
-    protected String[] getRunCommand(String command, String groupId,
-                                     String userName, Path pidFile, Configuration config, Resource resource) {
+    protected String[] getRunCommand(String command, String groupId, String userName, Path pidFile, Configuration config,
+                                     Resource resource) {
         if (Shell.WINDOWS) {
-            return getRunCommandForWindows(command, groupId, userName, pidFile,
-                    config, resource);
+            return getRunCommandForWindows(command, groupId, userName, pidFile, config, resource);
         } else {
             return getRunCommandForOther(command, config);
         }
@@ -636,29 +603,26 @@ public abstract class ContainerExecutor implements Configurable {
      * If null, no limits are set.
      * @return the command line to execute
      */
-    protected String[] getRunCommandForWindows(String command, String groupId,
-                                               String userName, Path pidFile, Configuration config, Resource resource) {
+    protected String[] getRunCommandForWindows(String command, String groupId, String userName, Path pidFile, Configuration config,
+                                               Resource resource) {
         int cpuRate = -1;
         int memory = -1;
 
         if (resource != null) {
-            if (config.getBoolean(
-                    YarnConfiguration.NM_WINDOWS_CONTAINER_MEMORY_LIMIT_ENABLED,
-                    YarnConfiguration.
-                            DEFAULT_NM_WINDOWS_CONTAINER_MEMORY_LIMIT_ENABLED)) {
+            if (config.getBoolean(YarnConfiguration.NM_WINDOWS_CONTAINER_MEMORY_LIMIT_ENABLED,
+                    YarnConfiguration.DEFAULT_NM_WINDOWS_CONTAINER_MEMORY_LIMIT_ENABLED
+            )) {
                 memory = (int) resource.getMemorySize();
             }
 
-            if (config.getBoolean(
-                    YarnConfiguration.NM_WINDOWS_CONTAINER_CPU_LIMIT_ENABLED,
-                    YarnConfiguration.DEFAULT_NM_WINDOWS_CONTAINER_CPU_LIMIT_ENABLED)) {
+            if (config.getBoolean(YarnConfiguration.NM_WINDOWS_CONTAINER_CPU_LIMIT_ENABLED,
+                    YarnConfiguration.DEFAULT_NM_WINDOWS_CONTAINER_CPU_LIMIT_ENABLED
+            )) {
                 int containerVCores = resource.getVirtualCores();
                 int nodeVCores = NodeManagerHardwareUtils.getVCores(config);
-                int nodeCpuPercentage =
-                        NodeManagerHardwareUtils.getNodeCpuPercentage(config);
+                int nodeCpuPercentage = NodeManagerHardwareUtils.getNodeCpuPercentage(config);
 
-                float containerCpuPercentage =
-                        (float) (nodeCpuPercentage * containerVCores) / nodeVCores;
+                float containerCpuPercentage = (float) (nodeCpuPercentage * containerVCores) / nodeVCores;
 
                 // CPU should be set to a percentage * 100, e.g. 20% cpu rate limit
                 // should be set as 20 * 100.
@@ -666,17 +630,8 @@ public abstract class ContainerExecutor implements Configurable {
             }
         }
 
-        return new String[]{
-                Shell.getWinUtilsPath(),
-                "task",
-                "create",
-                "-m",
-                String.valueOf(memory),
-                "-c",
-                String.valueOf(cpuRate),
-                groupId,
-                "cmd /c " + command
-        };
+        return new String[]{Shell.getWinUtilsPath(), "task", "create", "-m", String.valueOf(memory), "-c", String.valueOf(
+                cpuRate), groupId, "cmd /c " + command};
     }
 
     /**
@@ -686,24 +641,20 @@ public abstract class ContainerExecutor implements Configurable {
      * @param config the configuration
      * @return the command line to execute
      */
-    protected String[] getRunCommandForOther(String command,
-                                             Configuration config) {
+    protected String[] getRunCommandForOther(String command, Configuration config) {
         List<String> retCommand = new ArrayList<>();
         boolean containerSchedPriorityIsSet = false;
-        int containerSchedPriorityAdjustment =
-                YarnConfiguration.DEFAULT_NM_CONTAINER_EXECUTOR_SCHED_PRIORITY;
+        int containerSchedPriorityAdjustment = YarnConfiguration.DEFAULT_NM_CONTAINER_EXECUTOR_SCHED_PRIORITY;
 
-        if (config.get(YarnConfiguration.NM_CONTAINER_EXECUTOR_SCHED_PRIORITY) !=
-                null) {
+        if (config.get(YarnConfiguration.NM_CONTAINER_EXECUTOR_SCHED_PRIORITY) != null) {
             containerSchedPriorityIsSet = true;
-            containerSchedPriorityAdjustment = config
-                    .getInt(YarnConfiguration.NM_CONTAINER_EXECUTOR_SCHED_PRIORITY,
-                            YarnConfiguration.DEFAULT_NM_CONTAINER_EXECUTOR_SCHED_PRIORITY);
+            containerSchedPriorityAdjustment = config.getInt(YarnConfiguration.NM_CONTAINER_EXECUTOR_SCHED_PRIORITY,
+                    YarnConfiguration.DEFAULT_NM_CONTAINER_EXECUTOR_SCHED_PRIORITY
+            );
         }
 
         if (containerSchedPriorityIsSet) {
-            retCommand.addAll(Arrays.asList("nice", "-n",
-                    Integer.toString(containerSchedPriorityAdjustment)));
+            retCommand.addAll(Arrays.asList("nice", "-n", Integer.toString(containerSchedPriorityAdjustment)));
         }
 
         retCommand.addAll(Arrays.asList("bash", command));
@@ -738,8 +689,7 @@ public abstract class ContainerExecutor implements Configurable {
     }
 
     // LinuxContainerExecutor overrides this method and behaves differently.
-    public String[] getIpAndHost(Container container)
-            throws ContainerExecutionException {
+    public String[] getIpAndHost(Container container) throws ContainerExecutionException {
         return getLocalIpAndHost(container);
     }
 
@@ -752,8 +702,7 @@ public abstract class ContainerExecutor implements Configurable {
             ipAndHost[0] = address.getHostAddress();
             ipAndHost[1] = address.getHostName();
         } catch (UnknownHostException e) {
-            LOG.error("Unable to get Local hostname and ip for {}", container
-                    .getContainerId(), e);
+            LOG.error("Unable to get Local hostname and ip for {}", container.getContainerId(), e);
         }
         return ipAndHost;
     }
@@ -794,20 +743,15 @@ public abstract class ContainerExecutor implements Configurable {
      * Perform any cleanup before the next launch of the container.
      * @param container         container
      */
-    public void cleanupBeforeRelaunch(Container container)
-            throws IOException, InterruptedException {
+    public void cleanupBeforeRelaunch(Container container) throws IOException, InterruptedException {
         if (container.getLocalizedResources() != null) {
 
-            Map<Path, Path> symLinks = resolveSymLinks(
-                    container.getLocalizedResources(), container.getUser());
+            Map<Path, Path> symLinks = resolveSymLinks(container.getLocalizedResources(), container.getUser());
 
             for (Map.Entry<Path, Path> symLink : symLinks.entrySet()) {
-                LOG.debug("{} deleting {}", container.getContainerId(),
-                        symLink.getValue());
-                deleteAsUser(new DeletionAsUserContext.Builder()
-                        .setUser(container.getUser())
-                        .setSubDir(symLink.getValue())
-                        .build());
+                LOG.debug("{} deleting {}", container.getContainerId(), symLink.getValue());
+                deleteAsUser(
+                        new DeletionAsUserContext.Builder().setUser(container.getUser()).setSubDir(symLink.getValue()).build());
             }
         }
     }
@@ -858,8 +802,8 @@ public abstract class ContainerExecutor implements Configurable {
          * @param signal the signal to send
          * @param containerExecutor the executor to use to send the signal
          */
-        public DelayedProcessKiller(Container container, String user, String pid,
-                                    long delayMS, Signal signal, ContainerExecutor containerExecutor) {
+        public DelayedProcessKiller(Container container, String user, String pid, long delayMS, Signal signal,
+                                    ContainerExecutor containerExecutor) {
             this.container = container;
             this.user = user;
             this.pid = pid;
@@ -874,36 +818,29 @@ public abstract class ContainerExecutor implements Configurable {
         public void run() {
             try {
                 Thread.sleep(delay);
-                containerExecutor.signalContainer(new ContainerSignalContext.Builder()
-                        .setContainer(container)
-                        .setUser(user)
-                        .setPid(pid)
-                        .setSignal(signal)
-                        .build());
+                containerExecutor.signalContainer(
+                        new ContainerSignalContext.Builder().setContainer(container).setUser(user).setPid(pid).setSignal(signal)
+                                .build());
             } catch (InterruptedException e) {
                 interrupt();
             } catch (IOException e) {
-                String message = "Exception when user " + user + " killing task " + pid
-                        + " in DelayedProcessKiller: " + StringUtils.stringifyException(e);
+                String message = "Exception when user " + user + " killing task " + pid + " in DelayedProcessKiller: " + StringUtils.stringifyException(
+                        e);
                 LOG.warn(message);
-                container.handle(new ContainerDiagnosticsUpdateEvent(
-                        container.getContainerId(), message));
+                container.handle(new ContainerDiagnosticsUpdateEvent(container.getContainerId(), message));
             }
         }
     }
 
-    private Map<Path, Path> resolveSymLinks(Map<Path,
-            List<String>> resources, String user) {
+    private Map<Path, Path> resolveSymLinks(Map<Path, List<String>> resources, String user) {
         Map<Path, Path> symLinks = new HashMap<>();
-        for (Map.Entry<Path, List<String>> resourceEntry :
-                resources.entrySet()) {
+        for (Map.Entry<Path, List<String>> resourceEntry : resources.entrySet()) {
             for (String linkName : resourceEntry.getValue()) {
                 if (new Path(linkName).getName().equals(WILDCARD)) {
                     // If this is a wildcarded path, link to everything in the
                     // directory from the working directory
                     for (File wildLink : readDirAsUser(user, resourceEntry.getKey())) {
-                        symLinks.put(new Path(wildLink.toString()),
-                                new Path(wildLink.getName()));
+                        symLinks.put(new Path(wildLink.toString()), new Path(wildLink.getName()));
                     }
                 } else {
                     symLinks.put(resourceEntry.getKey(), new Path(linkName));
@@ -913,8 +850,7 @@ public abstract class ContainerExecutor implements Configurable {
         return symLinks;
     }
 
-    public String getExposedPorts(Container container)
-            throws ContainerExecutionException {
+    public String getExposedPorts(Container container) throws ContainerExecutionException {
         return null;
     }
 }

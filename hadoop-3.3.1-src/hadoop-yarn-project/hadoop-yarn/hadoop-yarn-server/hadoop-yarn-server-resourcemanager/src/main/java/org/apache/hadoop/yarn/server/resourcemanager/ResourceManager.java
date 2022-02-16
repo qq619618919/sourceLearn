@@ -392,9 +392,7 @@ public class ResourceManager extends CompositeService implements Recoverable, Re
     }
 
     private void loadConfigurationXml(String configurationFile) throws YarnException, IOException {
-        InputStream configurationInputStream = this.configurationProvider.getConfigurationInputStream(this.conf,
-                configurationFile
-        );
+        InputStream configurationInputStream = this.configurationProvider.getConfigurationInputStream(this.conf, configurationFile);
         if (configurationInputStream != null) {
             this.conf.addResource(configurationInputStream, configurationFile);
         }
@@ -649,9 +647,7 @@ public class ResourceManager extends CompositeService implements Recoverable, Re
     // sanity check for configurations
     protected static void validateConfigs(Configuration conf) {
         // validate max-attempts
-        int rmMaxAppAttempts = conf.getInt(YarnConfiguration.RM_AM_MAX_ATTEMPTS,
-                YarnConfiguration.DEFAULT_RM_AM_MAX_ATTEMPTS
-        );
+        int rmMaxAppAttempts = conf.getInt(YarnConfiguration.RM_AM_MAX_ATTEMPTS, YarnConfiguration.DEFAULT_RM_AM_MAX_ATTEMPTS);
         if (rmMaxAppAttempts <= 0) {
             throw new YarnRuntimeException(
                     "Invalid rm am max attempts configuration" + ", " + YarnConfiguration.RM_AM_MAX_ATTEMPTS + "=" + rmMaxAppAttempts + ", it should be a positive integer.");
@@ -768,15 +764,12 @@ public class ResourceManager extends CompositeService implements Recoverable, Re
                 rmContext.setRMDelegatedNodeLabelsUpdater(delegatedNodeLabelsUpdater);
             }
 
-            recoveryEnabled = conf.getBoolean(YarnConfiguration.RECOVERY_ENABLED,
-                    YarnConfiguration.DEFAULT_RM_RECOVERY_ENABLED
-            );
+            recoveryEnabled = conf.getBoolean(YarnConfiguration.RECOVERY_ENABLED, YarnConfiguration.DEFAULT_RM_RECOVERY_ENABLED);
 
             RMStateStore rmStore = null;
             if (recoveryEnabled) {
                 rmStore = RMStateStoreFactory.getStore(conf);
-                boolean isWorkPreservingRecoveryEnabled = conf.getBoolean(
-                        YarnConfiguration.RM_WORK_PRESERVING_RECOVERY_ENABLED,
+                boolean isWorkPreservingRecoveryEnabled = conf.getBoolean(YarnConfiguration.RM_WORK_PRESERVING_RECOVERY_ENABLED,
                         YarnConfiguration.DEFAULT_RM_WORK_PRESERVING_RECOVERY_ENABLED
                 );
                 rmContext.setWorkPreservingRecoveryEnabled(isWorkPreservingRecoveryEnabled);
@@ -826,6 +819,10 @@ public class ResourceManager extends CompositeService implements Recoverable, Re
             rmDispatcher.register(SchedulerEventType.class, schedulerDispatcher);
 
             // Register event handler for RmAppEvents
+            /*************************************************
+             * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+             *  注释： RMAppEventType 这种类型的事件， 由 ApplicationEventDispatcher 处理
+             */
             rmDispatcher.register(RMAppEventType.class, new ApplicationEventDispatcher(rmContext));
 
             // Register event handler for RmAppAttemptEvents
@@ -876,7 +873,7 @@ public class ResourceManager extends CompositeService implements Recoverable, Re
 
             /*************************************************
              * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-             *  注释：
+             *  注释： 创建 ApplicationMasterService
              */
             masterService = createApplicationMasterService();
             createAndRegisterOpportunisticDispatcher(masterService);
@@ -961,9 +958,7 @@ public class ResourceManager extends CompositeService implements Recoverable, Re
                 return;
             }
             EventDispatcher oppContainerAllocEventDispatcher = new EventDispatcher(
-                    (OpportunisticContainerAllocatorAMService) service,
-                    OpportunisticContainerAllocatorAMService.class.getName()
-            );
+                    (OpportunisticContainerAllocatorAMService) service, OpportunisticContainerAllocatorAMService.class.getName());
             // Add an event dispatcher for the
             // OpportunisticContainerAllocatorAMService to handle node
             // additions, updates and removals. Since the SchedulerEvent is currently
@@ -1272,10 +1267,7 @@ public class ResourceManager extends CompositeService implements Recoverable, Re
                     try {
                         rmAppAttempt.handle(event);
                     } catch (Throwable t) {
-                        LOG.error(
-                                "Error in handling event type " + event.getType() + " for applicationAttempt " + appAttemptId,
-                                t
-                        );
+                        LOG.error("Error in handling event type " + event.getType() + " for applicationAttempt " + appAttemptId, t);
                     }
                 } else if (rmApp.getApplicationSubmissionContext() != null && rmApp.getApplicationSubmissionContext()
                         .getKeepContainersAcrossApplicationAttempts() && event.getType() == RMAppAttemptEventType.CONTAINER_FINISHED) {
@@ -1340,8 +1332,7 @@ public class ResourceManager extends CompositeService implements Recoverable, Re
      * @throws IOException from Builder
      */
     public static HttpServer2.Builder httpServerTemplateForRM(Configuration conf, final InetSocketAddress httpAddr,
-                                                              final InetSocketAddress httpsAddr,
-                                                              String name) throws IOException {
+                                                              final InetSocketAddress httpsAddr, String name) throws IOException {
         HttpServer2.Builder builder = new HttpServer2.Builder().setName(name).setConf(conf).setSecurityEnabled(false);
 
         if (httpAddr.getPort() == 0) {
@@ -1364,9 +1355,7 @@ public class ResourceManager extends CompositeService implements Recoverable, Re
         Map<String, String> params = new HashMap<String, String>();
         if (getConfig().getBoolean(YarnConfiguration.YARN_API_SERVICES_ENABLE, false)) {
             String apiPackages = "org.apache.hadoop.yarn.service.webapp;" + "org.apache.hadoop.yarn.webapp";
-            params.put("com.sun.jersey.config.property.resourceConfigClass",
-                    "com.sun.jersey.api.core.PackagesResourceConfig"
-            );
+            params.put("com.sun.jersey.config.property.resourceConfigClass", "com.sun.jersey.api.core.PackagesResourceConfig");
             params.put("com.sun.jersey.config.property.packages", apiPackages);
         }
 
@@ -1392,9 +1381,7 @@ public class ResourceManager extends CompositeService implements Recoverable, Re
         }
 
         WebAppContext uiWebAppContext = null;
-        if (getConfig().getBoolean(YarnConfiguration.YARN_WEBAPP_UI2_ENABLE,
-                YarnConfiguration.DEFAULT_YARN_WEBAPP_UI2_ENABLE
-        )) {
+        if (getConfig().getBoolean(YarnConfiguration.YARN_WEBAPP_UI2_ENABLE, YarnConfiguration.DEFAULT_YARN_WEBAPP_UI2_ENABLE)) {
             String onDiskPath = getConfig().get(YarnConfiguration.YARN_WEBAPP_UI2_WARFILE_PATH);
 
             uiWebAppContext = new WebAppContext();
@@ -1606,25 +1593,29 @@ public class ResourceManager extends CompositeService implements Recoverable, Re
     }
 
     protected ClientRMService createClientRMService() {
-        return new ClientRMService(this.rmContext, scheduler, this.rmAppManager, this.applicationACLsManager,
-                this.queueACLsManager, this.rmContext.getRMDelegationTokenSecretManager()
+        return new ClientRMService(this.rmContext, scheduler, this.rmAppManager, this.applicationACLsManager, this.queueACLsManager,
+                this.rmContext.getRMDelegationTokenSecretManager()
         );
     }
 
     protected ApplicationMasterService createApplicationMasterService() {
         Configuration config = this.rmContext.getYarnConfiguration();
         if (isOpportunisticSchedulingEnabled(conf)) {
-            if (YarnConfiguration.isDistSchedulingEnabled(
-                    config) && !YarnConfiguration.isOpportunisticContainerAllocationEnabled(config)) {
+            if (YarnConfiguration.isDistSchedulingEnabled(config) && !YarnConfiguration.isOpportunisticContainerAllocationEnabled(
+                    config)) {
                 throw new YarnRuntimeException(
                         "Invalid parameters: opportunistic container allocation has to " + "be enabled when distributed scheduling is enabled.");
             }
             OpportunisticContainerAllocatorAMService oppContainerAllocatingAMService = new OpportunisticContainerAllocatorAMService(
                     this.rmContext, scheduler);
-            this.rmContext.setContainerQueueLimitCalculator(
-                    oppContainerAllocatingAMService.getNodeManagerQueueLimitCalculator());
+            this.rmContext.setContainerQueueLimitCalculator(oppContainerAllocatingAMService.getNodeManagerQueueLimitCalculator());
             return oppContainerAllocatingAMService;
         }
+
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释：
+         */
         return new ApplicationMasterService(this.rmContext, scheduler);
     }
 
@@ -1637,8 +1628,7 @@ public class ResourceManager extends CompositeService implements Recoverable, Re
     }
 
     private boolean isOpportunisticSchedulingEnabled(Configuration conf) {
-        return YarnConfiguration.isOpportunisticContainerAllocationEnabled(
-                conf) || YarnConfiguration.isDistSchedulingEnabled(conf);
+        return YarnConfiguration.isOpportunisticContainerAllocationEnabled(conf) || YarnConfiguration.isDistSchedulingEnabled(conf);
     }
 
     /**

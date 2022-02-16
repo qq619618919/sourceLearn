@@ -35,85 +35,88 @@ import java.util.Map;
 @InterfaceAudience.Private
 @InterfaceStability.Unstable
 public final class ContainerPrepareContext {
-  private final Container container;
-  private final Map<Path, List<String>> localizedResources;
-  private final String user;
-  private final List<String> containerLocalDirs;
-  private final List<String> commands;
+    private final Container container;
+    private final Map<Path, List<String>> localizedResources;
+    private final String user;
+    private final List<String> containerLocalDirs;
+    private final List<String> commands;
 
-  /**
-   * Builder for ContainerPrepareContext.
-   */
-  public static final class Builder {
-    private Container container;
-    private Map<Path, List<String>> localizedResources;
-    private String user;
-    private List<String> containerLocalDirs;
-    private List<String> commands;
+    /**
+     * Builder for ContainerPrepareContext.
+     */
+    public static final class Builder {
+        private Container container;
+        private Map<Path, List<String>> localizedResources;
+        private String user;
+        private List<String> containerLocalDirs;
+        private List<String> commands;
 
-    public Builder() {
+        public Builder() {
+        }
+
+        public ContainerPrepareContext.Builder setContainer(Container container) {
+            this.container = container;
+            return this;
+        }
+
+        public ContainerPrepareContext.Builder setLocalizedResources(Map<Path, List<String>> localizedResources) {
+            this.localizedResources = localizedResources;
+            return this;
+        }
+
+        public ContainerPrepareContext.Builder setUser(String user) {
+            this.user = user;
+            return this;
+        }
+
+        public ContainerPrepareContext.Builder setContainerLocalDirs(List<String> containerLocalDirs) {
+            this.containerLocalDirs = containerLocalDirs;
+            return this;
+        }
+
+        public ContainerPrepareContext build() {
+            return new ContainerPrepareContext(this);
+        }
+
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释： " ".join(commands)
+         */
+        public ContainerPrepareContext.Builder setCommands(List<String> commands) {
+            this.commands = commands;
+            return this;
+        }
     }
 
-    public ContainerPrepareContext.Builder setContainer(Container container) {
-      this.container = container;
-      return this;
+    private ContainerPrepareContext(ContainerPrepareContext.Builder builder) {
+        this.container = builder.container;
+        this.localizedResources = builder.localizedResources;
+        this.user = builder.user;
+        this.containerLocalDirs = builder.containerLocalDirs;
+        this.commands = builder.commands;
     }
 
-    public ContainerPrepareContext.Builder setLocalizedResources(Map<Path,
-        List<String>> localizedResources) {
-      this.localizedResources = localizedResources;
-      return this;
+    public Container getContainer() {
+        return this.container;
     }
 
-    public ContainerPrepareContext.Builder setUser(String user) {
-      this.user = user;
-      return this;
-    }
-    public ContainerPrepareContext.Builder setContainerLocalDirs(
-        List<String> containerLocalDirs) {
-      this.containerLocalDirs = containerLocalDirs;
-      return this;
+    public Map<Path, List<String>> getLocalizedResources() {
+        if (this.localizedResources != null) {
+            return Collections.unmodifiableMap(this.localizedResources);
+        } else {
+            return null;
+        }
     }
 
-    public ContainerPrepareContext build() {
-      return new ContainerPrepareContext(this);
+    public String getUser() {
+        return this.user;
     }
 
-    public ContainerPrepareContext.Builder setCommands(List<String> commands) {
-      this.commands = commands;
-      return this;
+    public List<String> getContainerLocalDirs() {
+        return Collections.unmodifiableList(this.containerLocalDirs);
     }
-  }
 
-  private ContainerPrepareContext(ContainerPrepareContext.Builder builder) {
-    this.container = builder.container;
-    this.localizedResources = builder.localizedResources;
-    this.user = builder.user;
-    this.containerLocalDirs = builder.containerLocalDirs;
-    this.commands = builder.commands;
-  }
-
-  public Container getContainer() {
-    return this.container;
-  }
-
-  public Map<Path, List<String>> getLocalizedResources() {
-    if (this.localizedResources != null) {
-      return Collections.unmodifiableMap(this.localizedResources);
-    } else {
-      return null;
+    public List<String> getCommands() {
+        return this.commands;
     }
-  }
-
-  public String getUser() {
-    return this.user;
-  }
-
-  public List<String> getContainerLocalDirs() {
-    return Collections.unmodifiableList(this.containerLocalDirs);
-  }
-
-  public List<String> getCommands(){
-    return this.commands;
-  }
 }

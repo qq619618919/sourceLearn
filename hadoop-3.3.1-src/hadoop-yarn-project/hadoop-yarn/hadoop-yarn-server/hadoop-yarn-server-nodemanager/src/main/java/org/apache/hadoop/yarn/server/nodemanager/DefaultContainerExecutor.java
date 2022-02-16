@@ -195,10 +195,9 @@ public class DefaultContainerExecutor extends ContainerExecutor {
     @Private
     @VisibleForTesting
     protected ContainerLocalizer createContainerLocalizer(String user, String appId, String locId, String tokenFileName,
-                                                          List<String> localDirs,
-                                                          FileContext localizerFc) throws IOException {
-        ContainerLocalizer localizer = new ContainerLocalizer(localizerFc, user, appId, locId, tokenFileName,
-                getPaths(localDirs), RecordFactoryProvider.getRecordFactory(getConf())
+                                                          List<String> localDirs, FileContext localizerFc) throws IOException {
+        ContainerLocalizer localizer = new ContainerLocalizer(localizerFc, user, appId, locId, tokenFileName, getPaths(localDirs),
+                RecordFactoryProvider.getRecordFactory(getConf())
         );
         return localizer;
     }
@@ -236,8 +235,8 @@ public class DefaultContainerExecutor extends ContainerExecutor {
         Path tmpDir = new Path(containerWorkDir, YarnConfiguration.DEFAULT_CONTAINER_TEMP_DIR);
         createDir(tmpDir, dirPerm, false, user);
 
-
         // copy container tokens to work dir
+        // TODO_MA 马中华 注释： 原来 JobCLient 提交 Application 的时候，其实吧 jar，file，job.xml 等等都上传到了 HDFS
         Path tokenDst = new Path(containerWorkDir, ContainerLaunch.FINAL_CONTAINER_TOKENS_FILE);
         copyFile(nmPrivateTokensPath, tokenDst, user);
 
@@ -282,11 +281,19 @@ public class DefaultContainerExecutor extends ContainerExecutor {
             setScriptExecutable(launchDst, user);
             setScriptExecutable(sb.getWrapperScriptPath(), user);
 
+            /*************************************************
+             * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+             *  注释： 构建 CommandExecutor
+             */
             shExec = buildCommandExecutor(sb.getWrapperScriptPath().toString(), containerIdStr, user, pidFile,
                     container.getResource(), new File(containerWorkDir.toUri().getPath()),
                     container.getLaunchContext().getEnvironment()
             );
 
+            /*************************************************
+             * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+             *  注释： 执行命令
+             */
             if (isContainerActive(containerId)) {
                 shExec.execute();
             } else {
@@ -303,13 +310,11 @@ public class DefaultContainerExecutor extends ContainerExecutor {
             // terminated/killed forcefully. In all other cases, log the
             // container-executor's output
             if (exitCode != ExitCode.FORCE_KILLED.getExitCode() && exitCode != ExitCode.TERMINATED.getExitCode()) {
-                LOG.warn("Exception from container-launch with container ID: {}" + " and exit code: {}", containerId,
-                        exitCode, e
-                );
+                LOG.warn("Exception from container-launch with container ID: {}" + " and exit code: {}", containerId, exitCode, e);
 
                 StringBuilder builder = new StringBuilder();
-                builder.append("Exception from container-launch.\n").append("Container id: ").append(containerId)
-                        .append("\n").append("Exit code: ").append(exitCode).append("\n");
+                builder.append("Exception from container-launch.\n").append("Container id: ").append(containerId).append("\n")
+                        .append("Exit code: ").append(exitCode).append("\n");
                 if (!Optional.ofNullable(e.getMessage()).orElse("").isEmpty()) {
                     builder.append("Exception message: ").append(e.getMessage()).append("\n");
                 }
@@ -321,9 +326,8 @@ public class DefaultContainerExecutor extends ContainerExecutor {
                 logOutput(diagnostics);
                 container.handle(new ContainerDiagnosticsUpdateEvent(containerId, diagnostics));
             } else {
-                container.handle(new ContainerDiagnosticsUpdateEvent(containerId,
-                        "Container killed on request. Exit code is " + exitCode
-                ));
+                container.handle(
+                        new ContainerDiagnosticsUpdateEvent(containerId, "Container killed on request. Exit code is " + exitCode));
             }
             return exitCode;
         } finally {
@@ -352,13 +356,21 @@ public class DefaultContainerExecutor extends ContainerExecutor {
      * @return the new {@link ShellCommandExecutor}
      * @see ShellCommandExecutor
      */
-    protected CommandExecutor buildCommandExecutor(String wrapperScriptPath, String containerIdStr, String user,
-                                                   Path pidFile, Resource resource, File workDir,
-                                                   Map<String, String> environment) {
+    protected CommandExecutor buildCommandExecutor(String wrapperScriptPath, String containerIdStr, String user, Path pidFile,
+                                                   Resource resource, File workDir, Map<String, String> environment) {
 
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释：
+         */
         String[] command = getRunCommand(wrapperScriptPath, containerIdStr, user, pidFile, this.getConf(), resource);
 
         LOG.info("launchContainer: {}", Arrays.toString(command));
+
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释：
+         */
         return new ShellCommandExecutor(command, workDir, environment, 0L, false);
     }
 
@@ -443,9 +455,7 @@ public class DefaultContainerExecutor extends ContainerExecutor {
          */
         public UnixLocalWrapperScriptBuilder(Path containerWorkDir) {
             super(containerWorkDir);
-            this.sessionScriptPath = new Path(containerWorkDir,
-                    Shell.appendScriptExtension("default_container_executor_session")
-            );
+            this.sessionScriptPath = new Path(containerWorkDir, Shell.appendScriptExtension("default_container_executor_session"));
         }
 
         @Override

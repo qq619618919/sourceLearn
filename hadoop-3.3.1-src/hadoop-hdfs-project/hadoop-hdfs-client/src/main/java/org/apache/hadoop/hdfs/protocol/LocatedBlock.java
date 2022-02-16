@@ -65,7 +65,13 @@ public class LocatedBlock {
 
     private final ExtendedBlock b;
     private long offset;  // offset of the first byte of the block in the file
+
+    /*************************************************
+     * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+     *  注释： 当前 block 的 datanode 存储列表
+     */
     private final DatanodeInfoWithStorage[] locs;
+
     /** Cached storage ID for each replica */
     private final String[] storageIDs;
     /** Cached storage type for each replica, if reported. */

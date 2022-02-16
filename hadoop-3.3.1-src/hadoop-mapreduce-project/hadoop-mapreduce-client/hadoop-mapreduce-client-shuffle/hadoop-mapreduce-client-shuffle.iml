@@ -24,6 +24,7 @@
     <orderEntry type="library" name="Maven: org.apache.zookeeper:zookeeper:3.5.6" level="project" />
     <orderEntry type="library" name="Maven: org.apache.zookeeper:zookeeper-jute:3.5.6" level="project" />
     <orderEntry type="library" name="Maven: org.apache.yetus:audience-annotations:0.5.0" level="project" />
+    <orderEntry type="library" name="Maven: org.fusesource.leveldbjni:leveldbjni-all:1.8" level="project" />
     <orderEntry type="library" name="Maven: org.apache.geronimo.specs:geronimo-jcache_1.0_spec:1.0-alpha-1" level="project" />
     <orderEntry type="library" name="Maven: org.ehcache:ehcache:3.3.1" level="project" />
     <orderEntry type="library" name="Maven: com.zaxxer:HikariCP-java7:2.4.12" level="project" />
@@ -66,7 +67,7 @@
     <orderEntry type="library" name="Maven: org.eclipse.jetty:jetty-client:9.4.40.v20210413" level="project" />
     <orderEntry type="library" name="Maven: org.jline:jline:3.9.0" level="project" />
     <orderEntry type="module" module-name="hadoop-mapreduce-client-core" />
-    <orderEntry type="library" name="Maven: org.fusesource.leveldbjni:leveldbjni-all:1.8" level="project" />
+    <orderEntry type="library" name="Maven: org.openlabtesting.leveldbjni:leveldbjni-all:1.8" level="project" />
     <orderEntry type="library" name="Maven: com.google.protobuf:protobuf-java:2.5.0" level="project" />
     <orderEntry type="library" name="Maven: org.apache.avro:avro:1.7.7" level="project" />
     <orderEntry type="library" name="Maven: org.codehaus.jackson:jackson-core-asl:1.9.13" level="project" />

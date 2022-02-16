@@ -91,6 +91,8 @@ public class EditLogFileOutputStream extends EditLogOutputStream {
      */
     public EditLogFileOutputStream(Configuration conf, File name, int size) throws IOException {
         super();
+
+        // TODO_MA 马中华 注释：
         shouldSyncWritesAndSkipFsync = conf.getBoolean(DFSConfigKeys.DFS_NAMENODE_EDITS_NOEDITLOGCHANNELFLUSH,
                 DFSConfigKeys.DFS_NAMENODE_EDITS_NOEDITLOGCHANNELFLUSH_DEFAULT);
 

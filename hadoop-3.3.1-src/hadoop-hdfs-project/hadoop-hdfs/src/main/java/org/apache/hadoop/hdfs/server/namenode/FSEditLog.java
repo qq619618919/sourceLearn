@@ -552,6 +552,7 @@ public class FSEditLog implements LogsPurgeable {
             assert isOpenForWrite() : "bad state: " + state;
 
             // TODO_MA 马中华 注释： 如果自动同步开启，则等待同、步完成
+            // TODO_MA 马中华 注释： 因为 bufReady 还没有flush完成，导致 bufCurrent 和 bufReady 没有执行交换。所以：等！
             // wait if an automatic sync is scheduled
             waitIfAutoSyncScheduled();
 
@@ -559,15 +560,21 @@ public class FSEditLog implements LogsPurgeable {
             /*************************************************
              * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
              *  注释： 记录一条事务
+             *  1、更新数据到 FSDirectory 中
+             *  2、记录日志到 双写缓冲
              */
             needsSync = doEditTransaction(op);
 
+            // TODO_MA 马中华 注释： 如果 needsSync = true，就表示 bufCurrent
+
+            // TODO_MA 马中华 注释： 需要同步，则先阻塞其他写操作
             if (needsSync) {
                 isAutoSyncScheduled = true;
             }
         }
 
         // TODO_MA 马中华 注释： 执行同步 flush
+        // TODO_MA 马中华 注释： 如果 bufCurrent 写满了 512kb
         // Sync the log if an automatic sync is required.
         if (needsSync) {
             logSync();
@@ -607,6 +614,7 @@ public class FSEditLog implements LogsPurgeable {
         endTransaction(start);
 
         // TODO_MA 马中华 注释： 检查是否需要强制同步
+        // TODO_MA 马中华 注释： 正在使用的 缓冲大小，是否大于指定的 512kb
         return shouldForceSync();
     }
 
@@ -639,9 +647,10 @@ public class FSEditLog implements LogsPurgeable {
      * @return true if any of the edit stream says that it should sync
      */
     private boolean shouldForceSync() {
+
         /*************************************************
          * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-         *  注释：
+         *  注释： 当前正在使用的缓冲大小，是否大于 512kb
          */
         return editLogStream.shouldForceSync();
     }
@@ -677,6 +686,7 @@ public class FSEditLog implements LogsPurgeable {
         long end = monotonicNow();
         // TODO_MA 马中华 注释： 事务计数
         numTransactions++;
+
         // TODO_MA 马中华 注释： 事务执行计时
         totalTimeTransactions += (end - start);
         if (metrics != null) // Metrics is non-null only when used inside name node
@@ -815,6 +825,26 @@ public class FSEditLog implements LogsPurgeable {
                         }
                     }
 
+//                    // 做条件判断。，没有达到上限，并且达到扩展的条件
+//                    // Hashmap 的源码翻出来好好读一下
+//                    // hbase ， spark 也有！
+//                    if( bufcurrent.size() < bufferMaxSize && isSyncRunning){
+//                        // 先记录原来的 buffer
+//                        TxnBuffer old = bufCurrent;
+//                        // 扩展内存为原来的二倍
+//                        bufCurrent = new TxnBuffer(bufcurrent.size() * 2);
+//                        // 做数据拷贝
+//                        System.copy(old, bufCurrent);
+//                        // 返回，是意味着，不去做后面的双写缓冲交换，可以让之前的写线程不阻塞，继续写
+//                        return;
+//                    } else {
+//                        try {
+//                            wait(1000);
+//                        } catch (InterruptedException ie) {
+//                        }
+//                    }
+
+
                     /*************************************************
                      * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
                      *  注释： 如果 mytxid 小于 synctxid 表示已经同步过了
@@ -842,7 +872,7 @@ public class FSEditLog implements LogsPurgeable {
                         }
                         /*************************************************
                          * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-                         *  注释： 交换两个缓冲区，为同步做准备，不耽误写
+                         *  注释： 交换两个缓冲区，为同步做准备，这个操作很快，不耽误写
                          */
                         editLogStream.setReadyToFlush();
                     } catch (IOException e) {
@@ -854,7 +884,7 @@ public class FSEditLog implements LogsPurgeable {
                         terminate(1, msg);
                     }
                 } finally {
-                    // TODO_MA 马中华 注释： 阻塞其他的 log edit 写
+                    // TODO_MA 马中华 注释： 已经已经完成内存交换了，所以之前阻塞的写操作可以继续执行了。
                     // Prevent RuntimeException from blocking other log edit write
                     doneWithAutoSyncScheduling();
                 }
@@ -874,13 +904,28 @@ public class FSEditLog implements LogsPurgeable {
                 if (logStream != null) {
                     logStream.flush();
                 }
+
+                /*************************************************
+                 * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+                 *  注释： 此处捕获 IO 异常，是  QuorumCall 等待响应的时候，花费了 20s 也没有拿到 成功或者失败的结果， 超时了
+                 */
             } catch (IOException ex) {
+                /*************************************************
+                 * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+                 *  注释： 处理 JournalNode 的超时异常
+                 */
                 synchronized (this) {
                     final String msg = "Could not sync enough journals to persistent storage. " + "Unsynced transactions: " + (txid - synctxid);
+                    // TODO_MA 马中华 注释： error 日志， journal 同步日志出问题了。
                     LOG.error(msg, new Exception());
+
                     synchronized (journalSetLock) {
                         IOUtils.cleanupWithLogger(LOG, journalSet);
                     }
+                    /*************************************************
+                     * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+                     *  注释： 如果 flush 出错，则意味着不能写数据到磁盘，则 JVM 直接退出
+                     */
                     terminate(1, msg);
                 }
             }
@@ -910,8 +955,10 @@ public class FSEditLog implements LogsPurgeable {
                             ((FileJournalManager) jm).setLastReadableTxId(syncStart);
                         }
                     }
+                    // TODO_MA 马中华 注释： flush 结束
                     isSyncRunning = false;
                 }
+                // TODO_MA 马中华 注释： 唤醒其他等待的线程
                 this.notifyAll();
             }
         }

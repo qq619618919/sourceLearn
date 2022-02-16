@@ -31,28 +31,26 @@ import org.apache.hadoop.yarn.server.resourcemanager.scheduler.placement.Candida
 import org.apache.hadoop.yarn.util.resource.ResourceCalculator;
 
 public class ContainerAllocator extends AbstractContainerAllocator {
-  private AbstractContainerAllocator regularContainerAllocator;
+    private AbstractContainerAllocator regularContainerAllocator;
 
-  public ContainerAllocator(FiCaSchedulerApp application,
-      ResourceCalculator rc, RMContext rmContext) {
-    this(application, rc, rmContext, null);
-  }
+    public ContainerAllocator(FiCaSchedulerApp application, ResourceCalculator rc, RMContext rmContext) {
+        this(application, rc, rmContext, null);
+    }
 
-  public ContainerAllocator(FiCaSchedulerApp application, ResourceCalculator rc,
-      RMContext rmContext, ActivitiesManager activitiesManager) {
-    super(application, rc, rmContext);
+    public ContainerAllocator(FiCaSchedulerApp application, ResourceCalculator rc, RMContext rmContext,
+                              ActivitiesManager activitiesManager) {
+        super(application, rc, rmContext);
 
-    regularContainerAllocator = new RegularContainerAllocator(application, rc,
-        rmContext, activitiesManager);
-  }
+        regularContainerAllocator = new RegularContainerAllocator(application, rc, rmContext, activitiesManager);
+    }
 
-  @Override
-  public CSAssignment assignContainers(Resource clusterResource,
-      CandidateNodeSet<FiCaSchedulerNode> candidates,
-      SchedulingMode schedulingMode, ResourceLimits resourceLimits,
-      RMContainer reservedContainer) {
-    return regularContainerAllocator.assignContainers(clusterResource,
-        candidates, schedulingMode, resourceLimits, reservedContainer);
-  }
+    @Override
+    public CSAssignment assignContainers(Resource clusterResource, CandidateNodeSet<FiCaSchedulerNode> candidates,
+                                         SchedulingMode schedulingMode, ResourceLimits resourceLimits,
+                                         RMContainer reservedContainer) {
+        return regularContainerAllocator.assignContainers(clusterResource, candidates, schedulingMode, resourceLimits,
+                reservedContainer
+        );
+    }
 
 }

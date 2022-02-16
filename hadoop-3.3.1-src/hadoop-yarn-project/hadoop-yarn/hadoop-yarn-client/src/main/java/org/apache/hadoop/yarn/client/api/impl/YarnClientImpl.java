@@ -250,6 +250,11 @@ public class YarnClientImpl extends YarnClient {
     @Override
     protected void serviceStart() throws Exception {
         try {
+            /*************************************************
+             * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+             *  注释： 创建得到一个 RM 的代理对象
+             *  JobClient 和 RM 之间的通信协议是： ApplicationClientProtocol
+             */
             rmClient = ClientRMProxy.createRMProxy(getConfig(), ApplicationClientProtocol.class);
             if (historyServiceEnabled) {
                 historyClient.start();
@@ -317,6 +322,14 @@ public class YarnClientImpl extends YarnClient {
         }
 
         //TODO: YARN-1763:Handle RM failovers during the submitApplication call.
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释： rmClient = RM 代理对象， 真正 发送 提交Application 的 RPC 请求
+         *  -
+         *  JobClient 和 RM 之间的通信协议是： ApplicationClientProtocol
+         *  RPC 客户端： YarnClient
+         *  RPC 服务端： ClientRMService
+         */
         rmClient.submitApplication(request);
 
         int pollCount = 0;
@@ -324,17 +337,14 @@ public class YarnClientImpl extends YarnClient {
         EnumSet<YarnApplicationState> waitingStates = EnumSet.of(YarnApplicationState.NEW, YarnApplicationState.NEW_SAVING,
                 YarnApplicationState.SUBMITTED
         );
-        EnumSet<YarnApplicationState> failToSubmitStates = EnumSet.of(YarnApplicationState.FAILED,
-                YarnApplicationState.KILLED
-        );
+        EnumSet<YarnApplicationState> failToSubmitStates = EnumSet.of(YarnApplicationState.FAILED, YarnApplicationState.KILLED);
         while (true) {
             try {
                 ApplicationReport appReport = getApplicationReport(applicationId);
                 YarnApplicationState state = appReport.getYarnApplicationState();
                 if (!waitingStates.contains(state)) {
                     if (failToSubmitStates.contains(state)) {
-                        throw new YarnException(
-                                "Failed to submit " + applicationId + " to YARN : " + appReport.getDiagnostics());
+                        throw new YarnException("Failed to submit " + applicationId + " to YARN : " + appReport.getDiagnostics());
                     }
                     LOG.info("Submitted application " + applicationId);
                     break;
@@ -564,8 +574,7 @@ public class YarnClientImpl extends YarnClient {
     }
 
     @Override
-    public List<ApplicationReport> getApplications(Set<String> applicationTypes,
-                                                   EnumSet<YarnApplicationState> applicationStates,
+    public List<ApplicationReport> getApplications(Set<String> applicationTypes, EnumSet<YarnApplicationState> applicationStates,
                                                    Set<String> applicationTags) throws YarnException, IOException {
         GetApplicationsRequest request = GetApplicationsRequest.newInstance(applicationTypes, applicationStates);
         request.setApplicationTags(applicationTags);
@@ -598,8 +607,7 @@ public class YarnClientImpl extends YarnClient {
 
     @Override
     public List<NodeReport> getNodeReports(NodeState... states) throws YarnException, IOException {
-        EnumSet<NodeState> statesSet = (states.length == 0) ? EnumSet.allOf(NodeState.class) : EnumSet.noneOf(
-                NodeState.class);
+        EnumSet<NodeState> statesSet = (states.length == 0) ? EnumSet.allOf(NodeState.class) : EnumSet.noneOf(NodeState.class);
         for (NodeState state : states) {
             statesSet.add(state);
         }
@@ -618,8 +626,8 @@ public class YarnClientImpl extends YarnClient {
     }
 
 
-    private GetQueueInfoRequest getQueueInfoRequest(String queueName, boolean includeApplications,
-                                                    boolean includeChildQueues, boolean recursive) {
+    private GetQueueInfoRequest getQueueInfoRequest(String queueName, boolean includeApplications, boolean includeChildQueues,
+                                                    boolean recursive) {
         GetQueueInfoRequest request = Records.newRecord(GetQueueInfoRequest.class);
         request.setQueueName(queueName);
         request.setIncludeApplications(includeApplications);
@@ -866,8 +874,7 @@ public class YarnClientImpl extends YarnClient {
     }
 
     @Override
-    public ReservationSubmissionResponse submitReservation(
-            ReservationSubmissionRequest request) throws YarnException, IOException {
+    public ReservationSubmissionResponse submitReservation(ReservationSubmissionRequest request) throws YarnException, IOException {
         return rmClient.submitReservation(request);
     }
 
@@ -907,15 +914,13 @@ public class YarnClientImpl extends YarnClient {
     }
 
     @Override
-    public Priority updateApplicationPriority(ApplicationId applicationId,
-                                              Priority priority) throws YarnException, IOException {
+    public Priority updateApplicationPriority(ApplicationId applicationId, Priority priority) throws YarnException, IOException {
         UpdateApplicationPriorityRequest request = UpdateApplicationPriorityRequest.newInstance(applicationId, priority);
         return rmClient.updateApplicationPriority(request).getApplicationPriority();
     }
 
     @Override
-    public void signalToContainer(ContainerId containerId,
-                                  SignalContainerCommand command) throws YarnException, IOException {
+    public void signalToContainer(ContainerId containerId, SignalContainerCommand command) throws YarnException, IOException {
         LOG.info("Signalling container " + containerId + " with command " + command);
         SignalContainerRequest request = SignalContainerRequest.newInstance(containerId, command);
         rmClient.signalToContainer(request);

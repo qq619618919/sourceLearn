@@ -242,6 +242,7 @@ abstract public class FSOutputSummer extends OutputStream implements StreamCapab
     /**
      * Generate checksums for the given data chunks and output chunks & checksums
      * to the underlying output stream.
+     * block packet  chunk 在逻辑上来说
      */
     private void writeChecksumChunks(byte b[], int off, int len) throws IOException {
 
@@ -254,7 +255,17 @@ abstract public class FSOutputSummer extends OutputStream implements StreamCapab
         try {
             /*************************************************
              * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-             *  注释：
+             *  注释： 因为这是一个 for 循环: 积少成多
+             *  1、不停的写 chunk
+             *  2、写到一定程度就可以构建成一个 packet， 丢到 DataStreamer 的 dataQueue 队列
+             *  3、pakcet 写到一定程序，就完成了 128M 的数据传输，也就形成了一个 block
+             *  -
+             *  在进行第一个 packet 发送的时候：会去判断
+             *  1、每次遇到一个新的 packet，如果发现刚好是 128M 整数倍之后的第一个新 packet
+             *  2、就得去申请一个 block , 其实 namenode 就会返回一个 datanode 列表
+             *  3、client + dn1 + dn2 + dn3 四个角色建立链接，形成 数据传输管道 pipline
+             *  4、真正执行 packet 发送
+             *  5、不管是 客户端，还是 dn,内部都有发送和接收 ack 的线程
              */
             for (int i = 0; i < len; i += sum.getBytesPerChecksum()) {
                 int chunkLen = Math.min(sum.getBytesPerChecksum(), len - i);

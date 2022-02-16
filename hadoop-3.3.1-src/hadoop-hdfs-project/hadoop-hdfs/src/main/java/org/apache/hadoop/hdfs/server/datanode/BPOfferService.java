@@ -55,6 +55,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
  */
 @InterfaceAudience.Private
 class BPOfferService {
+
     static final Logger LOG = DataNode.LOG;
 
     /**
@@ -100,9 +101,33 @@ class BPOfferService {
      */
     private long lastActiveClaimTxId = -1;
 
+    /*************************************************
+     * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+     *  注释： 可重入读写锁
+     *  1、可重入
+     *  2、读读  没有竞争
+     *  3、读写  有竞争
+     *  4、写写  有竞争
+     *  -
+     *  万一某个写 需要很长很长时间，那么 读 能读到么？
+     *  阅读代码，就去找有那些是 高频执行的代码？
+     */
     private final ReentrantReadWriteLock mReadWriteLock = new ReentrantReadWriteLock();
     private final Lock mReadLock = mReadWriteLock.readLock();
     private final Lock mWriteLock = mReadWriteLock.writeLock();
+
+//    static {
+//        synchronized (BPOfferService.class){
+//            System.out.println("1111");
+//            printXX();
+//            System.out.println("3333");
+//        }
+//    }
+//    static void printXX(){
+//        synchronized (BPOfferService.class){
+//            System.out.println("2222");
+//        }
+//    }
 
     // utility methods to acquire and release read lock and write lock
     void readLock() {
@@ -184,8 +209,7 @@ class BPOfferService {
     }
 
     /**
-     * @return true if there is at least one actor thread running which is
-     * talking to a NameNode.
+     * @return true if there is at least one actor thread running which is talking to a NameNode.
      */
     boolean isAlive() {
         for (BPServiceActor actor : bpServices) {
@@ -205,11 +229,17 @@ class BPOfferService {
     }
 
     String getBlockPoolId(boolean quiet) {
+
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释： 这就是优化！
+         */
         // avoid lock contention unless the registration hasn't completed.
         String id = bpId;
         if (id != null) {
             return id;
         }
+
         DataNodeFaultInjector.get().delayWhenOfferServiceHoldLock();
         readLock();
         try {
@@ -248,13 +278,18 @@ class BPOfferService {
         writeLock();
         try {
             NamespaceInfo old = bpNSInfo;
+
+            // TODO_MA 马中华 注释： 校验新老 NamespaceInfo 的 bpid nsid 和 clusterID 是否一致
             if (bpNSInfo != null && nsInfo != null) {
                 checkNSEquality(bpNSInfo.getBlockPoolID(), nsInfo.getBlockPoolID(), "Blockpool ID");
                 checkNSEquality(bpNSInfo.getNamespaceID(), nsInfo.getNamespaceID(), "Namespace ID");
                 checkNSEquality(bpNSInfo.getClusterID(), nsInfo.getClusterID(), "Cluster ID");
             }
+            // TODO_MA 马中华 注释： 赋值保存
             bpNSInfo = nsInfo;
+
             // cache the block pool id for lock-free access.
+            // TODO_MA 马中华 注释： bpid 赋值
             bpId = (nsInfo != null) ? nsInfo.getBlockPoolID() : null;
             return old;
         } finally {

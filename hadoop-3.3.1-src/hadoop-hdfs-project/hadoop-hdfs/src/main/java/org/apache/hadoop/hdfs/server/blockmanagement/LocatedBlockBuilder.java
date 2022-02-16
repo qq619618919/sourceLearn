@@ -33,77 +33,77 @@ import org.apache.hadoop.classification.InterfaceStability;
 @InterfaceStability.Unstable
 class LocatedBlockBuilder {
 
-  protected long flen;
-  protected List<LocatedBlock> blocks = Collections.<LocatedBlock>emptyList();
-  protected boolean isUC;
-  protected LocatedBlock last;
-  protected boolean lastComplete;
-  protected FileEncryptionInfo feInfo;
-  private final int maxBlocks;
-  protected ErasureCodingPolicy ecPolicy;
+    protected long flen;
+    protected List<LocatedBlock> blocks = Collections.<LocatedBlock>emptyList();
+    protected boolean isUC;
+    protected LocatedBlock last;
+    protected boolean lastComplete;
+    protected FileEncryptionInfo feInfo;
+    private final int maxBlocks;
+    protected ErasureCodingPolicy ecPolicy;
 
-  LocatedBlockBuilder(int maxBlocks) {
-    this.maxBlocks = maxBlocks;
-  }
-
-  boolean isBlockMax() {
-    return blocks.size() >= maxBlocks;
-  }
-
-  LocatedBlockBuilder fileLength(long fileLength) {
-    flen = fileLength;
-    return this;
-  }
-
-  LocatedBlockBuilder addBlock(LocatedBlock block) {
-    if (blocks.isEmpty()) {
-      blocks = new ArrayList<>();
+    LocatedBlockBuilder(int maxBlocks) {
+        this.maxBlocks = maxBlocks;
     }
-    blocks.add(block);
-    return this;
-  }
 
-  // return new block so tokens can be set
-  LocatedBlock newLocatedBlock(ExtendedBlock eb,
-      DatanodeStorageInfo[] storage,
-      long pos, boolean isCorrupt) {
-    LocatedBlock blk =
-        BlockManager.newLocatedBlock(eb, storage, pos, isCorrupt);
-    return blk;
-  }
+    boolean isBlockMax() {
+        return blocks.size() >= maxBlocks;
+    }
 
-  LocatedBlockBuilder lastUC(boolean underConstruction) {
-    isUC = underConstruction;
-    return this;
-  }
+    LocatedBlockBuilder fileLength(long fileLength) {
+        flen = fileLength;
+        return this;
+    }
 
-  LocatedBlockBuilder lastBlock(LocatedBlock block) {
-    last = block;
-    return this;
-  }
+    LocatedBlockBuilder addBlock(LocatedBlock block) {
+        if (blocks.isEmpty()) {
+            blocks = new ArrayList<>();
+        }
+        blocks.add(block);
+        return this;
+    }
 
-  LocatedBlockBuilder lastComplete(boolean complete) {
-    lastComplete = complete;
-    return this;
-  }
+    // return new block so tokens can be set
+    LocatedBlock newLocatedBlock(ExtendedBlock eb, DatanodeStorageInfo[] storage, long pos, boolean isCorrupt) {
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释：
+         */
+        LocatedBlock blk = BlockManager.newLocatedBlock(eb, storage, pos, isCorrupt);
+        return blk;
+    }
 
-  LocatedBlockBuilder encryption(FileEncryptionInfo fileEncryptionInfo) {
-    feInfo = fileEncryptionInfo;
-    return this;
-  }
+    LocatedBlockBuilder lastUC(boolean underConstruction) {
+        isUC = underConstruction;
+        return this;
+    }
 
-  LocatedBlockBuilder erasureCoding(ErasureCodingPolicy codingPolicy) {
-    ecPolicy = codingPolicy;
-    return this;
-  }
+    LocatedBlockBuilder lastBlock(LocatedBlock block) {
+        last = block;
+        return this;
+    }
 
-  LocatedBlocks build(DatanodeDescriptor client) {
-    return build();
-  }
+    LocatedBlockBuilder lastComplete(boolean complete) {
+        lastComplete = complete;
+        return this;
+    }
 
-  LocatedBlocks build() {
-    return new LocatedBlocks(flen, isUC, blocks, last,
-        lastComplete, feInfo, ecPolicy);
-  }
+    LocatedBlockBuilder encryption(FileEncryptionInfo fileEncryptionInfo) {
+        feInfo = fileEncryptionInfo;
+        return this;
+    }
+
+    LocatedBlockBuilder erasureCoding(ErasureCodingPolicy codingPolicy) {
+        ecPolicy = codingPolicy;
+        return this;
+    }
+
+    LocatedBlocks build(DatanodeDescriptor client) {
+        return build();
+    }
+
+    LocatedBlocks build() {
+        return new LocatedBlocks(flen, isUC, blocks, last, lastComplete, feInfo, ecPolicy);
+    }
 
 }

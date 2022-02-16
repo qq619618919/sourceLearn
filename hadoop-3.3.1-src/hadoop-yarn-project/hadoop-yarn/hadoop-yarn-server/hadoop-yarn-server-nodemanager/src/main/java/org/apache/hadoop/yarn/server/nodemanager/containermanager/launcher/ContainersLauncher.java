@@ -1,20 +1,20 @@
 /**
-* Licensed to the Apache Software Foundation (ASF) under one
-* or more contributor license agreements.  See the NOTICE file
-* distributed with this work for additional information
-* regarding copyright ownership.  The ASF licenses this file
-* to you under the Apache License, Version 2.0 (the
-* "License"); you may not use this file except in compliance
-* with the License.  You may obtain a copy of the License at
-*
-*     http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*/
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 
 package org.apache.hadoop.yarn.server.nodemanager.containermanager.launcher;
 
@@ -54,194 +54,192 @@ import org.apache.hadoop.thirdparty.com.google.common.util.concurrent.ThreadFact
  * The launcher for the containers. This service should be started only after
  * the {@link ResourceLocalizationService} is started as it depends on creation
  * of system directories on the local file-system.
- * 
+ * // TODO_MA 马中华 注释： Service ：  构造方法，init() start()
+ * // TODO_MA 马中华 注释： EventHandler:   handle()
  */
-public class ContainersLauncher extends AbstractService
-    implements AbstractContainersLauncher {
+public class ContainersLauncher extends AbstractService implements AbstractContainersLauncher {
 
-  private static final Logger LOG =
-       LoggerFactory.getLogger(ContainersLauncher.class);
+    private static final Logger LOG = LoggerFactory.getLogger(ContainersLauncher.class);
 
-  private Context context;
-  private ContainerExecutor exec;
-  private Dispatcher dispatcher;
-  private ContainerManagerImpl containerManager;
+    private Context context;
+    private ContainerExecutor exec;
+    private Dispatcher dispatcher;
+    private ContainerManagerImpl containerManager;
 
-  private LocalDirsHandlerService dirsHandler;
-  @VisibleForTesting
-  public ExecutorService containerLauncher =
-      HadoopExecutors.newCachedThreadPool(
-        new ThreadFactoryBuilder()
-          .setNameFormat("ContainersLauncher #%d")
-          .build());
-  @VisibleForTesting
-  public final Map<ContainerId, ContainerLaunch> running =
-    Collections.synchronizedMap(new HashMap<ContainerId, ContainerLaunch>());
+    private LocalDirsHandlerService dirsHandler;
+    @VisibleForTesting
+    public ExecutorService containerLauncher = HadoopExecutors.newCachedThreadPool(
+            new ThreadFactoryBuilder().setNameFormat("ContainersLauncher #%d").build());
+    @VisibleForTesting
+    public final Map<ContainerId, ContainerLaunch> running = Collections.synchronizedMap(
+            new HashMap<ContainerId, ContainerLaunch>());
 
-  public ContainersLauncher() {
-    super("containers-launcher");
-  }
-
-  @VisibleForTesting
-  public ContainersLauncher(Context context, Dispatcher dispatcher,
-      ContainerExecutor exec, LocalDirsHandlerService dirsHandler,
-      ContainerManagerImpl containerManager) {
-    this();
-    init(context, dispatcher, exec, dirsHandler, containerManager);
-  }
-
-  @Override
-  public void init(Context nmContext, Dispatcher nmDispatcher,
-      ContainerExecutor containerExec, LocalDirsHandlerService nmDirsHandler,
-      ContainerManagerImpl nmContainerManager) {
-    this.exec = containerExec;
-    this.context = nmContext;
-    this.dispatcher = nmDispatcher;
-    this.dirsHandler = nmDirsHandler;
-    this.containerManager = nmContainerManager;
-  }
-
-  @Override
-  protected void serviceInit(Configuration conf) throws Exception {
-    try {
-      //TODO Is this required?
-      FileContext.getLocalFSFileContext(conf);
-    } catch (UnsupportedFileSystemException e) {
-      throw new YarnRuntimeException("Failed to start ContainersLauncher", e);
+    public ContainersLauncher() {
+        super("containers-launcher");
     }
-    super.serviceInit(conf);
-  }
 
-  @Override
-  protected  void serviceStop() throws Exception {
-    containerLauncher.shutdownNow();
-    super.serviceStop();
-  }
+    @VisibleForTesting
+    public ContainersLauncher(Context context, Dispatcher dispatcher, ContainerExecutor exec, LocalDirsHandlerService dirsHandler,
+                              ContainerManagerImpl containerManager) {
+        this();
+        init(context, dispatcher, exec, dirsHandler, containerManager);
+    }
 
-  @Override
-  public void handle(ContainersLauncherEvent event) {
-    // TODO: ContainersLauncher launches containers one by one!!
-    Container container = event.getContainer();
-    ContainerId containerId = container.getContainerId();
-    switch (event.getType()) {
-      case LAUNCH_CONTAINER:
-        Application app =
-          context.getApplications().get(
-              containerId.getApplicationAttemptId().getApplicationId());
+    @Override
+    public void init(Context nmContext, Dispatcher nmDispatcher, ContainerExecutor containerExec,
+                     LocalDirsHandlerService nmDirsHandler, ContainerManagerImpl nmContainerManager) {
+        this.exec = containerExec;
+        this.context = nmContext;
+        this.dispatcher = nmDispatcher;
+        this.dirsHandler = nmDirsHandler;
+        this.containerManager = nmContainerManager;
+    }
 
-        ContainerLaunch launch =
-            new ContainerLaunch(context, getConfig(), dispatcher, exec, app,
-              event.getContainer(), dirsHandler, containerManager);
-        containerLauncher.submit(launch);
-        running.put(containerId, launch);
-        break;
-      case RELAUNCH_CONTAINER:
-        app = context.getApplications().get(
-                containerId.getApplicationAttemptId().getApplicationId());
-
-        ContainerRelaunch relaunch =
-            new ContainerRelaunch(context, getConfig(), dispatcher, exec, app,
-                event.getContainer(), dirsHandler, containerManager);
-        containerLauncher.submit(relaunch);
-        running.put(containerId, relaunch);
-        break;
-      case RECOVER_CONTAINER:
-        app = context.getApplications().get(
-            containerId.getApplicationAttemptId().getApplicationId());
-        launch = new RecoveredContainerLaunch(context, getConfig(), dispatcher,
-            exec, app, event.getContainer(), dirsHandler, containerManager);
-        containerLauncher.submit(launch);
-        running.put(containerId, launch);
-        break;
-      case RECOVER_PAUSED_CONTAINER:
-        app = context.getApplications().get(
-            containerId.getApplicationAttemptId().getApplicationId());
-        launch = new RecoverPausedContainerLaunch(context, getConfig(),
-            dispatcher, exec, app, event.getContainer(), dirsHandler,
-            containerManager);
-        containerLauncher.submit(launch);
-        break;
-      case CLEANUP_CONTAINER:
-        cleanup(event, containerId, true);
-        break;
-      case CLEANUP_CONTAINER_FOR_REINIT:
-        cleanup(event, containerId, false);
-        break;
-      case SIGNAL_CONTAINER:
-        SignalContainersLauncherEvent signalEvent =
-            (SignalContainersLauncherEvent) event;
-        ContainerLaunch runningContainer = running.get(containerId);
-        if (runningContainer == null) {
-          // Container not launched. So nothing needs to be done.
-          LOG.info("Container " + containerId + " not running, nothing to signal.");
-          return;
-        }
-
+    @Override
+    protected void serviceInit(Configuration conf) throws Exception {
         try {
-          runningContainer.signalContainer(signalEvent.getCommand());
-        } catch (IOException e) {
-          LOG.warn("Got exception while signaling container " + containerId
-              + " with command " + signalEvent.getCommand());
+            //TODO Is this required?
+            FileContext.getLocalFSFileContext(conf);
+        } catch (UnsupportedFileSystemException e) {
+            throw new YarnRuntimeException("Failed to start ContainersLauncher", e);
         }
-        break;
-      case PAUSE_CONTAINER:
-        ContainerLaunch launchedContainer = running.get(containerId);
-        if (launchedContainer == null) {
-          // Container not launched. So nothing needs to be done.
-          return;
-        }
-
-        // Pause the container
-        try {
-          launchedContainer.pauseContainer();
-        } catch (Exception e) {
-          LOG.info("Got exception while pausing container: " +
-            StringUtils.stringifyException(e));
-        }
-        break;
-      case RESUME_CONTAINER:
-        ContainerLaunch launchCont = running.get(containerId);
-        if (launchCont == null) {
-          // Container not launched. So nothing needs to be done.
-          return;
-        }
-
-        // Resume the container.
-        try {
-          launchCont.resumeContainer();
-        } catch (Exception e) {
-          LOG.info("Got exception while resuming container: " +
-            StringUtils.stringifyException(e));
-        }
-        break;
-    }
-  }
-
-  @VisibleForTesting
-  void cleanup(ContainersLauncherEvent event, ContainerId containerId,
-      boolean async) {
-    ContainerLaunch existingLaunch = running.remove(containerId);
-    if (existingLaunch == null) {
-      // Container not launched.
-      // triggering KILLING to CONTAINER_CLEANEDUP_AFTER_KILL transition.
-      dispatcher.getEventHandler().handle(
-          new ContainerExitEvent(containerId,
-              ContainerEventType.CONTAINER_KILLED_ON_REQUEST,
-              Shell.WINDOWS ?
-                  ContainerExecutor.ExitCode.FORCE_KILLED.getExitCode() :
-                  ContainerExecutor.ExitCode.TERMINATED.getExitCode(),
-              "Container terminated before launch."));
-      return;
+        super.serviceInit(conf);
     }
 
-    // Cleanup a container whether it is running/killed/completed, so that
-    // no sub-processes are alive.
-    ContainerCleanup cleanup = new ContainerCleanup(context, getConfig(),
-        dispatcher, exec, event.getContainer(), existingLaunch);
-    if (async) {
-      containerLauncher.submit(cleanup);
-    } else {
-      cleanup.run();
+    @Override
+    protected void serviceStop() throws Exception {
+        containerLauncher.shutdownNow();
+        super.serviceStop();
     }
-  }
+
+    /*************************************************
+     * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+     *  注释： YARN 的世界里， EventHandler 组件超级多
+     *  1、先找到 ConstainsLauncher 组件在哪里启动的
+     *  2、看谁提交了相关：  ContainersLauncherEventType.LAUNCH_CONTAINER
+     */
+    @Override
+    public void handle(ContainersLauncherEvent event) {
+        // TODO: ContainersLauncher launches containers one by one!!
+        Container container = event.getContainer();
+        ContainerId containerId = container.getContainerId();
+        switch (event.getType()) {
+
+            /*************************************************
+             * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+             *  注释：
+             */
+            case LAUNCH_CONTAINER:
+                Application app = context.getApplications().get(containerId.getApplicationAttemptId().getApplicationId());
+
+                // TODO_MA 马中华 注释： 封装一个任务，用来启动 JVM YarnChild
+                ContainerLaunch launch = new ContainerLaunch(context, getConfig(), dispatcher, exec, app, event.getContainer(),
+                        dirsHandler, containerManager
+                );
+
+                // TODO_MA 马中华 注释： 将任务提交到线程池
+                containerLauncher.submit(launch);
+                running.put(containerId, launch);
+                break;
+            case RELAUNCH_CONTAINER:
+                app = context.getApplications().get(containerId.getApplicationAttemptId().getApplicationId());
+
+                ContainerRelaunch relaunch = new ContainerRelaunch(context, getConfig(), dispatcher, exec, app,
+                        event.getContainer(), dirsHandler, containerManager
+                );
+                containerLauncher.submit(relaunch);
+                running.put(containerId, relaunch);
+                break;
+            case RECOVER_CONTAINER:
+                app = context.getApplications().get(containerId.getApplicationAttemptId().getApplicationId());
+                launch = new RecoveredContainerLaunch(context, getConfig(), dispatcher, exec, app, event.getContainer(),
+                        dirsHandler, containerManager
+                );
+                containerLauncher.submit(launch);
+                running.put(containerId, launch);
+                break;
+            case RECOVER_PAUSED_CONTAINER:
+                app = context.getApplications().get(containerId.getApplicationAttemptId().getApplicationId());
+                launch = new RecoverPausedContainerLaunch(context, getConfig(), dispatcher, exec, app, event.getContainer(),
+                        dirsHandler, containerManager
+                );
+                containerLauncher.submit(launch);
+                break;
+            case CLEANUP_CONTAINER:
+                cleanup(event, containerId, true);
+                break;
+            case CLEANUP_CONTAINER_FOR_REINIT:
+                cleanup(event, containerId, false);
+                break;
+            case SIGNAL_CONTAINER:
+                SignalContainersLauncherEvent signalEvent = (SignalContainersLauncherEvent) event;
+                ContainerLaunch runningContainer = running.get(containerId);
+                if (runningContainer == null) {
+                    // Container not launched. So nothing needs to be done.
+                    LOG.info("Container " + containerId + " not running, nothing to signal.");
+                    return;
+                }
+
+                try {
+                    runningContainer.signalContainer(signalEvent.getCommand());
+                } catch (IOException e) {
+                    LOG.warn(
+                            "Got exception while signaling container " + containerId + " with command " + signalEvent.getCommand());
+                }
+                break;
+            case PAUSE_CONTAINER:
+                ContainerLaunch launchedContainer = running.get(containerId);
+                if (launchedContainer == null) {
+                    // Container not launched. So nothing needs to be done.
+                    return;
+                }
+
+                // Pause the container
+                try {
+                    launchedContainer.pauseContainer();
+                } catch (Exception e) {
+                    LOG.info("Got exception while pausing container: " + StringUtils.stringifyException(e));
+                }
+                break;
+            case RESUME_CONTAINER:
+                ContainerLaunch launchCont = running.get(containerId);
+                if (launchCont == null) {
+                    // Container not launched. So nothing needs to be done.
+                    return;
+                }
+
+                // Resume the container.
+                try {
+                    launchCont.resumeContainer();
+                } catch (Exception e) {
+                    LOG.info("Got exception while resuming container: " + StringUtils.stringifyException(e));
+                }
+                break;
+        }
+    }
+
+    @VisibleForTesting
+    void cleanup(ContainersLauncherEvent event, ContainerId containerId, boolean async) {
+        ContainerLaunch existingLaunch = running.remove(containerId);
+        if (existingLaunch == null) {
+            // Container not launched.
+            // triggering KILLING to CONTAINER_CLEANEDUP_AFTER_KILL transition.
+            dispatcher.getEventHandler().handle(new ContainerExitEvent(containerId, ContainerEventType.CONTAINER_KILLED_ON_REQUEST,
+                    Shell.WINDOWS ? ContainerExecutor.ExitCode.FORCE_KILLED.getExitCode() : ContainerExecutor.ExitCode.TERMINATED.getExitCode(),
+                    "Container terminated before launch."
+            ));
+            return;
+        }
+
+        // Cleanup a container whether it is running/killed/completed, so that
+        // no sub-processes are alive.
+        ContainerCleanup cleanup = new ContainerCleanup(context, getConfig(), dispatcher, exec, event.getContainer(),
+                existingLaunch
+        );
+        if (async) {
+            containerLauncher.submit(cleanup);
+        } else {
+            cleanup.run();
+        }
+    }
 }

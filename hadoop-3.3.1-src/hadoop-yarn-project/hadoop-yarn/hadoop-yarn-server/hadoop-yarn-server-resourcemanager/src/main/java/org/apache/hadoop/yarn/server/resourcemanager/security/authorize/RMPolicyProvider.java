@@ -40,50 +40,45 @@ import org.apache.hadoop.yarn.server.api.ResourceTrackerPB;
 @InterfaceStability.Unstable
 public class RMPolicyProvider extends PolicyProvider {
 
-  private static RMPolicyProvider rmPolicyProvider = null;
+    private static RMPolicyProvider rmPolicyProvider = null;
 
-  private RMPolicyProvider() {}
-
-  @Private
-  @Unstable
-  public static RMPolicyProvider getInstance() {
-    if (rmPolicyProvider == null) {
-      synchronized(RMPolicyProvider.class) {
-        if (rmPolicyProvider == null) {
-          rmPolicyProvider = new RMPolicyProvider();
-        }
-      }
+    private RMPolicyProvider() {
     }
-    return rmPolicyProvider;
-  }
 
-  private static final Service[] resourceManagerServices = 
-      new Service[] {
-    new Service(
-        YarnConfiguration.YARN_SECURITY_SERVICE_AUTHORIZATION_RESOURCETRACKER_PROTOCOL, 
-        ResourceTrackerPB.class),
-    new Service(
-        YarnConfiguration.YARN_SECURITY_SERVICE_AUTHORIZATION_APPLICATIONCLIENT_PROTOCOL, 
-        ApplicationClientProtocolPB.class),
-    new Service(
-        YarnConfiguration.YARN_SECURITY_SERVICE_AUTHORIZATION_APPLICATIONMASTER_PROTOCOL, 
-        ApplicationMasterProtocolPB.class),
-    new Service(YarnConfiguration.YARN_SECURITY_SERVICE_AUTHORIZATION_DISTRIBUTEDSCHEDULING_PROTOCOL,
-              DistributedSchedulingAMProtocolPB.class),
-    new Service(
-        YarnConfiguration.YARN_SECURITY_SERVICE_AUTHORIZATION_RESOURCEMANAGER_ADMINISTRATION_PROTOCOL, 
-        ResourceManagerAdministrationProtocolPB.class),
-    new Service(
-        YarnConfiguration.YARN_SECURITY_SERVICE_AUTHORIZATION_CONTAINER_MANAGEMENT_PROTOCOL, 
-        ContainerManagementProtocolPB.class),
-    new Service(
-        CommonConfigurationKeys.SECURITY_HA_SERVICE_PROTOCOL_ACL,
-        HAServiceProtocol.class),
-  };
+    @Private
+    @Unstable
+    public static RMPolicyProvider getInstance() {
 
-  @Override
-  public Service[] getServices() {
-    return resourceManagerServices;
-  }
+        // TODO_MA 马中华 注释： 第一次检查
+        if (rmPolicyProvider == null) {
+            synchronized (RMPolicyProvider.class) {
+
+                // TODO_MA 马中华 注释： 第二次检查
+                if (rmPolicyProvider == null) {
+                    rmPolicyProvider = new RMPolicyProvider();
+                }
+            }
+        }
+        return rmPolicyProvider;
+    }
+
+    private static final Service[] resourceManagerServices = new Service[]{new Service(
+            YarnConfiguration.YARN_SECURITY_SERVICE_AUTHORIZATION_RESOURCETRACKER_PROTOCOL, ResourceTrackerPB.class), new Service(
+            YarnConfiguration.YARN_SECURITY_SERVICE_AUTHORIZATION_APPLICATIONCLIENT_PROTOCOL,
+            ApplicationClientProtocolPB.class
+    ), new Service(YarnConfiguration.YARN_SECURITY_SERVICE_AUTHORIZATION_APPLICATIONMASTER_PROTOCOL,
+            ApplicationMasterProtocolPB.class
+    ), new Service(YarnConfiguration.YARN_SECURITY_SERVICE_AUTHORIZATION_DISTRIBUTEDSCHEDULING_PROTOCOL,
+            DistributedSchedulingAMProtocolPB.class
+    ), new Service(YarnConfiguration.YARN_SECURITY_SERVICE_AUTHORIZATION_RESOURCEMANAGER_ADMINISTRATION_PROTOCOL,
+            ResourceManagerAdministrationProtocolPB.class
+    ), new Service(YarnConfiguration.YARN_SECURITY_SERVICE_AUTHORIZATION_CONTAINER_MANAGEMENT_PROTOCOL,
+            ContainerManagementProtocolPB.class
+    ), new Service(CommonConfigurationKeys.SECURITY_HA_SERVICE_PROTOCOL_ACL, HAServiceProtocol.class),};
+
+    @Override
+    public Service[] getServices() {
+        return resourceManagerServices;
+    }
 
 }

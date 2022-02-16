@@ -38,6 +38,11 @@ import org.apache.hadoop.util.ExitUtil;
 import org.apache.hadoop.thirdparty.com.google.common.annotations.VisibleForTesting;
 import org.apache.hadoop.thirdparty.com.google.common.base.Preconditions;
 
+/*************************************************
+ * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+ *  注释： 3.x 新版本的方案。
+ *  FSEditLogAsync 这个组件的内部，依然用的是双写缓冲！
+ */
 class FSEditLogAsync extends FSEditLog implements Runnable {
 
     static final Logger LOG = LoggerFactory.getLogger(FSEditLog.class);
@@ -153,6 +158,8 @@ class FSEditLogAsync extends FSEditLog implements Runnable {
 
         // TODO_MA 马中华 注释： 将 OP 转换成Edit
         Edit edit = getEditInstance(op);
+
+        // TODO_MA 马中华 注释： 保存线程副本
         THREAD_EDIT.set(edit);
 
         /*************************************************
@@ -171,6 +178,7 @@ class FSEditLogAsync extends FSEditLog implements Runnable {
             if (LOG.isDebugEnabled()) {
                 LOG.debug("logSync " + edit);
             }
+            // TODO_MA 马中华 注释： 阻塞等待
             edit.logSyncWait();
         }
     }
@@ -231,8 +239,12 @@ class FSEditLogAsync extends FSEditLog implements Runnable {
             // not checking for overflow yet to avoid penalizing performance of
             // the common case.  if there is persistent overflow, a mutex will be
             // use to throttle contention on the queue.
-            // TODO_MA 马中华 注释： 将 Edit 加入到 editPendingQ 队列
+            /*************************************************
+             * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+             *  注释： 将 Edit 加入到 editPendingQ 队列
+             */
             if (!editPendingQ.offer(edit)) {
+
                 Preconditions.checkState(isSyncThreadAlive(), "sync thread is not alive");
                 long now = Time.monotonicNow();
                 if (now - lastFull > 4000) {
@@ -316,12 +328,14 @@ class FSEditLogAsync extends FSEditLog implements Runnable {
                     try {
                         /*************************************************
                          * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-                         *  注释： 执行 flush
+                         *  注释： 执行 flush，完成真正的写
                          */
                         logSync(getLastWrittenTxId());
                     } catch (RuntimeException ex) {
                         syncEx = ex;
                     }
+
+                    // TODO_MA 马中华 注释： 唤醒
                     while ((edit = syncWaitQ.poll()) != null) {
                         edit.logSyncNotify(syncEx);
                     }
@@ -343,6 +357,8 @@ class FSEditLogAsync extends FSEditLog implements Runnable {
     private Edit getEditInstance(FSEditLogOp op) {
         final Edit edit;
         final Server.Call rpcCall = Server.getCurCall().get();
+
+        // TODO_MA 马中华 注释： 只有未在日志上显式同步的 rpc 调用才会是异步的。
         // only rpc calls not explicitly sync'ed on the log will be async.
         if (rpcCall != null && !Thread.holdsLock(this)) {
             edit = new RpcEdit(this, op, rpcCall);
@@ -403,6 +419,9 @@ class FSEditLogAsync extends FSEditLog implements Runnable {
         @Override
         public void logSyncWait() {
             synchronized (lock) {
+
+                // TODO_MA 马中华 注释： 阻塞等待
+                // TODO_MA 马中华 注释： 等待 done 完成
                 while (!done) {
                     try {
                         lock.wait(10);
@@ -421,6 +440,8 @@ class FSEditLogAsync extends FSEditLog implements Runnable {
         @Override
         public void logSyncNotify(RuntimeException ex) {
             synchronized (lock) {
+
+                // TODO_MA 马中华 注释： 重要，标记完成
                 done = true;
                 syncEx = ex;
                 lock.notifyAll();

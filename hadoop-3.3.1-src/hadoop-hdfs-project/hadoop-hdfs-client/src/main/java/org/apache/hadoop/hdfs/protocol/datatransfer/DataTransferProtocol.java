@@ -105,11 +105,10 @@ public interface DataTransferProtocol {
      */
     void writeBlock(final ExtendedBlock blk, final StorageType storageType, final Token<BlockTokenIdentifier> blockToken,
                     final String clientName, final DatanodeInfo[] targets, final StorageType[] targetStorageTypes,
-                    final DatanodeInfo source, final BlockConstructionStage stage, final int pipelineSize,
-                    final long minBytesRcvd, final long maxBytesRcvd, final long latestGenerationStamp,
-                    final DataChecksum requestedChecksum, final CachingStrategy cachingStrategy,
-                    final boolean allowLazyPersist, final boolean pinning, final boolean[] targetPinnings,
-                    final String storageID, final String[] targetStorageIDs) throws IOException;
+                    final DatanodeInfo source, final BlockConstructionStage stage, final int pipelineSize, final long minBytesRcvd,
+                    final long maxBytesRcvd, final long latestGenerationStamp, final DataChecksum requestedChecksum,
+                    final CachingStrategy cachingStrategy, final boolean allowLazyPersist, final boolean pinning,
+                    final boolean[] targetPinnings, final String storageID, final String[] targetStorageIDs) throws IOException;
 
     /**
      * Transfer a block to another datanode.
@@ -207,6 +206,6 @@ public interface DataTransferProtocol {
      *     computed from underlying block metadata.
      * @throws IOException
      */
-    void blockGroupChecksum(StripedBlockInfo stripedBlockInfo, Token<BlockTokenIdentifier> blockToken,
-                            long requestedNumBytes, BlockChecksumOptions blockChecksumOptions) throws IOException;
+    void blockGroupChecksum(StripedBlockInfo stripedBlockInfo, Token<BlockTokenIdentifier> blockToken, long requestedNumBytes,
+                            BlockChecksumOptions blockChecksumOptions) throws IOException;
 }

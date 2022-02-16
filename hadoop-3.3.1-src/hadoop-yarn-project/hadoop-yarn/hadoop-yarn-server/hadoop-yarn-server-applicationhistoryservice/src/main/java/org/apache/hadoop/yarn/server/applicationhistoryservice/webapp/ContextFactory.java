@@ -1,4 +1,3 @@
-
 /**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -48,86 +47,71 @@ import javax.xml.bind.JAXBException;
  */
 public final class ContextFactory {
 
-  private static final Logger LOG =
-      LoggerFactory.getLogger(ContextFactory.class);
+    private static final Logger LOG = LoggerFactory.getLogger(ContextFactory.class);
 
-  private static JAXBContext cacheContext;
+    private static JAXBContext cacheContext;
 
-  // All the dao classes from TimelineWebService and AHSWebService
-  // added except TimelineEntity and TimelineEntities
-  private static final Class[] CTYPES = {AppInfo.class, AppsInfo.class,
-      AppAttemptInfo.class, AppAttemptsInfo.class, ContainerInfo.class,
-      ContainersInfo.class, RemoteExceptionData.class, TimelineDomain.class,
-      TimelineDomains.class, TimelineEvents.class, TimelinePutResponse.class};
-  private static final Set<Class> CLASS_SET =
-      new HashSet<>(Arrays.asList(CTYPES));
+    // All the dao classes from TimelineWebService and AHSWebService
+    // added except TimelineEntity and TimelineEntities
+    private static final Class[] CTYPES = {AppInfo.class, AppsInfo.class, AppAttemptInfo.class, AppAttemptsInfo.class, ContainerInfo.class, ContainersInfo.class, RemoteExceptionData.class, TimelineDomain.class, TimelineDomains.class, TimelineEvents.class, TimelinePutResponse.class};
+    private static final Set<Class> CLASS_SET = new HashSet<>(Arrays.asList(CTYPES));
 
-  // TimelineEntity has java.util.Set interface which JAXB
-  // can't handle and throws IllegalAnnotationExceptions
-  private static final Class[] IGNORE_TYPES = {TimelineEntity.class,
-      TimelineEntities.class};
-  private static final Set<Class> IGNORE_SET =
-      new HashSet<>(Arrays.asList(IGNORE_TYPES));
+    // TimelineEntity has java.util.Set interface which JAXB
+    // can't handle and throws IllegalAnnotationExceptions
+    private static final Class[] IGNORE_TYPES = {TimelineEntity.class, TimelineEntities.class};
+    private static final Set<Class> IGNORE_SET = new HashSet<>(Arrays.asList(IGNORE_TYPES));
 
-  private static JAXBException je =
-      new JAXBException("TimelineEntity and TimelineEntities has " +
-      "IllegalAnnotation");
+    private static JAXBException je = new JAXBException("TimelineEntity and TimelineEntities has " + "IllegalAnnotation");
 
-  private static StackTraceElement[] stackTrace = new StackTraceElement[]{
-      new StackTraceElement(ContextFactory.class.getName(),
-      "createContext", "ContextFactory.java", -1)};
+    private static StackTraceElement[] stackTrace = new StackTraceElement[]{new StackTraceElement(ContextFactory.class.getName(),
+            "createContext", "ContextFactory.java", -1
+    )};
 
-  private ContextFactory() {
-  }
+    private ContextFactory() {
+    }
 
-  public static JAXBContext newContext(Class[] classes,
-      Map<String, Object> properties) throws Exception {
-    Class spFactory = Class.forName(
-        "com.sun.xml.bind.v2.ContextFactory");
-    Method m = spFactory.getMethod("createContext", Class[].class, Map.class);
-    return (JAXBContext) m.invoke((Object) null, classes, properties);
-  }
+    public static JAXBContext newContext(Class[] classes, Map<String, Object> properties) throws Exception {
+        Class spFactory = Class.forName("com.sun.xml.bind.v2.ContextFactory");
+        Method m = spFactory.getMethod("createContext", Class[].class, Map.class);
+        return (JAXBContext) m.invoke((Object) null, classes, properties);
+    }
 
-  // Called from WebComponent.service
-  public static JAXBContext createContext(Class[] classes,
-      Map<String, Object> properties) throws Exception {
-    for (Class c : classes) {
-      if (IGNORE_SET.contains(c)) {
-        je.setStackTrace(stackTrace);
-        throw je;
-      }
-      if (!CLASS_SET.contains(c)) {
+    // Called from WebComponent.service
+    public static JAXBContext createContext(Class[] classes, Map<String, Object> properties) throws Exception {
+        for (Class c : classes) {
+            if (IGNORE_SET.contains(c)) {
+                je.setStackTrace(stackTrace);
+                throw je;
+            }
+            if (!CLASS_SET.contains(c)) {
+                try {
+                    return newContext(classes, properties);
+                } catch (Exception e) {
+                    LOG.warn("Error while Creating JAXBContext", e);
+                    throw e;
+                }
+            }
+        }
+
         try {
-          return newContext(classes, properties);
+            synchronized (ContextFactory.class) {
+                if (cacheContext == null) {
+                    cacheContext = newContext(CTYPES, properties);
+                }
+            }
         } catch (Exception e) {
-          LOG.warn("Error while Creating JAXBContext", e);
-          throw e;
+            LOG.warn("Error while Creating JAXBContext", e);
+            throw e;
         }
-      }
+        return cacheContext;
     }
 
-    try {
-      synchronized (ContextFactory.class) {
-        if (cacheContext == null) {
-          cacheContext = newContext(CTYPES, properties);
-        }
-      }
-    } catch(Exception e) {
-      LOG.warn("Error while Creating JAXBContext", e);
-      throw e;
+    // Called from WebComponent.init
+    public static JAXBContext createContext(String contextPath, ClassLoader classLoader,
+                                            Map<String, Object> properties) throws Exception {
+        Class spFactory = Class.forName("com.sun.xml.bind.v2.ContextFactory");
+        Method m = spFactory.getMethod("createContext", String.class, ClassLoader.class, Map.class);
+        return (JAXBContext) m.invoke(null, contextPath, classLoader, properties);
     }
-    return cacheContext;
-  }
-
-  // Called from WebComponent.init
-  public static JAXBContext createContext(String contextPath, ClassLoader
-      classLoader, Map<String, Object> properties) throws Exception {
-    Class spFactory = Class.forName(
-        "com.sun.xml.bind.v2.ContextFactory");
-    Method m = spFactory.getMethod("createContext", String.class,
-        ClassLoader.class, Map.class);
-    return (JAXBContext) m.invoke(null, contextPath, classLoader,
-        properties);
-  }
 
 }

@@ -345,11 +345,26 @@ public class DistributedFileSystem extends FileSystem implements KeyProviderToke
         statistics.incrementReadOps(1);
         storageStatistics.incrementOpCounter(OpType.OPEN);
         Path absF = fixRelativePart(f);
+
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释：
+         */
         return new FileSystemLinkResolver<FSDataInputStream>() {
             @Override
             public FSDataInputStream doCall(final Path p) throws IOException {
+
+                /*************************************************
+                 * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+                 *  注释： 获取输入流 DFSInputStream
+                 */
                 final DFSInputStream dfsis = dfs.open(getPathName(p), bufferSize, verifyChecksum);
                 try {
+
+                    /*************************************************
+                     * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+                     *  注释： 进行包装
+                     */
                     return dfs.createWrappedInputStream(dfsis);
                 } catch (IOException ex) {
                     dfsis.close();
@@ -472,8 +487,7 @@ public class DistributedFileSystem extends FileSystem implements KeyProviderToke
      * @return Returns instance of {@link FSDataOutputStream}
      * @throws IOException
      */
-    public FSDataOutputStream append(Path f, final EnumSet<CreateFlag> flag, final int bufferSize,
-                                     final Progressable progress,
+    public FSDataOutputStream append(Path f, final EnumSet<CreateFlag> flag, final int bufferSize, final Progressable progress,
                                      final InetSocketAddress[] favoredNodes) throws IOException {
         statistics.incrementWriteOps(1);
         storageStatistics.incrementOpCounter(OpType.APPEND);
@@ -516,9 +530,8 @@ public class DistributedFileSystem extends FileSystem implements KeyProviderToke
      * blocks during replication, to move the blocks from favored nodes. A value
      * of null means no favored nodes for this create
      */
-    public HdfsDataOutputStream create(final Path f, final FsPermission permission, final boolean overwrite,
-                                       final int bufferSize, final short replication, final long blockSize,
-                                       final Progressable progress,
+    public HdfsDataOutputStream create(final Path f, final FsPermission permission, final boolean overwrite, final int bufferSize,
+                                       final short replication, final long blockSize, final Progressable progress,
                                        final InetSocketAddress[] favoredNodes) throws IOException {
         statistics.incrementWriteOps(1);
         storageStatistics.incrementOpCounter(OpType.CREATE);
@@ -527,8 +540,8 @@ public class DistributedFileSystem extends FileSystem implements KeyProviderToke
             @Override
             public HdfsDataOutputStream doCall(final Path p) throws IOException {
                 final DFSOutputStream out = dfs.create(getPathName(f), permission,
-                        overwrite ? EnumSet.of(CreateFlag.CREATE, CreateFlag.OVERWRITE) : EnumSet.of(CreateFlag.CREATE),
-                        true, replication, blockSize, progress, bufferSize, null, favoredNodes
+                        overwrite ? EnumSet.of(CreateFlag.CREATE, CreateFlag.OVERWRITE) : EnumSet.of(CreateFlag.CREATE), true,
+                        replication, blockSize, progress, bufferSize, null, favoredNodes
                 );
                 return safelyCreateWrappedOutputStream(out);
             }
@@ -537,9 +550,7 @@ public class DistributedFileSystem extends FileSystem implements KeyProviderToke
             public HdfsDataOutputStream next(final FileSystem fs, final Path p) throws IOException {
                 if (fs instanceof DistributedFileSystem) {
                     DistributedFileSystem myDfs = (DistributedFileSystem) fs;
-                    return myDfs.create(p, permission, overwrite, bufferSize, replication, blockSize, progress,
-                            favoredNodes
-                    );
+                    return myDfs.create(p, permission, overwrite, bufferSize, replication, blockSize, progress, favoredNodes);
                 }
                 throw new UnsupportedOperationException(
                         "Cannot create with" + " favoredNodes through a symlink to a non-DistributedFileSystem: " + f + " -> " + p);
@@ -564,8 +575,8 @@ public class DistributedFileSystem extends FileSystem implements KeyProviderToke
                  * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
                  *  注释： dfsos = DFSOutputStream
                  */
-                final DFSOutputStream dfsos = dfs.create(getPathName(p), permission, cflags, replication, blockSize,
-                        progress, bufferSize, checksumOpt
+                final DFSOutputStream dfsos = dfs.create(getPathName(p), permission, cflags, replication, blockSize, progress,
+                        bufferSize, checksumOpt
                 );
 
                 /*************************************************
@@ -615,8 +626,8 @@ public class DistributedFileSystem extends FileSystem implements KeyProviderToke
         return new FileSystemLinkResolver<HdfsDataOutputStream>() {
             @Override
             public HdfsDataOutputStream doCall(final Path p) throws IOException {
-                final DFSOutputStream out = dfs.create(getPathName(f), permission, flag, true, replication, blockSize,
-                        progress, bufferSize, checksumOpt, favoredNodes, ecPolicyName, storagePolicy
+                final DFSOutputStream out = dfs.create(getPathName(f), permission, flag, true, replication, blockSize, progress,
+                        bufferSize, checksumOpt, favoredNodes, ecPolicyName, storagePolicy
                 );
                 return safelyCreateWrappedOutputStream(out);
             }
@@ -658,9 +669,8 @@ public class DistributedFileSystem extends FileSystem implements KeyProviderToke
      * additional parameters, i.e., favoredNodes, ecPolicyName and
      * storagePolicyName.
      */
-    private HdfsDataOutputStream createNonRecursive(final Path f, final FsPermission permission,
-                                                    final EnumSet<CreateFlag> flag, final int bufferSize,
-                                                    final short replication, final long blockSize,
+    private HdfsDataOutputStream createNonRecursive(final Path f, final FsPermission permission, final EnumSet<CreateFlag> flag,
+                                                    final int bufferSize, final short replication, final long blockSize,
                                                     final Progressable progress, final ChecksumOpt checksumOpt,
                                                     final InetSocketAddress[] favoredNodes, final String ecPolicyName,
                                                     final String storagePolicyName) throws IOException {
@@ -670,8 +680,8 @@ public class DistributedFileSystem extends FileSystem implements KeyProviderToke
         return new FileSystemLinkResolver<HdfsDataOutputStream>() {
             @Override
             public HdfsDataOutputStream doCall(final Path p) throws IOException {
-                final DFSOutputStream out = dfs.create(getPathName(f), permission, flag, false, replication, blockSize,
-                        progress, bufferSize, checksumOpt, favoredNodes, ecPolicyName, storagePolicyName
+                final DFSOutputStream out = dfs.create(getPathName(f), permission, flag, false, replication, blockSize, progress,
+                        bufferSize, checksumOpt, favoredNodes, ecPolicyName, storagePolicyName
                 );
                 return safelyCreateWrappedOutputStream(out);
             }
@@ -680,8 +690,8 @@ public class DistributedFileSystem extends FileSystem implements KeyProviderToke
             public HdfsDataOutputStream next(final FileSystem fs, final Path p) throws IOException {
                 if (fs instanceof DistributedFileSystem) {
                     DistributedFileSystem myDfs = (DistributedFileSystem) fs;
-                    return myDfs.createNonRecursive(p, permission, flag, bufferSize, replication, blockSize, progress,
-                            checksumOpt, favoredNodes, ecPolicyName, storagePolicyName
+                    return myDfs.createNonRecursive(p, permission, flag, bufferSize, replication, blockSize, progress, checksumOpt,
+                            favoredNodes, ecPolicyName, storagePolicyName
                     );
                 }
                 throw new UnsupportedOperationException(
@@ -706,8 +716,8 @@ public class DistributedFileSystem extends FileSystem implements KeyProviderToke
         return new FileSystemLinkResolver<FSDataOutputStream>() {
             @Override
             public FSDataOutputStream doCall(final Path p) throws IOException {
-                final DFSOutputStream dfsos = dfs.create(getPathName(p), permission, flag, false, replication, blockSize,
-                        progress, bufferSize, null
+                final DFSOutputStream dfsos = dfs.create(getPathName(p), permission, flag, false, replication, blockSize, progress,
+                        bufferSize, null
                 );
                 return safelyCreateWrappedOutputStream(dfsos);
             }
@@ -2093,8 +2103,7 @@ public class DistributedFileSystem extends FileSystem implements KeyProviderToke
     }
 
     @Override
-    public void renameSnapshot(final Path path, final String snapshotOldName,
-                               final String snapshotNewName) throws IOException {
+    public void renameSnapshot(final Path path, final String snapshotOldName, final String snapshotNewName) throws IOException {
         statistics.incrementWriteOps(1);
         storageStatistics.incrementOpCounter(OpType.RENAME_SNAPSHOT);
         Path absF = fixRelativePart(path);
@@ -2268,8 +2277,8 @@ public class DistributedFileSystem extends FileSystem implements KeyProviderToke
             createdList.addAll(report.getCreateList());
             deletedList.addAll(report.getDeleteList());
         } while (!(Arrays.equals(startPath, DFSUtilClient.EMPTY_BYTES) && index == -1));
-        snapshotDiffReport = new SnapshotDiffReportGenerator(snapshotDir, fromSnapshot, toSnapshot,
-                report.getIsFromEarlier(), modifiedList, createdList, deletedList
+        snapshotDiffReport = new SnapshotDiffReportGenerator(snapshotDir, fromSnapshot, toSnapshot, report.getIsFromEarlier(),
+                modifiedList, createdList, deletedList
         );
         return snapshotDiffReport.generateReport();
     }
@@ -2377,8 +2386,7 @@ public class DistributedFileSystem extends FileSystem implements KeyProviderToke
         storageStatistics.incrementOpCounter(OpType.MODIFY_CACHE_DIRECTIVE);
         if (info.getPath() != null) {
             info = new CacheDirectiveInfo.Builder(info).setPath(
-                            new Path(getPathName(fixRelativePart(info.getPath()))).makeQualified(getUri(), getWorkingDirectory()))
-                    .build();
+                    new Path(getPathName(fixRelativePart(info.getPath()))).makeQualified(getUri(), getWorkingDirectory())).build();
         }
         dfs.modifyCacheDirective(info, flags);
     }
@@ -2794,8 +2802,7 @@ public class DistributedFileSystem extends FileSystem implements KeyProviderToke
     }
 
     @Override
-    public void setXAttr(Path path, final String name, final byte[] value,
-                         final EnumSet<XAttrSetFlag> flag) throws IOException {
+    public void setXAttr(Path path, final String name, final byte[] value, final EnumSet<XAttrSetFlag> flag) throws IOException {
         statistics.incrementWriteOps(1);
         storageStatistics.incrementOpCounter(OpType.SET_XATTR);
         Path absF = fixRelativePart(path);
@@ -3188,8 +3195,7 @@ public class DistributedFileSystem extends FileSystem implements KeyProviderToke
                 return this.makeQualified(new Path(DFSUtilClient.getEZTrashRoot(ez, dfs.ugi)));
             }
         } catch (IOException e) {
-            DFSClient.LOG.warn(
-                    "Exception in checking the encryption zone for the " + "path " + parentSrc + ". " + e.getMessage());
+            DFSClient.LOG.warn("Exception in checking the encryption zone for the " + "path " + parentSrc + ". " + e.getMessage());
         }
         return super.getTrashRoot(path);
     }
@@ -3415,9 +3421,8 @@ public class DistributedFileSystem extends FileSystem implements KeyProviderToke
         public FSDataOutputStream build() throws IOException {
             if (getFlags().contains(CreateFlag.CREATE) || getFlags().contains(CreateFlag.OVERWRITE)) {
                 if (isRecursive()) {
-                    return dfs.create(getPath(), getPermission(), getFlags(), getBufferSize(), getReplication(),
-                            getBlockSize(), getProgress(), getChecksumOpt(), getFavoredNodes(), getEcPolicyName(),
-                            getStoragePolicyName()
+                    return dfs.create(getPath(), getPermission(), getFlags(), getBufferSize(), getReplication(), getBlockSize(),
+                            getProgress(), getChecksumOpt(), getFavoredNodes(), getEcPolicyName(), getStoragePolicyName()
                     );
                 } else {
                     return dfs.createNonRecursive(getPath(), getPermission(), getFlags(), getBufferSize(), getReplication(),
@@ -3464,8 +3469,7 @@ public class DistributedFileSystem extends FileSystem implements KeyProviderToke
         return dfs.listOpenFiles(openFilesTypes);
     }
 
-    public RemoteIterator<OpenFileEntry> listOpenFiles(EnumSet<OpenFilesType> openFilesTypes,
-                                                       String path) throws IOException {
+    public RemoteIterator<OpenFileEntry> listOpenFiles(EnumSet<OpenFilesType> openFilesTypes, String path) throws IOException {
         Path absF = fixRelativePart(new Path(path));
         return dfs.listOpenFiles(openFilesTypes, getPathName(absF));
     }

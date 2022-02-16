@@ -46,7 +46,14 @@ public class TcpPeerServer implements PeerServer {
      * @throws IOException
      */
     public TcpPeerServer(int socketWriteTimeout, InetSocketAddress bindAddr, int backlogLength) throws IOException {
+
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释： ServerSocketChannel.open().socket()
+         */
         this.serverSocket = (socketWriteTimeout > 0) ? ServerSocketChannel.open().socket() : new ServerSocket();
+
+        // TODO_MA 马中华 注释： 绑定地址
         Server.bind(serverSocket, bindAddr, backlogLength);
     }
 

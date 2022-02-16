@@ -1151,6 +1151,8 @@ public abstract class Shell {
                     throw new IOException("(null) entry in command string: " + StringUtils.join(" ", command));
                 }
             }
+            // TODO_MA 马中华 注释： 真正执行命令启动好了
+            // TODO_MA 马中华 注释： 开始启动 JVM 进程了  YarnChild
             this.run();
         }
 

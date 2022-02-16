@@ -113,7 +113,7 @@ public class EditsDoubleBuffer {
     public void setReadyToFlush() {
         assert isFlushed() : "previous data not flushed yet";
 
-        // TODO_MA 马中华 注释： 交换
+        // TODO_MA 马中华 注释： 交换双写缓冲
         TxnBuffer tmp = bufReady;
         bufReady = bufCurrent;
         bufCurrent = tmp;
@@ -141,7 +141,7 @@ public class EditsDoubleBuffer {
     public boolean shouldForceSync() {
         /*************************************************
          * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-         *  注释：
+         *  注释： 当前缓冲大小是否大于 指定的 512kb
          */
         return bufCurrent.size() >= initBufferSize;
     }
@@ -207,7 +207,7 @@ public class EditsDoubleBuffer {
             }
             /*************************************************
              * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-             *  注释：
+             *  注释： 将 XXOp 操作写到 bufCurrent 中
              */
             writer.writeOp(op, logVersion);
             numTxns++;

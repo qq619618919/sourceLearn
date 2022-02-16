@@ -127,9 +127,7 @@ public class QuorumJournalManager implements JournalManager {
     QuorumJournalManager(Configuration conf, URI uri, NamespaceInfo nsInfo,
                          AsyncLogger.Factory loggerFactory) throws IOException {
         this(conf, uri, nsInfo, null, loggerFactory);
-
     }
-
 
     QuorumJournalManager(Configuration conf, URI uri, NamespaceInfo nsInfo, String nameServiceId,
                          AsyncLogger.Factory loggerFactory) throws IOException {
@@ -164,6 +162,8 @@ public class QuorumJournalManager implements JournalManager {
         this.finalizeSegmentTimeoutMs = conf.getInt(DFSConfigKeys.DFS_QJOURNAL_FINALIZE_SEGMENT_TIMEOUT_KEY,
                 DFSConfigKeys.DFS_QJOURNAL_FINALIZE_SEGMENT_TIMEOUT_DEFAULT
         );
+
+        // TODO_MA 马中华 注释： dfs.qjournal.select-input-streams.timeout.ms = 20s
         this.selectInputStreamsTimeoutMs = conf.getInt(DFSConfigKeys.DFS_QJOURNAL_SELECT_INPUT_STREAMS_TIMEOUT_KEY,
                 DFSConfigKeys.DFS_QJOURNAL_SELECT_INPUT_STREAMS_TIMEOUT_DEFAULT
         );
@@ -173,6 +173,8 @@ public class QuorumJournalManager implements JournalManager {
         this.newEpochTimeoutMs = conf.getInt(DFSConfigKeys.DFS_QJOURNAL_NEW_EPOCH_TIMEOUT_KEY,
                 DFSConfigKeys.DFS_QJOURNAL_NEW_EPOCH_TIMEOUT_DEFAULT
         );
+
+        // TODO_MA 马中华 注释： dfs.qjournal.write-txns.timeout.ms = 20s
         this.writeTxnsTimeoutMs = conf.getInt(DFSConfigKeys.DFS_QJOURNAL_WRITE_TXNS_TIMEOUT_KEY,
                 DFSConfigKeys.DFS_QJOURNAL_WRITE_TXNS_TIMEOUT_DEFAULT
         );
@@ -187,6 +189,10 @@ public class QuorumJournalManager implements JournalManager {
                 DFSConfigKeys.DFS_QJOURNAL_HTTP_READ_TIMEOUT_DEFAULT
         );
         this.connectionFactory = URLConnectionFactory.newDefaultURLConnectionFactory(connectTimeoutMs, readTimeoutMs, conf);
+
+        // TODO_MA 马中华 注释： 设置成默认值了。 也需要更改
+//        setOutputBufferCapacity(conf.getInt(DFSConfigKeys.DFS_NAMENODE_DOUBLEEDITS_BUFFERSIZE_KEY,
+//                DFSConfigKeys.DFS_NAMENODE_DOUBLEEDITS_BUFFERSIZE_VALUE));
         setOutputBufferCapacity(OUTPUT_BUFFER_CAPACITY_DEFAULT);
     }
 
@@ -411,6 +417,7 @@ public class QuorumJournalManager implements JournalManager {
         /*************************************************
          * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
          *  注释： 注意这儿：有几个地址，就会创建几个 AsyncLogger
+         *  addrs = jounal系统的地址集合
          */
         for (InetSocketAddress addr : addrs) {
             // TODO_MA 马中华 注释： 创建 IPCLoggerChannel 加入到 结果容器中
@@ -435,7 +442,7 @@ public class QuorumJournalManager implements JournalManager {
 
         /*************************************************
          * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-         *  注释：
+         *  注释： writeTxnsTimeoutMs = dfs.qjournal.write-txns.timeout.ms = 20s
          */
         return new QuorumOutputStream(loggers, txId, outputBufferCapacity, writeTxnsTimeoutMs, layoutVersion);
     }
@@ -606,6 +613,8 @@ public class QuorumJournalManager implements JournalManager {
     private void selectStreamingInputStreams(Collection<EditLogInputStream> streams, long fromTxnId, boolean inProgressOk,
                                              boolean onlyDurableTxns) throws IOException {
         QuorumCall<AsyncLogger, RemoteEditLogManifest> q = loggers.getEditLogManifest(fromTxnId, inProgressOk);
+
+        // TODO_MA 马中华 注释： dfs.qjournal.select-input-streams.timeout.ms = 20s
         Map<AsyncLogger, RemoteEditLogManifest> resps = loggers.waitForWriteQuorum(q, selectInputStreamsTimeoutMs,
                 "selectStreamingInputStreams"
         );

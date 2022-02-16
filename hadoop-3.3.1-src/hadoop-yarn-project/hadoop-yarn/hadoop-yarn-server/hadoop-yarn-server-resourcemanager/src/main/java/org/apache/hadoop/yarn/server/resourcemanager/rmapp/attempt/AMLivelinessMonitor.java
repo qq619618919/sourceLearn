@@ -56,5 +56,6 @@ public class AMLivelinessMonitor extends AbstractLivelinessMonitor<ApplicationAt
         // TODO_MA 马中华 注释： 搜： RMAppAttemptEvent.class
         // TODO_MA 马中华 注释： 搜： RMAppAttemptEventType.EXPIRE
         dispatcher.handle(new RMAppAttemptEvent(id, RMAppAttemptEventType.EXPIRE));
+        // TODO_MA 马中华 注释： 最终的处理组件：  RMAppAttempt 状态机
     }
 }

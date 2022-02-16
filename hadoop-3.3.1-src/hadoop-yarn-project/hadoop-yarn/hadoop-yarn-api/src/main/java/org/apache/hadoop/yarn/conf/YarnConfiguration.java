@@ -95,9 +95,8 @@ public class YarnConfiguration extends Configuration {
     }
 
     private static void addDeprecatedKeys() {
-        Configuration.addDeprecations(new DeprecationDelta[]{new DeprecationDelta("yarn.client.max-nodemanagers-proxies",
-                NM_CLIENT_MAX_NM_PROXIES
-        )});
+        Configuration.addDeprecations(
+                new DeprecationDelta[]{new DeprecationDelta("yarn.client.max-nodemanagers-proxies", NM_CLIENT_MAX_NM_PROXIES)});
         Configuration.addDeprecations(new DeprecationDelta[]{new DeprecationDelta(RM_SYSTEM_METRICS_PUBLISHER_ENABLED,
                 SYSTEM_METRICS_PUBLISHER_ENABLED
         ), new DeprecationDelta(RM_ZK_ACL, CommonConfigurationKeys.ZK_ACL), new DeprecationDelta(RM_ZK_AUTH,
@@ -107,10 +106,9 @@ public class YarnConfiguration extends Configuration {
         ), new DeprecationDelta(RM_ZK_TIMEOUT_MS, CommonConfigurationKeys.ZK_TIMEOUT_MS), new DeprecationDelta(
                 RM_ZK_RETRY_INTERVAL_MS, CommonConfigurationKeys.ZK_RETRY_INTERVAL_MS), new DeprecationDelta(
                 HADOOP_HTTP_WEBAPP_SCHEDULER_PAGE, YARN_HTTP_WEBAPP_SCHEDULER_PAGE)});
-        Configuration.addDeprecations(
-                new DeprecationDelta[]{new DeprecationDelta("yarn.resourcemanager.display.per-user-apps",
-                        FILTER_ENTITY_LIST_BY_USER
-                )});
+        Configuration.addDeprecations(new DeprecationDelta[]{new DeprecationDelta("yarn.resourcemanager.display.per-user-apps",
+                FILTER_ENTITY_LIST_BY_USER
+        )});
     }
 
     //Configurations
@@ -310,6 +308,7 @@ public class YarnConfiguration extends Configuration {
     public static final int DEFAULT_RM_AM_EXPIRY_INTERVAL_MS = 600000;
 
     /** How long to wait until a node manager is considered dead.*/
+    // TODO_MA 马中华 注释： yarn.nm.liveness-monitor.expiry-interval-ms = 600000 = 10min
     public static final String RM_NM_EXPIRY_INTERVAL_MS = YARN_PREFIX + "nm.liveness-monitor.expiry-interval-ms";
     public static final int DEFAULT_RM_NM_EXPIRY_INTERVAL_MS = 600000;
 
@@ -760,9 +759,7 @@ public class YarnConfiguration extends Configuration {
 
     public static final String YARN_AUTHORIZATION_PROVIDER = YARN_PREFIX + "authorization-provider";
     private static final List<String> RM_SERVICES_ADDRESS_CONF_KEYS_HTTP = Collections.unmodifiableList(
-            Arrays.asList(RM_ADDRESS, RM_SCHEDULER_ADDRESS, RM_ADMIN_ADDRESS, RM_RESOURCE_TRACKER_ADDRESS,
-                    RM_WEBAPP_ADDRESS
-            ));
+            Arrays.asList(RM_ADDRESS, RM_SCHEDULER_ADDRESS, RM_ADMIN_ADDRESS, RM_RESOURCE_TRACKER_ADDRESS, RM_WEBAPP_ADDRESS));
 
     private static final List<String> RM_SERVICES_ADDRESS_CONF_KEYS_HTTPS = Collections.unmodifiableList(
             Arrays.asList(RM_ADDRESS, RM_SCHEDULER_ADDRESS, RM_ADMIN_ADDRESS, RM_RESOURCE_TRACKER_ADDRESS,
@@ -1004,8 +1001,7 @@ public class YarnConfiguration extends Configuration {
     public static final String DEFAULT_NM_ENV_WHITELIST = StringUtils.join(",",
             Arrays.asList(ApplicationConstants.Environment.JAVA_HOME.key(),
                     ApplicationConstants.Environment.HADOOP_COMMON_HOME.key(),
-                    ApplicationConstants.Environment.HADOOP_HDFS_HOME.key(),
-                    ApplicationConstants.Environment.HADOOP_CONF_DIR.key(),
+                    ApplicationConstants.Environment.HADOOP_HDFS_HOME.key(), ApplicationConstants.Environment.HADOOP_CONF_DIR.key(),
                     ApplicationConstants.Environment.CLASSPATH_PREPEND_DISTCACHE.key(),
                     ApplicationConstants.Environment.HADOOP_YARN_HOME.key()
             )
@@ -1281,6 +1277,7 @@ public class YarnConfiguration extends Configuration {
     public static final boolean DEFAULT_NM_VMEM_CHECK_ENABLED = true;
 
     /** Conversion ratio for physical memory to virtual memory. */
+    // TODO_MA 马中华 注释： yarn.nodemanager.vmem-pmem-ratio = 2.1f
     public static final String NM_VMEM_PMEM_RATIO = NM_PREFIX + "vmem-pmem-ratio";
     public static final float DEFAULT_NM_VMEM_PMEM_RATIO = 2.1f;
 
@@ -3505,6 +3502,7 @@ public class YarnConfiguration extends Configuration {
     /**
      * Containers launcher implementation to use.
      */
+    // TODO_MA 马中华 注释： yarn.nodemanager.containers-launcher.clas =
     public static final String NM_CONTAINERS_LAUNCHER_CLASS = NM_PREFIX + "containers-launcher.class";
 
     // Configuration for the prefix of the tag which contains workflow ID,
@@ -3618,9 +3616,7 @@ public class YarnConfiguration extends Configuration {
      * @return whether the timeline service is enabled.
      */
     public static boolean timelineServiceEnabled(Configuration conf) {
-        return conf.getBoolean(YarnConfiguration.TIMELINE_SERVICE_ENABLED,
-                YarnConfiguration.DEFAULT_TIMELINE_SERVICE_ENABLED
-        );
+        return conf.getBoolean(YarnConfiguration.TIMELINE_SERVICE_ENABLED, YarnConfiguration.DEFAULT_TIMELINE_SERVICE_ENABLED);
     }
 
     /**

@@ -17,6 +17,7 @@
  */
 package org.apache.hadoop.hdfs.server.namenode;
 
+import org.apache.hadoop.hdfs.DFSConfigKeys;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -66,11 +67,20 @@ public class FileJournalManager implements JournalManager {
     private final Configuration conf;
     private final StorageDirectory sd;
     private final StorageErrorReporter errorReporter;
-    private int outputBufferCapacity = 512 * 1024;
+
+    /*************************************************
+     * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+     *  注释： 该值被写死了！ 双写缓冲的缓冲大小 = 512kb
+     *  1、太大不好： 丢失数据的风险更大
+     *  2、太小不好： 容易被快速写满导致阻塞，降低了效率
+     *  所以合适的方案是： 做成可配置的，让用户自己决定
+     *  解析配置文件，之后，在构造 该对象的时候，查询配置得到 用户设置的值
+     */
+//    private int outputBufferCapacity = 512 * 1024 * 2;
+    private int outputBufferCapacity = 0;
 
     private static final Pattern EDITS_REGEX = Pattern.compile(NameNodeFile.EDITS.getName() + "_(\\d+)-(\\d+)");
-    private static final Pattern EDITS_INPROGRESS_REGEX = Pattern.compile(
-            NameNodeFile.EDITS_INPROGRESS.getName() + "_(\\d+)");
+    private static final Pattern EDITS_INPROGRESS_REGEX = Pattern.compile(NameNodeFile.EDITS_INPROGRESS.getName() + "_(\\d+)");
     private static final Pattern EDITS_INPROGRESS_STALE_REGEX = Pattern.compile(
             NameNodeFile.EDITS_INPROGRESS.getName() + "_(\\d+).*(\\S+)");
 
@@ -115,8 +125,21 @@ public class FileJournalManager implements JournalManager {
         throw new UnsupportedOperationException();
     }
 
+    // TODO_MA 马中华 注释： web 平台提交任务
     @Override
     synchronized public EditLogOutputStream startLogSegment(long txid, int layoutVersion) throws IOException {
+
+        // TODO_MA 马中华 注释： 自定义加的！
+        // TODO_MA 马中华 注释： conf 是最开始，集群启动的时候，扫描 core-site.xml 和 hdfs-site.xml 配置得来的
+        // TODO_MA 马中华 注释： dfs.namenode.doubleedits.buffersize = 512 * 1024
+        // TODO_MA 马中华 注释： 关于配置有三个地方：
+        // TODO_MA 马中华 注释： 1、hdfs-site.xml
+        // TODO_MA 马中华 注释： 2、hdfs-default.xml
+        // TODO_MA 马中华 注释： 3、源码中写死的，在 hdfs-default.xml 找不到的
+        this.outputBufferCapacity = conf.getInt(DFSConfigKeys.DFS_NAMENODE_DOUBLEEDITS_BUFFERSIZE_KEY,
+                DFSConfigKeys.DFS_NAMENODE_DOUBLEEDITS_BUFFERSIZE_VALUE
+        );
+
         try {
             /*************************************************
              * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
@@ -386,14 +409,13 @@ public class FileJournalManager implements JournalManager {
         addStreamsToCollectionFromFiles(elfs, streams, fromTxId, getLastReadableTxId(), inProgressOk);
     }
 
-    static void addStreamsToCollectionFromFiles(Collection<EditLogFile> elfs, Collection<EditLogInputStream> streams,
-                                                long fromTxId, long maxTxIdToScan, boolean inProgressOk) {
+    static void addStreamsToCollectionFromFiles(Collection<EditLogFile> elfs, Collection<EditLogInputStream> streams, long fromTxId,
+                                                long maxTxIdToScan, boolean inProgressOk) {
         for (EditLogFile elf : elfs) {
             if (elf.isInProgress()) {
                 if (!inProgressOk) {
                     if (LOG.isDebugEnabled()) {
-                        LOG.debug(
-                                "passing over " + elf + " because it is in progress " + "and we are ignoring in-progress logs.");
+                        LOG.debug("passing over " + elf + " because it is in progress " + "and we are ignoring in-progress logs.");
                     }
                     continue;
                 }
@@ -511,8 +533,7 @@ public class FileJournalManager implements JournalManager {
             return ret.get(0);
         } else {
             throw new IllegalStateException(
-                    "More than one log segment in " + dir + " starting at txid " + startTxId + ": " + Joiner.on(", ")
-                            .join(ret));
+                    "More than one log segment in " + dir + " starting at txid " + startTxId + ": " + Joiner.on(", ").join(ret));
         }
     }
 
@@ -536,8 +557,8 @@ public class FileJournalManager implements JournalManager {
         final static Comparator<EditLogFile> COMPARE_BY_START_TXID = new Comparator<EditLogFile>() {
             @Override
             public int compare(EditLogFile a, EditLogFile b) {
-                return ComparisonChain.start().compare(a.getFirstTxId(), b.getFirstTxId())
-                        .compare(a.getLastTxId(), b.getLastTxId()).result();
+                return ComparisonChain.start().compare(a.getFirstTxId(), b.getFirstTxId()).compare(a.getLastTxId(), b.getLastTxId())
+                        .result();
             }
         };
 

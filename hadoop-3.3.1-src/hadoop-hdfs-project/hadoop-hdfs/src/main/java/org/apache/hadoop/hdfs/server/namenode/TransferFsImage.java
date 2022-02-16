@@ -139,7 +139,9 @@ public class TransferFsImage {
          * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
          *  注释：
          */
-        MD5Hash hash = Util.receiveFile(fileName, dstFiles, dstStorage, true, advertisedSize, advertisedDigest, fileName, stream, throttler);
+        MD5Hash hash = Util.receiveFile(fileName, dstFiles, dstStorage, true, advertisedSize, advertisedDigest, fileName, stream,
+                throttler
+        );
         LOG.info("Downloaded file " + dstFiles.get(0).getName() + " size " + dstFiles.get(0).length() + " bytes.");
         return hash;
     }
@@ -223,8 +225,8 @@ public class TransferFsImage {
      * @param canceler optional canceler to check for abort of upload
      * @throws IOException if there is an I/O error or cancellation
      */
-    public static TransferResult uploadImageFromStorage(URL fsName, Configuration conf, NNStorage storage, NameNodeFile nnf, long txid,
-                                                        Canceler canceler) throws IOException {
+    public static TransferResult uploadImageFromStorage(URL fsName, Configuration conf, NNStorage storage, NameNodeFile nnf,
+                                                        long txid, Canceler canceler) throws IOException {
 
         // TODO_MA 马中华 注释： 由 namenode 的 HttpServer 的 ImageServlet 来处理这个上传动作
         URL url = new URL(fsName, ImageServlet.PATH_SPEC);
@@ -275,13 +277,16 @@ public class TransferFsImage {
             }
 
             URL urlWithParams = uriBuilder.build().toURL();
-            connection = (HttpURLConnection) connectionFactory.openConnection(urlWithParams, UserGroupInformation.isSecurityEnabled());
+            connection = (HttpURLConnection) connectionFactory.openConnection(urlWithParams,
+                    UserGroupInformation.isSecurityEnabled()
+            );
             // Set the request to PUT
             connection.setRequestMethod("PUT");
             connection.setDoOutput(true);
 
             int chunkSize = (int) conf.getLongBytes(DFSConfigKeys.DFS_IMAGE_TRANSFER_CHUNKSIZE_KEY,
-                    DFSConfigKeys.DFS_IMAGE_TRANSFER_CHUNKSIZE_DEFAULT);
+                    DFSConfigKeys.DFS_IMAGE_TRANSFER_CHUNKSIZE_DEFAULT
+            );
             if (imageFile.length() > chunkSize) {
                 // using chunked streaming mode to support upload of 2GB+ files and to
                 // avoid internal buffering.
@@ -296,13 +301,18 @@ public class TransferFsImage {
             ImageServlet.setVerificationHeadersForPut(connection, imageFile);
 
             // Write the file to output stream.
+            /*************************************************
+             * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+             *  注释：
+             */
             writeFileToPutRequest(conf, connection, imageFile, canceler);
 
             int responseCode = connection.getResponseCode();
             if (responseCode != HttpURLConnection.HTTP_OK) {
                 throw new HttpPutFailedException(
                         String.format("Image uploading failed, status: %d, url: %s, message: %s", responseCode, urlWithParams,
-                                connection.getResponseMessage()), responseCode);
+                                connection.getResponseMessage()
+                        ), responseCode);
             }
         } catch (AuthenticationException | URISyntaxException e) {
             throw new IOException(e);
@@ -372,9 +382,18 @@ public class TransferFsImage {
                     buf[0]++;
                 }
 
+                /*************************************************
+                 * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+                 *  注释：
+                 */
                 out.write(buf, 0, num);
+
                 total += num;
                 if (throttler != null) {
+                    /*************************************************
+                     * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+                     *  注释：
+                     */
                     throttler.throttle(num, canceler);
                 }
             }

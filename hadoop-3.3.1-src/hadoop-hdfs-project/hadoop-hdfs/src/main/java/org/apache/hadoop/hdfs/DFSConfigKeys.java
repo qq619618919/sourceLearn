@@ -44,6 +44,14 @@ public class DFSConfigKeys extends CommonConfigurationKeys {
     public static final String DFS_REPLICATION_KEY = HdfsClientConfigKeys.DFS_REPLICATION_KEY;
     public static final short DFS_REPLICATION_DEFAULT = HdfsClientConfigKeys.DFS_REPLICATION_DEFAULT;
 
+    /*************************************************
+     * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+     *  注释： 自定义配置
+     *  如果需要更改，就到 hdfs-site.xml 配置文件中，去配置 dfs.namenode.doubleedits.buffersize 的值
+     */
+    public static final String DFS_NAMENODE_DOUBLEEDITS_BUFFERSIZE_KEY = "dfs.namenode.doubleedits.buffersize";
+    public static final int DFS_NAMENODE_DOUBLEEDITS_BUFFERSIZE_VALUE = 512 * 1024;
+
     public static final String DFS_STREAM_BUFFER_SIZE_KEY = "dfs.stream-buffer-size";
     public static final int DFS_STREAM_BUFFER_SIZE_DEFAULT = 4096;
     public static final String DFS_BYTES_PER_CHECKSUM_KEY = HdfsClientConfigKeys.DFS_BYTES_PER_CHECKSUM_KEY;

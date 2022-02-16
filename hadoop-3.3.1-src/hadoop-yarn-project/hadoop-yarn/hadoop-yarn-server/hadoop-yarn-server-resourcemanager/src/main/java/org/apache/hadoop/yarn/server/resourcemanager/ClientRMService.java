@@ -546,6 +546,10 @@ public class ClientRMService extends AbstractService implements ApplicationClien
         return response;
     }
 
+    /*************************************************
+     * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+     *  注释： 到此为止，完成了提交！
+     */
     @Override
     public SubmitApplicationResponse submitApplication(SubmitApplicationRequest request) throws YarnException, IOException {
         ApplicationSubmissionContext submissionContext = request.getApplicationSubmissionContext();
@@ -636,6 +640,12 @@ public class ClientRMService extends AbstractService implements ApplicationClien
 
         try {
             // call RMAppManager to submit application directly
+            /*************************************************
+             * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+             *  注释：  RM 容纳万物的一个大容器，里面会有各种工作组件
+             *  RMAppManager 管理 Application
+             *  将来注册，注销，都是通过这个东西来维护：rmAppManager
+             */
             rmAppManager.submitApplication(submissionContext, System.currentTimeMillis(), user);
 
             LOG.info("Application with id " + applicationId.getId() + " submitted by user " + user);

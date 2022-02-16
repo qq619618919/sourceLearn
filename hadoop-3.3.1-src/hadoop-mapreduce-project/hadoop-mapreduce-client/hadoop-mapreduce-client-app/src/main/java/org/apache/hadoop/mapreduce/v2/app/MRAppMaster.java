@@ -277,8 +277,17 @@ public class MRAppMaster extends CompositeService {
 
         initJobCredentialsAndUGI(conf);
 
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释：
+         */
         dispatcher = createDispatcher();
         addIfService(dispatcher);
+
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释：
+         */
         taskAttemptFinishingMonitor = createTaskAttemptFinishingMonitor(dispatcher.getEventHandler());
         addIfService(taskAttemptFinishingMonitor);
         context = new RunningAppContext(conf, taskAttemptFinishingMonitor);
@@ -290,8 +299,14 @@ public class MRAppMaster extends CompositeService {
         conf.setInt(MRJobConfig.APPLICATION_ATTEMPT_ID, appAttemptID.getAttemptId());
 
         newApiCommitter = false;
+
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释：
+         */
         jobId = MRBuilderUtils.newJobId(appAttemptID.getApplicationId(), appAttemptID.getApplicationId().getId());
         int numReduceTasks = conf.getInt(MRJobConfig.NUM_REDUCES, 0);
+
         if ((numReduceTasks > 0 && conf.getBoolean("mapred.reducer.new-api", false)
         ) || (numReduceTasks == 0 && conf.getBoolean("mapred.mapper.new-api", false))) {
             newApiCommitter = true;
@@ -299,9 +314,17 @@ public class MRAppMaster extends CompositeService {
         }
 
         boolean copyHistory = false;
+
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释： 构建 OutputCommitter 用于完成 Task 的输出工作
+         */
         committer = createOutputCommitter(conf);
+
         try {
             String user = UserGroupInformation.getCurrentUser().getShortUserName();
+
+            // TODO_MA 马中华 注释：
             Path stagingDir = MRApps.getStagingAreaDir(conf, user);
             FileSystem fs = getFileSystem(conf);
 
@@ -394,15 +417,27 @@ public class MRAppMaster extends CompositeService {
         } else {
 
             //service to handle requests from JobClient
+            /*************************************************
+             * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+             *  注释： 构架 RPC 服务端给 Client 提供服务
+             */
             clientService = createClientService(context);
             // Init ClientService separately so that we stop it separately, since this
-            // service needs to wait some time before it stops so clients can know the
-            // final states
+            // service needs to wait some time before it stops so clients can know the final states
             clientService.init(conf);
 
+            /*************************************************
+             * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+             *  注释： 重点1： 非常重要的组件： ContainerAllocator 用来帮助 MRAppMaster 完成 Container 申请
+             *  具体实现是： ContainerAllocatorRouter
+             */
             containerAllocator = createContainerAllocator(clientService, context);
 
             //service to handle the output committer
+            /*************************************************
+             * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+             *  注释： 构建 CommitterEventHandler
+             */
             committerEventHandler = createCommitterEventHandler(context, committer);
             addIfService(committerEventHandler);
 
@@ -416,29 +451,51 @@ public class MRAppMaster extends CompositeService {
             });
 
             //service to handle requests to TaskUmbilicalProtocol
+            /*************************************************
+             * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+             *  注释： TaskAttemptListener
+             */
             taskAttemptListener = createTaskAttemptListener(context, preemptionPolicy);
             addIfService(taskAttemptListener);
 
             //service to log job history events
+            /*************************************************
+             * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+             *  注释： JobHistoryHandler
+             */
             EventHandler<JobHistoryEvent> historyService = createJobHistoryHandler(context);
             dispatcher.register(org.apache.hadoop.mapreduce.jobhistory.EventType.class, historyService);
 
+            /*************************************************
+             * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+             *  注释：
+             */
             this.jobEventDispatcher = new JobEventDispatcher();
 
             //register the event dispatchers
+            /*************************************************
+             * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+             *  注释： 注册相关的一些  Event 和 EventHandler
+             */
             dispatcher.register(JobEventType.class, jobEventDispatcher);
             dispatcher.register(TaskEventType.class, new TaskEventDispatcher());
             dispatcher.register(TaskAttemptEventType.class, new TaskAttemptEventDispatcher());
             dispatcher.register(CommitterEventType.class, committerEventHandler);
 
-            if (conf.getBoolean(MRJobConfig.MAP_SPECULATIVE, false) || conf.getBoolean(MRJobConfig.REDUCE_SPECULATIVE,
-                    false
-            )) {
+            /*************************************************
+             * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+             *  注释： 创建推测执行器 DefaultSpeculator
+             */
+            if (conf.getBoolean(MRJobConfig.MAP_SPECULATIVE, false) || conf.getBoolean(MRJobConfig.REDUCE_SPECULATIVE, false)) {
                 //optional service to speculate on task attempts' progress
                 speculator = createSpeculator(conf, context);
                 addIfService(speculator);
             }
 
+            /*************************************************
+             * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+             *  注释： 推测执行事件处理器
+             */
             speculatorEventDispatcher = new SpeculatorEventDispatcher(conf);
             dispatcher.register(Speculator.EventType.class, speculatorEventDispatcher);
 
@@ -455,6 +512,10 @@ public class MRAppMaster extends CompositeService {
             dispatcher.register(ContainerAllocator.EventType.class, containerAllocator);
 
             // corresponding service to launch allocated containers via NodeManager
+            /*************************************************
+             * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+             *  注释： 重点2； ContainerLauncher， 负责启动 Container， 具体实现就是： ContainerLauncherRouter
+             */
             containerLauncher = createContainerLauncher(context);
             addIfService(containerLauncher);
             dispatcher.register(ContainerLauncher.EventType.class, containerLauncher);
@@ -467,6 +528,8 @@ public class MRAppMaster extends CompositeService {
             // queued inside the JobHistoryEventHandler
             addIfService(historyService);
         }
+
+        // TODO_MA 马中华 注释： 调用父类 Service 初始化
         super.serviceInit(conf);
     } // end of init()
 
@@ -510,14 +573,22 @@ public class MRAppMaster extends CompositeService {
                 LOG.info("OutputCommitter set in config " + conf.get("mapred.output.committer.class"));
 
                 if (newApiCommitter) {
-                    org.apache.hadoop.mapreduce.v2.api.records.TaskId taskID = MRBuilderUtils.newTaskId(jobId, 0,
-                            TaskType.MAP
-                    );
-                    org.apache.hadoop.mapreduce.v2.api.records.TaskAttemptId attemptID = MRBuilderUtils.newTaskAttemptId(
-                            taskID, 0);
+
+                    // TODO_MA 马中华 注释：
+                    org.apache.hadoop.mapreduce.v2.api.records.TaskId taskID = MRBuilderUtils.newTaskId(jobId, 0, TaskType.MAP);
+                    org.apache.hadoop.mapreduce.v2.api.records.TaskAttemptId attemptID = MRBuilderUtils.newTaskAttemptId(taskID, 0);
+
+                    /*************************************************
+                     * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+                     *  注释：
+                     */
                     TaskAttemptContext taskContext = new TaskAttemptContextImpl(conf, TypeConverter.fromYarn(attemptID));
                     OutputFormat outputFormat;
                     try {
+                        /*************************************************
+                         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+                         *  注释：
+                         */
                         outputFormat = ReflectionUtils.newInstance(taskContext.getOutputFormatClass(), conf);
                         committer = outputFormat.getOutputCommitter(taskContext);
                     } catch (Exception e) {
@@ -537,9 +608,7 @@ public class MRAppMaster extends CompositeService {
 
     protected AMPreemptionPolicy createPreemptionPolicy(Configuration conf) {
         return ReflectionUtils.newInstance(
-                conf.getClass(MRJobConfig.MR_AM_PREEMPTION_POLICY, NoopAMPreemptionPolicy.class, AMPreemptionPolicy.class),
-                conf
-        );
+                conf.getClass(MRJobConfig.MR_AM_PREEMPTION_POLICY, NoopAMPreemptionPolicy.class, AMPreemptionPolicy.class), conf);
     }
 
     private boolean isJobNamePatternMatch(JobConf conf, String jobTempDir) {
@@ -733,9 +802,13 @@ public class MRAppMaster extends CompositeService {
     protected Job createJob(Configuration conf, JobStateInternal forcedState, String diagnostic) {
 
         // create single job
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释： 创建一个 Job 对象
+         */
         Job newJob = new JobImpl(jobId, appAttemptID, conf, dispatcher.getEventHandler(), taskAttemptListener,
-                jobTokenSecretManager, jobCredentials, clock, completedTasksFromPreviousRun, metrics, committer,
-                newApiCommitter, currentUser.getUserName(), appSubmitTime, amInfos, context, forcedState, diagnostic
+                jobTokenSecretManager, jobCredentials, clock, completedTasksFromPreviousRun, metrics, committer, newApiCommitter,
+                currentUser.getUserName(), appSubmitTime, amInfos, context, forcedState, diagnostic
         );
         ((RunningAppContext) context).jobs.put(newJob.getID(), newJob);
 
@@ -776,19 +849,33 @@ public class MRAppMaster extends CompositeService {
     }
 
     protected AbstractService createStagingDirCleaningService() {
+
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释：
+         */
         return new StagingDirCleaningService();
     }
 
     protected Speculator createSpeculator(Configuration conf, final AppContext context) {
         return callWithJobClassLoader(conf, new Action<Speculator>() {
+
+            /*************************************************
+             * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+             *  注释： 创建 DefaultSpeculator
+             */
             public Speculator call(Configuration conf) {
                 Class<? extends Speculator> speculatorClass;
                 try {
+                    // TODO_MA 马中华 注释： DefaultSpeculator
                     speculatorClass
                             // "yarn.mapreduce.job.speculator.class"
                             = conf.getClass(MRJobConfig.MR_AM_JOB_SPECULATOR, DefaultSpeculator.class, Speculator.class);
-                    Constructor<? extends Speculator> speculatorConstructor = speculatorClass.getConstructor(
-                            Configuration.class, AppContext.class);
+                    Constructor<? extends Speculator> speculatorConstructor = speculatorClass.getConstructor(Configuration.class,
+                            AppContext.class
+                    );
+
+                    // TODO_MA 马中华 注释： 通过反射创建 DefaultSpeculator 实例
                     Speculator result = speculatorConstructor.newInstance(conf, context);
 
                     return result;
@@ -817,10 +904,20 @@ public class MRAppMaster extends CompositeService {
     }
 
     protected EventHandler<CommitterEvent> createCommitterEventHandler(AppContext context, OutputCommitter committer) {
+
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释：
+         */
         return new CommitterEventHandler(context, committer, getRMHeartbeatHandler(), jobClassLoader);
     }
 
     protected ContainerAllocator createContainerAllocator(final ClientService clientService, final AppContext context) {
+
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释：
+         */
         return new ContainerAllocatorRouter(clientService, context);
     }
 
@@ -829,11 +926,20 @@ public class MRAppMaster extends CompositeService {
     }
 
     protected ContainerLauncher createContainerLauncher(final AppContext context) {
+
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释：
+         */
         return new ContainerLauncherRouter(context);
     }
 
     //TODO:should have an interface for MRClientService
     protected ClientService createClientService(AppContext context) {
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释： 构建一个 RPCServer 用来给客户端提供服务
+         */
         return new MRClientService(context);
     }
 
@@ -912,13 +1018,27 @@ public class MRAppMaster extends CompositeService {
         protected void serviceStart() throws Exception {
             if (job.isUber()) {
                 MRApps.setupDistributedCacheLocal(getConfig());
-                this.containerAllocator = new LocalContainerAllocator(this.clientService, this.context, nmHost, nmPort,
-                        nmHttpPort, containerID
+                this.containerAllocator = new LocalContainerAllocator(this.clientService, this.context, nmHost, nmPort, nmHttpPort,
+                        containerID
                 );
             } else {
+                /*************************************************
+                 * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+                 *  注释： 处理 Container 申请请求的异步组件启动
+                 */
                 this.containerAllocator = new RMContainerAllocator(this.clientService, this.context, preemptionPolicy);
             }
+
+            /*************************************************
+             * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+             *  注释： 初始化
+             */
             ((Service) this.containerAllocator).init(getConfig());
+
+            /*************************************************
+             * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+             *  注释： 启动
+             */
             ((Service) this.containerAllocator).start();
             super.serviceStart();
         }
@@ -958,6 +1078,7 @@ public class MRAppMaster extends CompositeService {
      * happened.
      */
     private final class ContainerLauncherRouter extends AbstractService implements ContainerLauncher {
+
         private final AppContext context;
         private ContainerLauncher containerLauncher;
 
@@ -974,9 +1095,23 @@ public class MRAppMaster extends CompositeService {
                 );
                 ((LocalContainerLauncher) this.containerLauncher).setEncryptedSpillKey(encryptedSpillKey);
             } else {
+                /*************************************************
+                 * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+                 *  注释： 1、构建一个内部工作实例
+                 */
                 this.containerLauncher = new ContainerLauncherImpl(context);
             }
+
+            /*************************************************
+             * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+             *  注释： 2、初始化
+             */
             ((Service) this.containerLauncher).init(getConfig());
+
+            /*************************************************
+             * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+             *  注释： 3、启动
+             */
             ((Service) this.containerLauncher).start();
             super.serviceStart();
         }
@@ -1156,13 +1291,31 @@ public class MRAppMaster extends CompositeService {
 
         amInfos = new LinkedList<AMInfo>();
         completedTasksFromPreviousRun = new HashMap<TaskId, TaskInfo>();
+
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释：
+         */
         processRecovery();
+
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释：
+         */
         cleanUpPreviousJobOutput();
 
         // Current an AMInfo for the current AM generation.
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释：
+         */
         AMInfo amInfo = MRBuilderUtils.newAMInfo(appAttemptID, startTime, containerID, nmHost, nmPort, nmHttpPort);
 
         // /////////////////// Create the job itself.
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释：
+         */
         job = createJob(getConfig(), forcedState, shutDownMessage);
 
         // End of creating the job.
@@ -1171,8 +1324,7 @@ public class MRAppMaster extends CompositeService {
         for (AMInfo info : amInfos) {
             dispatcher.getEventHandler().handle(new JobHistoryEvent(job.getID(),
                     new AMStartedEvent(info.getAppAttemptId(), info.getStartTime(), info.getContainerId(),
-                            info.getNodeManagerHost(), info.getNodeManagerPort(), info.getNodeManagerHttpPort(),
-                            appSubmitTime
+                            info.getNodeManagerHost(), info.getNodeManagerPort(), info.getNodeManagerHttpPort(), appSubmitTime
                     )
             ));
         }
@@ -1194,6 +1346,7 @@ public class MRAppMaster extends CompositeService {
         if (!errorHappenedShutDown) {
             // create a job event for job initialization
             JobEvent initJobEvent = new JobEvent(job.getID(), JobEventType.JOB_INIT);
+
             // Send init to the job (this does NOT trigger job execution)
             // This is a synchronous call, not an event through dispatcher. We want
             // job-init to be done completely here.
@@ -1216,11 +1369,16 @@ public class MRAppMaster extends CompositeService {
             } else {
                 // send init to speculator only for non-uber jobs.
                 // This won't yet start as dispatcher isn't started yet.
+                // TODO_MA 马中华 注释： Speculator 开始工作
                 dispatcher.getEventHandler().handle(new SpeculatorEvent(job.getID(), clock.getTime()));
                 LOG.info("MRAppMaster launching normal, non-uberized, multi-container " + "job " + job.getID() + ".");
             }
             // Start ClientService here, since it's not initialized if
             // errorHappenedShutDown is true
+            /*************************************************
+             * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+             *  注释： RPC Server 启动
+             */
             clientService.start();
         }
         //start all the components
@@ -1234,6 +1392,10 @@ public class MRAppMaster extends CompositeService {
             jobEventDispatcher.handle(initFailedEvent);
         } else {
             // All components have started, start the job.
+            /*************************************************
+             * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+             *  注释： Job 状态机开始了。
+             */
             startJobs();
         }
     }
@@ -1258,11 +1420,17 @@ public class MRAppMaster extends CompositeService {
     }
 
     private void processRecovery() throws IOException {
+
+        // TODO_MA 马中华 注释：
         boolean attemptRecovery = shouldAttemptRecovery();
         boolean recoverySucceeded = true;
         if (attemptRecovery) {
             LOG.info("Attempting to recover.");
             try {
+                /*************************************************
+                 * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+                 *  注释： 解析 job history
+                 */
                 parsePreviousJobHistory();
             } catch (IOException e) {
                 LOG.warn("Unable to parse prior job history, aborting recovery", e);
@@ -1288,6 +1456,7 @@ public class MRAppMaster extends CompositeService {
             return false;  // no need to recover on the first attempt
         }
 
+        // TODO_MA 马中华 注释： yarn.app.mapreduce.am.job.recovery.enable = true
         boolean recoveryEnabled = getConfig().getBoolean(MRJobConfig.MR_AM_JOB_RECOVERY_ENABLE,
                 MRJobConfig.MR_AM_JOB_RECOVERY_ENABLE_DEFAULT
         );
@@ -1363,8 +1532,8 @@ public class MRAppMaster extends CompositeService {
         Map<org.apache.hadoop.mapreduce.TaskID, TaskInfo> taskInfos = jobInfo.getAllTasks();
         for (TaskInfo taskInfo : taskInfos.values()) {
             if (TaskState.SUCCEEDED.toString().equals(taskInfo.getTaskStatus())) {
-                Iterator<Entry<TaskAttemptID, TaskAttemptInfo>> taskAttemptIterator = taskInfo.getAllTaskAttempts()
-                        .entrySet().iterator();
+                Iterator<Entry<TaskAttemptID, TaskAttemptInfo>> taskAttemptIterator = taskInfo.getAllTaskAttempts().entrySet()
+                        .iterator();
                 while (taskAttemptIterator.hasNext()) {
                     Map.Entry<TaskAttemptID, TaskAttemptInfo> currentEntry = taskAttemptIterator.next();
                     if (!jobInfo.getAllCompletedTaskAttempts().containsKey(currentEntry.getKey())) {
@@ -1447,6 +1616,10 @@ public class MRAppMaster extends CompositeService {
     @SuppressWarnings("unchecked")
     protected void startJobs() {
         /** create a job-start event to get this ball rolling */
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释： JobEventType.JOB_START
+         */
         JobEvent startJobEvent = new JobStartEvent(job.getID(), recoveredJobStartTime);
         /** send the job-start event. this triggers the job execution. */
         dispatcher.getEventHandler().handle(startJobEvent);
@@ -1566,15 +1739,18 @@ public class MRAppMaster extends CompositeService {
             ContainerId containerId = ContainerId.fromString(containerIdStr);
             ApplicationAttemptId applicationAttemptId = containerId.getApplicationAttemptId();
             if (applicationAttemptId != null) {
-                CallerContext.setCurrent(
-                        new CallerContext.Builder("mr_appmaster_" + applicationAttemptId.toString()).build());
+                CallerContext.setCurrent(new CallerContext.Builder("mr_appmaster_" + applicationAttemptId.toString()).build());
             }
             long appSubmitTime = Long.parseLong(appSubmitTimeStr);
 
-
+            /*************************************************
+             * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+             *  注释：
+             */
             MRAppMaster appMaster = new MRAppMaster(applicationAttemptId, containerId, nodeHostString,
                     Integer.parseInt(nodePortString), Integer.parseInt(nodeHttpPortString), appSubmitTime
             );
+
             ShutdownHookManager.get().addShutdownHook(new MRAppMasterShutdownHook(appMaster), SHUTDOWN_HOOK_PRIORITY);
             JobConf conf = new JobConf(new YarnConfiguration());
             conf.addResource(new Path(MRJobConfig.JOB_CONF_FILE));
@@ -1588,6 +1764,11 @@ public class MRAppMaster extends CompositeService {
 
             String jobUserName = System.getenv(ApplicationConstants.Environment.USER.name());
             conf.set(MRJobConfig.USER_NAME, jobUserName);
+
+            /*************************************************
+             * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+             *  注释： 启动 MR 程序的 ApplicationMaster = MRAppMaster
+             */
             initAndStartAppMaster(appMaster, conf, jobUserName);
         } catch (Throwable t) {
             LOG.error("Error starting MRAppMaster", t);
@@ -1653,7 +1834,17 @@ public class MRAppMaster extends CompositeService {
         appMasterUgi.doAs(new PrivilegedExceptionAction<Object>() {
             @Override
             public Object run() throws Exception {
+
+                /*************************************************
+                 * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+                 *  注释： serviceInit()
+                 */
                 appMaster.init(conf);
+
+                /*************************************************
+                 * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+                 *  注释： serviceStart()
+                 */
                 appMaster.start();
                 if (appMaster.errorHappenedShutDown) {
                     throw new IOException("Was asked to shut down.");

@@ -103,7 +103,7 @@ import org.apache.hadoop.thirdparty.com.google.common.annotations.VisibleForTest
 
 /*************************************************
  * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
- *  注释：
+ *  注释： 注意它的三个执行入口：
  *  1、构造方法
  *  2、serviceInit()
  *  2、serviceStart()
@@ -197,6 +197,7 @@ public class NodeStatusUpdaterImpl extends AbstractService implements NodeStatus
          */
         this.totalResource = NodeManagerHardwareUtils.getNodeResources(conf);
         long memoryMb = totalResource.getMemorySize();
+        // TODO_MA 马中华 注释： yarn.nodemanager.vmem-pmem-ratio = 2.1f
         float vMemToPMem = conf.getFloat(YarnConfiguration.NM_VMEM_PMEM_RATIO, YarnConfiguration.DEFAULT_NM_VMEM_PMEM_RATIO);
         long virtualMemoryMb = (long) Math.ceil(memoryMb * vMemToPMem);
         int virtualCores = totalResource.getVirtualCores();
@@ -254,7 +255,6 @@ public class NodeStatusUpdaterImpl extends AbstractService implements NodeStatus
                 YarnConfiguration.DEFAULT_LOG_AGGREGATION_ENABLED
         );
         this.timelineServiceV2Enabled = YarnConfiguration.timelineServiceV2Enabled(conf);
-
     }
 
     @Override
@@ -376,7 +376,7 @@ public class NodeStatusUpdaterImpl extends AbstractService implements NodeStatus
 
         /*************************************************
          * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-         *  注释：
+         *  注释： 创建 RM 代理
          */
         return ServerRMProxy.createRMProxy(conf, ResourceTracker.class);
     }
@@ -407,6 +407,11 @@ public class NodeStatusUpdaterImpl extends AbstractService implements NodeStatus
 
             // TODO_MA 马中华 注释： 构建 Container 的状态对象： NMContainerStatus
             List<NMContainerStatus> containerReports = getNMContainerStatuses();
+
+            /*************************************************
+             * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+             *  注释： 获取节点状态
+             */
             NodeStatus nodeStatus = getNodeStatus(0);
 
             // TODO_MA 马中华 注释： 构建一个请求对象
@@ -528,10 +533,20 @@ public class NodeStatusUpdaterImpl extends AbstractService implements NodeStatus
         nodeHealthStatus.setIsNodeHealthy(healthChecker.isHealthy());
         nodeHealthStatus.setLastHealthReportTime(healthChecker.getLastHealthReportTime());
         LOG.debug("Node's health-status : {}, {}", nodeHealthStatus.getIsNodeHealthy(), nodeHealthStatus.getHealthReport());
+
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释： 获取 Container 状态
+         */
         List<ContainerStatus> containersStatuses = getContainerStatuses();
         ResourceUtilization containersUtilization = getContainersUtilization();
         ResourceUtilization nodeUtilization = getNodeUtilization();
         List<org.apache.hadoop.yarn.api.records.Container> increasedContainers = getIncreasedContainers();
+
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释：
+         */
         NodeStatus nodeStatus = NodeStatus.newInstance(nodeId, responseId, containersStatuses,
                 createKeepAliveApplicationList(), nodeHealthStatus, containersUtilization, nodeUtilization,
                 increasedContainers
@@ -595,7 +610,14 @@ public class NodeStatusUpdaterImpl extends AbstractService implements NodeStatus
     // recentlyStoppedContainers collections.
     @VisibleForTesting
     protected List<ContainerStatus> getContainerStatuses() throws IOException {
+
+        // TODO_MA 马中华 注释： 结果容器
         List<ContainerStatus> containerStatuses = new ArrayList<ContainerStatus>();
+        
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释： 遍历每个 Container
+         */
         for (Container container : this.context.getContainers().values()) {
             ContainerId containerId = container.getContainerId();
             ApplicationId applicationId = containerId.getApplicationAttemptId().getApplicationId();
@@ -624,6 +646,7 @@ public class NodeStatusUpdaterImpl extends AbstractService implements NodeStatus
             LOG.debug("Sending out {} container statuses: {}", containerStatuses.size(), containerStatuses);
         }
 
+        // TODO_MA 马中华 注释： 返回结果容器
         return containerStatuses;
     }
 
@@ -639,7 +662,14 @@ public class NodeStatusUpdaterImpl extends AbstractService implements NodeStatus
 
     // These NMContainerStatus are sent on NM registration and used by YARN only.
     private List<NMContainerStatus> getNMContainerStatuses() throws IOException {
+
+        // TODO_MA 马中华 注释： 结果容器
         List<NMContainerStatus> containerStatuses = new ArrayList<NMContainerStatus>();
+
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释： 遍历每个 Container
+         */
         for (Container container : this.context.getContainers().values()) {
             ContainerId containerId = container.getContainerId();
             ApplicationId applicationId = containerId.getApplicationAttemptId().getApplicationId();
@@ -659,6 +689,8 @@ public class NodeStatusUpdaterImpl extends AbstractService implements NodeStatus
         if (!containerStatuses.isEmpty()) {
             LOG.info("Sending out " + containerStatuses.size() + " NM container statuses: " + containerStatuses);
         }
+
+        // TODO_MA 马中华 注释： 返回结果容器
         return containerStatuses;
     }
 

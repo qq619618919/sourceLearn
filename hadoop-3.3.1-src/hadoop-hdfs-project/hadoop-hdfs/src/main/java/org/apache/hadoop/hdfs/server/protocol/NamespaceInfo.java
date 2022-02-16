@@ -42,7 +42,13 @@ import org.apache.hadoop.thirdparty.com.google.common.base.Preconditions;
 @InterfaceStability.Evolving
 public class NamespaceInfo extends StorageInfo {
     final String buildVersion;
+
+    /*************************************************
+     * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+     *  注释：
+     */
     String blockPoolID = "";    // id of the block pool
+
     String softwareVersion;
     long capabilities;
     HAServiceState state;

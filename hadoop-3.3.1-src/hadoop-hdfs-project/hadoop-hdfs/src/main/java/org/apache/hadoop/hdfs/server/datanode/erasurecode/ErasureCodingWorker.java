@@ -45,131 +45,116 @@ import java.util.concurrent.atomic.AtomicInteger;
  */
 @InterfaceAudience.Private
 public final class ErasureCodingWorker {
-  private static final Logger LOG = DataNode.LOG;
+    private static final Logger LOG = DataNode.LOG;
 
-  private final DataNode datanode;
-  private final Configuration conf;
-  private final float xmitWeight;
+    private final DataNode datanode;
+    private final Configuration conf;
+    private final float xmitWeight;
 
-  private ThreadPoolExecutor stripedReconstructionPool;
-  private ThreadPoolExecutor stripedReadPool;
+    private ThreadPoolExecutor stripedReconstructionPool;
+    private ThreadPoolExecutor stripedReadPool;
 
-  public ErasureCodingWorker(Configuration conf, DataNode datanode) {
-    this.datanode = datanode;
-    this.conf = conf;
-    this.xmitWeight = conf.getFloat(
-        DFSConfigKeys.DFS_DN_EC_RECONSTRUCTION_XMITS_WEIGHT_KEY,
-        DFSConfigKeys.DFS_DN_EC_RECONSTRUCTION_XMITS_WEIGHT_DEFAULT
-    );
-    Preconditions.checkArgument(this.xmitWeight >= 0,
-        "Invalid value configured for " +
-            DFSConfigKeys.DFS_DN_EC_RECONSTRUCTION_XMITS_WEIGHT_KEY +
-            ", it can not be negative value (" + this.xmitWeight + ").");
+    public ErasureCodingWorker(Configuration conf, DataNode datanode) {
+        this.datanode = datanode;
+        this.conf = conf;
+        this.xmitWeight = conf.getFloat(DFSConfigKeys.DFS_DN_EC_RECONSTRUCTION_XMITS_WEIGHT_KEY,
+                DFSConfigKeys.DFS_DN_EC_RECONSTRUCTION_XMITS_WEIGHT_DEFAULT
+        );
+        Preconditions.checkArgument(this.xmitWeight >= 0,
+                "Invalid value configured for " + DFSConfigKeys.DFS_DN_EC_RECONSTRUCTION_XMITS_WEIGHT_KEY + ", it can not be negative value (" + this.xmitWeight + ")."
+        );
 
-    initializeStripedReadThreadPool();
-    initializeStripedBlkReconstructionThreadPool(conf.getInt(
-        DFSConfigKeys.DFS_DN_EC_RECONSTRUCTION_THREADS_KEY,
-        DFSConfigKeys.DFS_DN_EC_RECONSTRUCTION_THREADS_DEFAULT));
-  }
-
-  private void initializeStripedReadThreadPool() {
-    LOG.debug("Using striped reads");
-
-    // Essentially, this is a cachedThreadPool.
-    stripedReadPool = new ThreadPoolExecutor(0, Integer.MAX_VALUE,
-        60, TimeUnit.SECONDS,
-        new SynchronousQueue<>(),
-        new Daemon.DaemonFactory() {
-          private final AtomicInteger threadIndex = new AtomicInteger(0);
-
-          @Override
-          public Thread newThread(Runnable r) {
-            Thread t = super.newThread(r);
-            t.setName("stripedRead-" + threadIndex.getAndIncrement());
-            return t;
-          }
-        },
-        new ThreadPoolExecutor.CallerRunsPolicy() {
-          @Override
-          public void rejectedExecution(Runnable runnable,
-                                        ThreadPoolExecutor e) {
-            LOG.info("Execution for striped reading rejected, "
-                + "Executing in current thread");
-            // will run in the current thread
-            super.rejectedExecution(runnable, e);
-          }
-        });
-
-    stripedReadPool.allowCoreThreadTimeOut(true);
-  }
-
-  private void initializeStripedBlkReconstructionThreadPool(int numThreads) {
-    LOG.debug("Using striped block reconstruction; pool threads={}",
-        numThreads);
-    stripedReconstructionPool = DFSUtilClient.getThreadPoolExecutor(numThreads,
-        numThreads, 60, new LinkedBlockingQueue<>(),
-        "StripedBlockReconstruction-", false);
-    stripedReconstructionPool.allowCoreThreadTimeOut(true);
-  }
-
-  /**
-   * Handles the Erasure Coding reconstruction work commands.
-   *
-   * @param ecTasks BlockECReconstructionInfo
-   *
-   */
-  public void processErasureCodingTasks(
-      Collection<BlockECReconstructionInfo> ecTasks) {
-    for (BlockECReconstructionInfo reconInfo : ecTasks) {
-      try {
-        StripedReconstructionInfo stripedReconInfo =
-            new StripedReconstructionInfo(
-            reconInfo.getExtendedBlock(), reconInfo.getErasureCodingPolicy(),
-            reconInfo.getLiveBlockIndices(), reconInfo.getSourceDnInfos(),
-            reconInfo.getTargetDnInfos(), reconInfo.getTargetStorageTypes(),
-            reconInfo.getTargetStorageIDs());
-        // It may throw IllegalArgumentException from task#stripedReader
-        // constructor.
-        final StripedBlockReconstructor task =
-            new StripedBlockReconstructor(this, stripedReconInfo);
-        if (task.hasValidTargets()) {
-          stripedReconstructionPool.submit(task);
-          // See HDFS-12044. We increase xmitsInProgress even the task is only
-          // enqueued, so that
-          //   1) NN will not send more tasks than what DN can execute and
-          //   2) DN will not throw away reconstruction tasks, and instead keeps
-          //      an unbounded number of tasks in the executor's task queue.
-          int xmitsSubmitted = Math.max((int)(task.getXmits() * xmitWeight), 1);
-          getDatanode().incrementXmitsInProcess(xmitsSubmitted);
-        } else {
-          LOG.warn("No missing internal block. Skip reconstruction for task:{}",
-              reconInfo);
-        }
-      } catch (Throwable e) {
-        LOG.warn("Failed to reconstruct striped block {}",
-            reconInfo.getExtendedBlock().getLocalBlock(), e);
-      }
+        initializeStripedReadThreadPool();
+        initializeStripedBlkReconstructionThreadPool(conf.getInt(DFSConfigKeys.DFS_DN_EC_RECONSTRUCTION_THREADS_KEY,
+                DFSConfigKeys.DFS_DN_EC_RECONSTRUCTION_THREADS_DEFAULT
+        ));
     }
-  }
 
-  DataNode getDatanode() {
-    return datanode;
-  }
+    private void initializeStripedReadThreadPool() {
+        LOG.debug("Using striped reads");
 
-  Configuration getConf() {
-    return conf;
-  }
+        // Essentially, this is a cachedThreadPool.
+        stripedReadPool = new ThreadPoolExecutor(0, Integer.MAX_VALUE, 60, TimeUnit.SECONDS, new SynchronousQueue<>(),
+                new Daemon.DaemonFactory() {
+                    private final AtomicInteger threadIndex = new AtomicInteger(0);
 
-  CompletionService<BlockReadStats> createReadService() {
-    return new ExecutorCompletionService<>(stripedReadPool);
-  }
+                    @Override
+                    public Thread newThread(Runnable r) {
+                        Thread t = super.newThread(r);
+                        t.setName("stripedRead-" + threadIndex.getAndIncrement());
+                        return t;
+                    }
+                }, new ThreadPoolExecutor.CallerRunsPolicy() {
+            @Override
+            public void rejectedExecution(Runnable runnable, ThreadPoolExecutor e) {
+                LOG.info("Execution for striped reading rejected, " + "Executing in current thread");
+                // will run in the current thread
+                super.rejectedExecution(runnable, e);
+            }
+        }
+        );
 
-  public void shutDown() {
-    stripedReconstructionPool.shutdown();
-    stripedReadPool.shutdown();
-  }
+        stripedReadPool.allowCoreThreadTimeOut(true);
+    }
 
-  public float getXmitWeight() {
-    return xmitWeight;
-  }
+    private void initializeStripedBlkReconstructionThreadPool(int numThreads) {
+        LOG.debug("Using striped block reconstruction; pool threads={}", numThreads);
+        stripedReconstructionPool = DFSUtilClient.getThreadPoolExecutor(numThreads, numThreads, 60, new LinkedBlockingQueue<>(),
+                "StripedBlockReconstruction-", false
+        );
+        stripedReconstructionPool.allowCoreThreadTimeOut(true);
+    }
+
+    /**
+     * Handles the Erasure Coding reconstruction work commands.
+     * @param ecTasks BlockECReconstructionInfo
+     */
+    public void processErasureCodingTasks(Collection<BlockECReconstructionInfo> ecTasks) {
+        for (BlockECReconstructionInfo reconInfo : ecTasks) {
+            try {
+                StripedReconstructionInfo stripedReconInfo = new StripedReconstructionInfo(reconInfo.getExtendedBlock(),
+                        reconInfo.getErasureCodingPolicy(), reconInfo.getLiveBlockIndices(), reconInfo.getSourceDnInfos(),
+                        reconInfo.getTargetDnInfos(), reconInfo.getTargetStorageTypes(), reconInfo.getTargetStorageIDs()
+                );
+                // It may throw IllegalArgumentException from task#stripedReader
+                // constructor.
+                final StripedBlockReconstructor task = new StripedBlockReconstructor(this, stripedReconInfo);
+                if (task.hasValidTargets()) {
+                    stripedReconstructionPool.submit(task);
+                    // See HDFS-12044. We increase xmitsInProgress even the task is only
+                    // enqueued, so that
+                    //   1) NN will not send more tasks than what DN can execute and
+                    //   2) DN will not throw away reconstruction tasks, and instead keeps
+                    //      an unbounded number of tasks in the executor's task queue.
+                    int xmitsSubmitted = Math.max((int) (task.getXmits() * xmitWeight), 1);
+                    getDatanode().incrementXmitsInProcess(xmitsSubmitted);
+                } else {
+                    LOG.warn("No missing internal block. Skip reconstruction for task:{}", reconInfo);
+                }
+            } catch (Throwable e) {
+                LOG.warn("Failed to reconstruct striped block {}", reconInfo.getExtendedBlock().getLocalBlock(), e);
+            }
+        }
+    }
+
+    DataNode getDatanode() {
+        return datanode;
+    }
+
+    Configuration getConf() {
+        return conf;
+    }
+
+    CompletionService<BlockReadStats> createReadService() {
+        return new ExecutorCompletionService<>(stripedReadPool);
+    }
+
+    public void shutDown() {
+        stripedReconstructionPool.shutdown();
+        stripedReadPool.shutdown();
+    }
+
+    public float getXmitWeight() {
+        return xmitWeight;
+    }
 }

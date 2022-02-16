@@ -165,6 +165,7 @@ public class DNConf {
                 DFS_DATANODE_TRANSFERTO_ALLOWED_DEFAULT
         );
 
+        // TODO_MA 马中华 注释： dfs.datanode.readahead.bytes = 4M
         readaheadLength = getConf().getLong(HdfsClientConfigKeys.DFS_DATANODE_READAHEAD_BYTES_KEY,
                 HdfsClientConfigKeys.DFS_DATANODE_READAHEAD_BYTES_DEFAULT
         );

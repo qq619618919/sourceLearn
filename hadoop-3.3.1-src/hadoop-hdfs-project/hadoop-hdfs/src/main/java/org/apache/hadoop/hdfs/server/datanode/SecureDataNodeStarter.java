@@ -138,6 +138,7 @@ public class SecureDataNodeStarter implements Daemon {
          */
         ServerSocket ss = (socketWriteTimeout > 0) ? ServerSocketChannel.open().socket() : new ServerSocket();
         try {
+            // TODO_MA 马中华 注释： 绑定地址和端口
             ss.bind(streamingAddr, backlogLength);
         } catch (BindException e) {
             BindException newBe = appendMessageToBindException(e, streamingAddr.toString());

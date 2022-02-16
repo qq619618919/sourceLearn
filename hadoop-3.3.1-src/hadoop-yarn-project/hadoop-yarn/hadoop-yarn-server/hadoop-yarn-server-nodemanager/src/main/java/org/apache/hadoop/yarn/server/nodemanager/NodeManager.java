@@ -234,6 +234,11 @@ public class NodeManager extends CompositeService implements EventHandler<NodeMa
                                                           NodeStatusUpdater nodeStatusUpdater,
                                                           ApplicationACLsManager aclsManager,
                                                           LocalDirsHandlerService dirsHandler) {
+
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释：
+         */
         return new ContainerManagerImpl(context, exec, del, nodeStatusUpdater, metrics, dirsHandler);
     }
 

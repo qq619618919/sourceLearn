@@ -328,9 +328,13 @@ public class RMAppManager implements EventHandler<RMAppManagerEvent>, Recoverabl
                                      String user) throws YarnException {
         ApplicationId applicationId = submissionContext.getApplicationId();
 
-        // Passing start time as -1. It will be eventually set in RMAppImpl
-        // constructor.
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释： 1、创建一个有限状态机来管理这个 Application 的状态！
+         */
+        // Passing start time as -1. It will be eventually set in RMAppImpl constructor.
         RMAppImpl application = createAndPopulateNewRMApp(submissionContext, submitTime, user, false, -1, null);
+
         try {
             if (UserGroupInformation.isSecurityEnabled()) {
                 this.rmContext.getDelegationTokenRenewer()
@@ -340,8 +344,21 @@ public class RMAppManager implements EventHandler<RMAppManagerEvent>, Recoverabl
                         );
             } else {
                 // Dispatcher is not yet started at this time, so these START events
-                // enqueued should be guaranteed to be first processed when dispatcher
-                // gets started.
+                // enqueued should be guaranteed to be first processed when dispatcher gets started.
+                /*************************************************
+                 * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+                 *  注释： 2、开始执行！
+                 *  1、rmContext 上下文
+                 *  2、rmContext.getDispatcher() = AsyncDispatcher
+                 *  3、rmContext.getDispatcher().getEventHandler() = GenericEventHandler
+                 *  4、.getEventHandler().handl() 就是提交事件 到 AsyncDispatcher 的事件队列 eventQueue 里面
+                 *  -
+                 *  AsyncDispatcher 接收到事件之后，执行事件分发： dispatch(), 核心逻辑，就是到注册表中，根据事件类型，找到 EventHandler
+                 *  new RMAppEvent(applicationId, RMAppEventType.START) 对应的 EventHandler 到底是谁？
+                 *  1、笔记中： ApplicationEventDisaptcher
+                 *  其实它的 handle 方法，就是把事件丢给 对应的状态机！
+                 *  2、搜： RMAppEventType.class
+                 */
                 this.rmContext.getDispatcher().getEventHandler().handle(new RMAppEvent(applicationId, RMAppEventType.START));
             }
         } catch (Exception e) {
@@ -447,6 +464,10 @@ public class RMAppManager implements EventHandler<RMAppManagerEvent>, Recoverabl
         }
 
         // Create RMApp
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释：
+         */
         RMAppImpl application = new RMAppImpl(applicationId, rmContext, this.conf, submissionContext.getApplicationName(),
                 user, submissionContext.getQueue(), submissionContext, this.scheduler, this.masterService, submitTime,
                 submissionContext.getApplicationType(), submissionContext.getApplicationTags(), amReqs, placementContext,

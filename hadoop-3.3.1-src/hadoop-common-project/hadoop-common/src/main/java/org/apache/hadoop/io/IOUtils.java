@@ -94,6 +94,7 @@ public class IOUtils {
 
         // TODO_MA 马中华 注释： 构造数据缓冲 4096 大小
         byte buf[] = new byte[buffSize];
+
         int bytesRead = in.read(buf);
 
         /*************************************************
@@ -114,8 +115,11 @@ public class IOUtils {
             }
 
             // TODO_MA 马中华 注释： 从输入流读取数据
+            // TODO_MA 马中华 注释： 注意： 调用的是 DFSInputStream 的 read() 方法
             bytesRead = in.read(buf);
         }
+
+        // TODO_MA 马中华 注释： 所以while循环结束，就证明这个文件上传完了。！
     }
 
     /**
@@ -220,6 +224,11 @@ public class IOUtils {
     public static void readFully(InputStream in, byte[] buf, int off, int len) throws IOException {
         int toRead = len;
         while (toRead > 0) {
+
+            /*************************************************
+             * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+             *  注释：
+             */
             int ret = in.read(buf, off, toRead);
             if (ret < 0) {
                 throw new IOException("Premature EOF from inputStream");

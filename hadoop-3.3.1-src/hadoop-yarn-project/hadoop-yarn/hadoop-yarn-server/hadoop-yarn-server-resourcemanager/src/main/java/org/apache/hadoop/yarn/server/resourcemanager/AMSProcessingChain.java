@@ -39,65 +39,57 @@ import java.io.IOException;
  */
 class AMSProcessingChain implements ApplicationMasterServiceProcessor {
 
-  private static final Logger LOG =
-      LoggerFactory.getLogger(AMSProcessingChain.class);
+    private static final Logger LOG = LoggerFactory.getLogger(AMSProcessingChain.class);
 
-  private ApplicationMasterServiceProcessor head;
-  private RMContext rmContext;
+    private ApplicationMasterServiceProcessor head;
+    private RMContext rmContext;
 
-  /**
-   * This has to be initialized with at-least 1 Processor.
-   * @param rootProcessor Root processor.
-   */
-  AMSProcessingChain(ApplicationMasterServiceProcessor rootProcessor) {
-    if (rootProcessor == null) {
-      throw new YarnRuntimeException("No root ApplicationMasterService" +
-          "Processor specified for the processing chain..");
+    /**
+     * This has to be initialized with at-least 1 Processor.
+     * @param rootProcessor Root processor.
+     */
+    AMSProcessingChain(ApplicationMasterServiceProcessor rootProcessor) {
+        if (rootProcessor == null) {
+            throw new YarnRuntimeException("No root ApplicationMasterService" + "Processor specified for the processing chain..");
+        }
+        this.head = rootProcessor;
     }
-    this.head = rootProcessor;
-  }
 
-  @Override
-  public void init(ApplicationMasterServiceContext amsContext,
-      ApplicationMasterServiceProcessor nextProcessor) {
-    LOG.info("Initializing AMS Processing chain. Root Processor=["
-        + this.head.getClass().getName() + "].");
-    this.rmContext = (RMContext)amsContext;
-    // The head is initialized with a null 'next' processor
-    this.head.init(amsContext, null);
-  }
+    @Override
+    public void init(ApplicationMasterServiceContext amsContext, ApplicationMasterServiceProcessor nextProcessor) {
+        LOG.info("Initializing AMS Processing chain. Root Processor=[" + this.head.getClass().getName() + "].");
+        this.rmContext = (RMContext) amsContext;
+        // The head is initialized with a null 'next' processor
 
-  /**
-   * Add an processor to the top of the chain.
-   * @param processor ApplicationMasterServiceProcessor
-   */
-  public synchronized void addProcessor(
-      ApplicationMasterServiceProcessor processor) {
-    LOG.info("Adding [" + processor.getClass().getName() + "] tp top of" +
-        " AMS Processing chain. ");
-    processor.init(this.rmContext, this.head);
-    this.head = processor;
-  }
+        // TODO_MA 马中华 注释： head = DefaultAMSProcessor
+        this.head.init(amsContext, null);
+    }
 
-  @Override
-  public void registerApplicationMaster(
-      ApplicationAttemptId applicationAttemptId,
-      RegisterApplicationMasterRequest request,
-      RegisterApplicationMasterResponse resp) throws IOException, YarnException {
-    this.head.registerApplicationMaster(applicationAttemptId, request, resp);
-  }
+    /**
+     * Add an processor to the top of the chain.
+     * @param processor ApplicationMasterServiceProcessor
+     */
+    public synchronized void addProcessor(ApplicationMasterServiceProcessor processor) {
+        LOG.info("Adding [" + processor.getClass().getName() + "] tp top of" + " AMS Processing chain. ");
+        processor.init(this.rmContext, this.head);
+        this.head = processor;
+    }
 
-  @Override
-  public void allocate(ApplicationAttemptId appAttemptId,
-      AllocateRequest request, AllocateResponse response) throws YarnException {
-    this.head.allocate(appAttemptId, request, response);
-  }
+    @Override
+    public void registerApplicationMaster(ApplicationAttemptId applicationAttemptId, RegisterApplicationMasterRequest request,
+                                          RegisterApplicationMasterResponse resp) throws IOException, YarnException {
+        this.head.registerApplicationMaster(applicationAttemptId, request, resp);
+    }
 
-  @Override
-  public void finishApplicationMaster(
-      ApplicationAttemptId applicationAttemptId,
-      FinishApplicationMasterRequest request,
-      FinishApplicationMasterResponse response) {
-    this.head.finishApplicationMaster(applicationAttemptId, request, response);
-  }
+    @Override
+    public void allocate(ApplicationAttemptId appAttemptId, AllocateRequest request,
+                         AllocateResponse response) throws YarnException {
+        this.head.allocate(appAttemptId, request, response);
+    }
+
+    @Override
+    public void finishApplicationMaster(ApplicationAttemptId applicationAttemptId, FinishApplicationMasterRequest request,
+                                        FinishApplicationMasterResponse response) {
+        this.head.finishApplicationMaster(applicationAttemptId, request, response);
+    }
 }

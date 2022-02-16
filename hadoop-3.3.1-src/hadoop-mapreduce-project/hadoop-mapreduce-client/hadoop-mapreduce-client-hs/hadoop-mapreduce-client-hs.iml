@@ -31,6 +31,7 @@
     <orderEntry type="library" name="Maven: javax.servlet:javax.servlet-api:3.1.0" level="project" />
     <orderEntry type="library" name="Maven: io.netty:netty-all:4.1.61.Final" level="project" />
     <orderEntry type="library" name="Maven: org.apache.htrace:htrace-core4:4.1.0-incubating" level="project" />
+    <orderEntry type="library" name="Maven: org.fusesource.leveldbjni:leveldbjni-all:1.8" level="project" />
     <orderEntry type="module" module-name="hadoop-mapreduce-client-common" />
     <orderEntry type="module" module-name="hadoop-yarn-common" />
     <orderEntry type="module" module-name="hadoop-yarn-client" />
@@ -104,7 +105,7 @@
     <orderEntry type="library" name="Maven: com.fasterxml.jackson.jaxrs:jackson-jaxrs-json-provider:2.10.5" level="project" />
     <orderEntry type="library" name="Maven: com.fasterxml.jackson.jaxrs:jackson-jaxrs-base:2.10.5" level="project" />
     <orderEntry type="module" module-name="hadoop-hdfs" scope="TEST" production-on-test="" />
-    <orderEntry type="library" name="Maven: org.fusesource.leveldbjni:leveldbjni-all:1.8" level="project" />
+    <orderEntry type="library" name="Maven: org.openlabtesting.leveldbjni:leveldbjni-all:1.8" level="project" />
     <orderEntry type="library" scope="TEST" name="Maven: org.assertj:assertj-core:3.12.2" level="project" />
     <orderEntry type="library" name="Maven: com.google.protobuf:protobuf-java:2.5.0" level="project" />
     <orderEntry type="library" name="Maven: org.apache.avro:avro:1.7.7" level="project" />

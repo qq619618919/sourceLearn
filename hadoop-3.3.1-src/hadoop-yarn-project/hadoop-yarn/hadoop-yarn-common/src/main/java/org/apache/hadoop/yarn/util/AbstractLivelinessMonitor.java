@@ -37,6 +37,15 @@ import org.apache.hadoop.service.AbstractService;
 @Evolving
 public abstract class AbstractLivelinessMonitor<O> extends AbstractService {
 
+    /*************************************************
+     * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+     *  注释：
+     *  1、维护一个注册集合
+     *  2、启动一个扫描线程
+     *  3、提供一个判断逻辑
+     *  4、调用一个超时处理
+     */
+
     private static final Logger LOG = LoggerFactory.getLogger(AbstractLivelinessMonitor.class);
 
     // thread which runs periodically to see the last time since a heartbeat is received.
@@ -47,7 +56,7 @@ public abstract class AbstractLivelinessMonitor<O> extends AbstractService {
     private Thread checkerThread;
 
     private volatile boolean stopped;
-    public static final int DEFAULT_EXPIRE = 5 * 60 * 1000;//5 mins
+    public static final int DEFAULT_EXPIRE = 5 * 60 * 1000; //5 mins
 
     // TODO_MA 马中华 注释： 过期时间，间隔多长时间没有收到心跳
     private long expireInterval = DEFAULT_EXPIRE;
@@ -86,10 +95,12 @@ public abstract class AbstractLivelinessMonitor<O> extends AbstractService {
 
         /*************************************************
          * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-         *  注释：
+         *  注释： 启动守护线程 PingChecker 用来检测 注册组件是否存活
          */
         checkerThread = new Thread(new PingChecker());
         checkerThread.setName("Ping Checker for " + getName());
+
+        // TODO_MA 马中华 注释： 启动线程
         checkerThread.start();
         super.serviceStart();
     }
@@ -174,6 +185,8 @@ public abstract class AbstractLivelinessMonitor<O> extends AbstractService {
                     while (iterator.hasNext()) {
                         Map.Entry<O, Long> entry = iterator.next();
                         O key = entry.getKey();
+
+                        // TODO_MA 马中华 注释： 5min
                         long interval = getExpireInterval(key);
 
                         // TODO_MA 马中华 注释： 判断是否超时过期了
@@ -185,13 +198,12 @@ public abstract class AbstractLivelinessMonitor<O> extends AbstractService {
                              *  注释： 执行过期处理
                              */
                             expire(key);
-                            LOG.info("Expired:" + entry.getKey()
-                                    .toString() + " Timed out after " + interval / 1000 + " secs");
+                            LOG.info("Expired:" + entry.getKey().toString() + " Timed out after " + interval / 1000 + " secs");
                         }
                     }
                 }
 
-                // TODO_MA 马中华 注释： sleep 一段时间
+                // TODO_MA 马中华 注释： sleep 一段时间 100s
                 try {
                     Thread.sleep(monitorInterval);
                 } catch (InterruptedException e) {

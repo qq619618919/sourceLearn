@@ -133,7 +133,7 @@
     <orderEntry type="library" scope="TEST" name="Maven: org.slf4j:jul-to-slf4j:1.7.30" level="project" />
     <orderEntry type="library" scope="TEST" name="Maven: io.dropwizard.metrics:metrics-core:3.2.4" level="project" />
     <orderEntry type="module" module-name="hadoop-kms" scope="TEST" production-on-test="" />
-    <orderEntry type="library" name="Maven: org.fusesource.leveldbjni:leveldbjni-all:1.8" level="project" />
+    <orderEntry type="library" name="Maven: org.openlabtesting.leveldbjni:leveldbjni-all:1.8" level="project" />
     <orderEntry type="library" scope="TEST" name="Maven: org.bouncycastle:bcprov-jdk15on:1.60" level="project" />
     <orderEntry type="library" name="Maven: com.fasterxml.jackson.core:jackson-databind:2.10.5.1" level="project" />
     <orderEntry type="library" name="Maven: com.fasterxml.jackson.core:jackson-core:2.10.5" level="project" />

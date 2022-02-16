@@ -315,7 +315,7 @@ public class DFSOutputStream extends FSOutputSummer implements Syncable, CanSetD
                     /*************************************************
                      * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
                      *  注释： 发送 RPC 请求给 NameNode 创建文件
-                     *  stat = 刚才创建的文件的元数据！
+                     *  HdfsFileStatus stat = 刚才创建的文件的元数据！
                      */
                     stat = dfsClient.namenode.create(src, masked, dfsClient.clientName, new EnumSetWritable<>(flag), createParent,
                             replication, blockSize, SUPPORTED_CRYPTO_VERSIONS, ecPolicyName, storagePolicy
@@ -512,6 +512,7 @@ public class DFSOutputStream extends FSOutputSummer implements Syncable, CanSetD
     }
 
     // @see FSOutputSummer#writeChunk()
+    // TODO_MA 马中华 注释： 构建一个 chunk
     @Override
     protected synchronized void writeChunk(byte[] b, int offset, int len, byte[] checksum, int ckoff,
                                            int cklen) throws IOException {
@@ -525,12 +526,13 @@ public class DFSOutputStream extends FSOutputSummer implements Syncable, CanSetD
         /*************************************************
          * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
          *  注释： 写 checksum 4 个字节
+         *  checksum 这个 buffer 中每次写入 4 个字节进来。
          */
         currentPacket.writeChecksum(checksum, ckoff, cklen);
 
         /*************************************************
          * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-         *  注释： 写数据 512B
+         *  注释： 写数据 512B， b 每次写进来 512字节的数据
          */
         currentPacket.writeData(b, offset, len);
 
@@ -599,6 +601,15 @@ public class DFSOutputStream extends FSOutputSummer implements Syncable, CanSetD
                     currentPacket.getSeqno(), src, packetSize, chunksPerPacket, getStreamer().getBytesCurBlock() + ", " + this
             );
         }
+
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释：
+         *  if(isFullPacket()){
+         *      enqueue(currentPacket) ===> dataQueue.put(currentPacket)
+         *      currentPacket = null;
+         *  }
+         */
     }
 
     void enqueueCurrentPacket() throws IOException {
@@ -1214,6 +1225,13 @@ public class DFSOutputStream extends FSOutputSummer implements Syncable, CanSetD
                 return dfsClient.namenode.addBlock(src, dfsClient.clientName, prevBlock, excludedNodes, fileId, favoredNodes,
                         allocFlags
                 );
+
+                // TODO_MA 马中华 注释： 如果想让跟 RPC 有关的代码不要报错： 执行三个编译
+                // TODO_MA 马中华 注释： yarn
+                // TODO_MA 马中华 注释： hdfs
+                // TODO_MA 马中华 注释： mapreduce  三个大项目直接编译就行 ，
+                // TODO_MA 马中华 注释： common 编译不过去！
+
             } catch (RemoteException e) {
                 IOException ue = e.unwrapRemoteException(FileNotFoundException.class, AccessControlException.class,
                         NSQuotaExceededException.class, DSQuotaExceededException.class, QuotaByStorageTypeExceededException.class,

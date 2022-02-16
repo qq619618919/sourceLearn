@@ -32,162 +32,155 @@ import org.apache.hadoop.yarn.util.ConverterUtils;
 
 /**
  * Event to record start of a task attempt
- * 
+ *
  */
 @InterfaceAudience.Private
 @InterfaceStability.Unstable
 public class AMStartedEvent implements HistoryEvent {
-  private AMStarted datum = new AMStarted();
-  private String forcedJobStateOnShutDown;
-  private long submitTime;
+    private AMStarted datum = new AMStarted();
+    private String forcedJobStateOnShutDown;
+    private long submitTime;
 
-  /**
-   * Create an event to record the start of an MR AppMaster
-   * 
-   * @param appAttemptId
-   *          the application attempt id.
-   * @param startTime
-   *          the start time of the AM.
-   * @param containerId
-   *          the containerId of the AM.
-   * @param nodeManagerHost
-   *          the node on which the AM is running.
-   * @param nodeManagerPort
-   *          the port on which the AM is running.
-   * @param nodeManagerHttpPort
-   *          the httpPort for the node running the AM.
-   */
-  public AMStartedEvent(ApplicationAttemptId appAttemptId, long startTime,
-      ContainerId containerId, String nodeManagerHost, int nodeManagerPort,
-      int nodeManagerHttpPort, long submitTime) {
-    this(appAttemptId, startTime, containerId, nodeManagerHost,
-        nodeManagerPort, nodeManagerHttpPort, null, submitTime);
-  }
+    /**
+     * Create an event to record the start of an MR AppMaster
+     *
+     * @param appAttemptId
+     *          the application attempt id.
+     * @param startTime
+     *          the start time of the AM.
+     * @param containerId
+     *          the containerId of the AM.
+     * @param nodeManagerHost
+     *          the node on which the AM is running.
+     * @param nodeManagerPort
+     *          the port on which the AM is running.
+     * @param nodeManagerHttpPort
+     *          the httpPort for the node running the AM.
+     */
+    public AMStartedEvent(ApplicationAttemptId appAttemptId, long startTime, ContainerId containerId, String nodeManagerHost,
+                          int nodeManagerPort, int nodeManagerHttpPort, long submitTime) {
+        this(appAttemptId, startTime, containerId, nodeManagerHost, nodeManagerPort, nodeManagerHttpPort, null, submitTime);
+    }
 
-  /**
-   * Create an event to record the start of an MR AppMaster
-   *
-   * @param appAttemptId
-   *          the application attempt id.
-   * @param startTime
-   *          the start time of the AM.
-   * @param containerId
-   *          the containerId of the AM.
-   * @param nodeManagerHost
-   *          the node on which the AM is running.
-   * @param nodeManagerPort
-   *          the port on which the AM is running.
-   * @param nodeManagerHttpPort
-   *          the httpPort for the node running the AM.
-   * @param forcedJobStateOnShutDown
-   *          the state to force the job into
-   */
-  public AMStartedEvent(ApplicationAttemptId appAttemptId, long startTime,
-      ContainerId containerId, String nodeManagerHost, int nodeManagerPort,
-      int nodeManagerHttpPort, String forcedJobStateOnShutDown,
-      long submitTime) {
-    datum.setApplicationAttemptId(new Utf8(appAttemptId.toString()));
-    datum.setStartTime(startTime);
-    datum.setContainerId(new Utf8(containerId.toString()));
-    datum.setNodeManagerHost(new Utf8(nodeManagerHost));
-    datum.setNodeManagerPort(nodeManagerPort);
-    datum.setNodeManagerHttpPort(nodeManagerHttpPort);
-    this.forcedJobStateOnShutDown = forcedJobStateOnShutDown;
-    this.submitTime = submitTime;
-  }
+    /**
+     * Create an event to record the start of an MR AppMaster
+     *
+     * @param appAttemptId
+     *          the application attempt id.
+     * @param startTime
+     *          the start time of the AM.
+     * @param containerId
+     *          the containerId of the AM.
+     * @param nodeManagerHost
+     *          the node on which the AM is running.
+     * @param nodeManagerPort
+     *          the port on which the AM is running.
+     * @param nodeManagerHttpPort
+     *          the httpPort for the node running the AM.
+     * @param forcedJobStateOnShutDown
+     *          the state to force the job into
+     */
+    public AMStartedEvent(ApplicationAttemptId appAttemptId, long startTime, ContainerId containerId, String nodeManagerHost,
+                          int nodeManagerPort, int nodeManagerHttpPort, String forcedJobStateOnShutDown, long submitTime) {
+        datum.setApplicationAttemptId(new Utf8(appAttemptId.toString()));
+        datum.setStartTime(startTime);
+        datum.setContainerId(new Utf8(containerId.toString()));
+        datum.setNodeManagerHost(new Utf8(nodeManagerHost));
+        datum.setNodeManagerPort(nodeManagerPort);
+        datum.setNodeManagerHttpPort(nodeManagerHttpPort);
+        this.forcedJobStateOnShutDown = forcedJobStateOnShutDown;
+        this.submitTime = submitTime;
+    }
 
-  AMStartedEvent() {
-  }
+    AMStartedEvent() {
+    }
 
-  public Object getDatum() {
-    return datum;
-  }
+    public Object getDatum() {
+        return datum;
+    }
 
-  public void setDatum(Object datum) {
-    this.datum = (AMStarted) datum;
-  }
+    public void setDatum(Object datum) {
+        this.datum = (AMStarted) datum;
+    }
 
-  /**
-   * @return the ApplicationAttemptId
-   */
-  public ApplicationAttemptId getAppAttemptId() {
-    return ApplicationAttemptId.fromString(
-        datum.getApplicationAttemptId().toString());
-  }
+    /**
+     * @return the ApplicationAttemptId
+     */
+    public ApplicationAttemptId getAppAttemptId() {
+        return ApplicationAttemptId.fromString(datum.getApplicationAttemptId().toString());
+    }
 
-  /**
-   * @return the start time for the MRAppMaster
-   */
-  public long getStartTime() {
-    return datum.getStartTime();
-  }
+    /**
+     * @return the start time for the MRAppMaster
+     */
+    public long getStartTime() {
+        return datum.getStartTime();
+    }
 
-  /**
-   * @return the ContainerId for the MRAppMaster.
-   */
-  public ContainerId getContainerId() {
-    return ContainerId.fromString(datum.getContainerId().toString());
-  }
+    /**
+     * @return the ContainerId for the MRAppMaster.
+     */
+    public ContainerId getContainerId() {
+        return ContainerId.fromString(datum.getContainerId().toString());
+    }
 
-  /**
-   * @return the node manager host.
-   */
-  public String getNodeManagerHost() {
-    return datum.getNodeManagerHost().toString();
-  }
+    /**
+     * @return the node manager host.
+     */
+    public String getNodeManagerHost() {
+        return datum.getNodeManagerHost().toString();
+    }
 
-  /**
-   * @return the node manager port.
-   */
-  public int getNodeManagerPort() {
-    return datum.getNodeManagerPort();
-  }
-  
-  /**
-   * @return the http port for the tracker.
-   */
-  public int getNodeManagerHttpPort() {
-    return datum.getNodeManagerHttpPort();
-  }
+    /**
+     * @return the node manager port.
+     */
+    public int getNodeManagerPort() {
+        return datum.getNodeManagerPort();
+    }
 
-  /**
-   * @return the state to force the job into
-   */
-  public String getForcedJobStateOnShutDown() {
-    return this.forcedJobStateOnShutDown;
-  }
+    /**
+     * @return the http port for the tracker.
+     */
+    public int getNodeManagerHttpPort() {
+        return datum.getNodeManagerHttpPort();
+    }
 
-  /**
-   * @return the submit time for the Application(Job)
-   */
-  public long getSubmitTime() {
-    return this.submitTime;
-  }
+    /**
+     * @return the state to force the job into
+     */
+    public String getForcedJobStateOnShutDown() {
+        return this.forcedJobStateOnShutDown;
+    }
 
-  /** Get the attempt id */
+    /**
+     * @return the submit time for the Application(Job)
+     */
+    public long getSubmitTime() {
+        return this.submitTime;
+    }
 
-  @Override
-  public EventType getEventType() {
-    return EventType.AM_STARTED;
-  }
+    /** Get the attempt id */
 
-  @Override
-  public TimelineEvent toTimelineEvent() {
-    TimelineEvent tEvent = new TimelineEvent();
-    tEvent.setId(StringUtils.toUpperCase(getEventType().name()));
-    tEvent.addInfo("APPLICATION_ATTEMPT_ID",
-        getAppAttemptId() == null ? "" : getAppAttemptId().toString());
-    tEvent.addInfo("CONTAINER_ID", getContainerId() == null ?
-        "" : getContainerId().toString());
-    tEvent.addInfo("NODE_MANAGER_HOST", getNodeManagerHost());
-    tEvent.addInfo("NODE_MANAGER_PORT", getNodeManagerPort());
-    tEvent.addInfo("NODE_MANAGER_HTTP_PORT", getNodeManagerHttpPort());
-    tEvent.addInfo("START_TIME", getStartTime());
-    return tEvent;
-  }
+    @Override
+    public EventType getEventType() {
+        return EventType.AM_STARTED;
+    }
 
-  @Override
-  public Set<TimelineMetric> getTimelineMetrics() {
-    return null;
-  }
+    @Override
+    public TimelineEvent toTimelineEvent() {
+        TimelineEvent tEvent = new TimelineEvent();
+        tEvent.setId(StringUtils.toUpperCase(getEventType().name()));
+        tEvent.addInfo("APPLICATION_ATTEMPT_ID", getAppAttemptId() == null ? "" : getAppAttemptId().toString());
+        tEvent.addInfo("CONTAINER_ID", getContainerId() == null ? "" : getContainerId().toString());
+        tEvent.addInfo("NODE_MANAGER_HOST", getNodeManagerHost());
+        tEvent.addInfo("NODE_MANAGER_PORT", getNodeManagerPort());
+        tEvent.addInfo("NODE_MANAGER_HTTP_PORT", getNodeManagerHttpPort());
+        tEvent.addInfo("START_TIME", getStartTime());
+        return tEvent;
+    }
+
+    @Override
+    public Set<TimelineMetric> getTimelineMetrics() {
+        return null;
+    }
 }

@@ -324,6 +324,11 @@ public class FileUtil {
     /** Copy files between FileSystems. */
     public static boolean copy(FileSystem srcFS, Path src, FileSystem dstFS, Path dst, boolean deleteSource,
                                Configuration conf) throws IOException {
+
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释：
+         */
         return copy(srcFS, src, dstFS, dst, deleteSource, true, conf);
     }
 
@@ -373,17 +378,16 @@ public class FileUtil {
     /** Copy files between FileSystems. */
     public static boolean copy(FileSystem srcFS, FileStatus srcStatus, FileSystem dstFS, Path dst, boolean deleteSource,
                                boolean overwrite, Configuration conf) throws IOException {
-        Path src = srcStatus.getPath();
-
         /*************************************************
          * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
          *  注释： 先发送 RPC 请求给 namenode 确认 父目录是否存在
          */
+        Path src = srcStatus.getPath();
         dst = checkDest(src.getName(), dstFS, dst, overwrite);
 
         /*************************************************
          * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-         *  注释：
+         *  注释： 如果是文件夹
          */
         if (srcStatus.isDirectory()) {
             checkDependencies(srcFS, src, dstFS, dst);
@@ -394,31 +398,58 @@ public class FileUtil {
             for (int i = 0; i < contents.length; i++) {
                 copy(srcFS, contents[i], dstFS, new Path(dst, contents[i].getPath().getName()), deleteSource, overwrite, conf);
             }
-        } else {
+        } 
+        
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释： 如果是文件
+         */
+        else {
             InputStream in = null;
             OutputStream out = null;
             try {
 
                 /*************************************************
                  * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-                 *  注释： 本地 输入流
+                 *  注释： 输入流
+                 *  1、如果是 上传，此处是本地文件输入流
+                 *  2、如果是 下载，此处是 HDFS 文件输入流
                  */
                 in = srcFS.open(src);
 
                 /*************************************************
                  * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-                 *  注释： HDFS 文件系统输出流，内部比较复杂，一些各种准备和初始化
+                 *  注释： 输出流
+                 *  1、如果是上传， 此处是 HDFS 输出流 HdfsDataOutputStream
+                 *  2、如果是下载， 此处是 本地输出流 FSDataOutputStream
+                 *  -
+                 *  HDFS 文件系统输出流，内部比较复杂，一些各种准备和初始化
                  *  out = 是 HdfsDataOutputStream
-                 *  out 包装了一个输出流： DFSOutputStream ，真正的额write 是通过 DFSOutputStream 的成员变量 PositionCache 来进行 write
+                 *  out 包装了一个输出流： DFSOutputStream ，真正的 write 是通过 DFSOutputStream 的成员变量 PositionCache 来进行 write
                  *  但是最后，真正执行 write 动作的是： PositionCache
                  */
                 out = dstFS.create(dst, overwrite);
 
+
+                // TODO_MA 马中华 注释： 在这之前，是为上传或者下载准备环境
+                System.out.println("--------------------------------------------");
+                // TODO_MA 马中华 注释： 执行正经的数据传送
+
+                // TODO_MA 马中华 注释： 对于上传： 每个 block 都被上传到那些datanode 呢？
+                // TODO_MA 马中华 注释： 对于下载： 每个 block 都是从哪个 datanode 读下来的？
+                // TODO_MA 马中华 注释： DataNode
+                // TODO_MA 马中华 注释： 1、BlockReceiver  应对datanode中的block的接收，上传
+                // TODO_MA 马中华 注释： 2、BlockReader   应对block读取
+                // TODO_MA 马中华 注释： 不同的点：
+                // TODO_MA 马中华 注释： 1、下载只需要跟一个datanode建立连接读取数据就可以了
+                // TODO_MA 马中华 注释： 2、上传需要跟 replicas 数量的datnaode 建立连接完成传输
+
+
                 /*************************************************
                  * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
                  *  注释： 开始数据传输
-                 *  这个in是本地文件输入流，不停每次读取 4096 字节真实数据
-                 *  放在一个本地buffer中，读取本地buffer去构建packet
+                 *  这个 in 是本地文件输入流，不停每次读取 4096 字节真实数据
+                 *  放在一个本地 buffer 中，读取本地 buffer 去构建 packet
                  */
                 IOUtils.copyBytes(in, out, conf, true);
             } catch (IOException e) {
@@ -432,7 +463,6 @@ public class FileUtil {
         } else {
             return true;
         }
-
     }
 
     /** Copy local files to a FileSystem. */

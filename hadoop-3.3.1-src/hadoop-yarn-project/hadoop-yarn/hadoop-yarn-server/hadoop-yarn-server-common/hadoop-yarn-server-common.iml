@@ -133,7 +133,7 @@
     <orderEntry type="library" name="Maven: org.apache.zookeeper:zookeeper:3.5.6" level="project" />
     <orderEntry type="library" name="Maven: org.apache.zookeeper:zookeeper-jute:3.5.6" level="project" />
     <orderEntry type="library" name="Maven: org.apache.yetus:audience-annotations:0.5.0" level="project" />
-    <orderEntry type="library" name="Maven: org.fusesource.leveldbjni:leveldbjni-all:1.8" level="project" />
+    <orderEntry type="library" name="Maven: org.openlabtesting.leveldbjni:leveldbjni-all:1.8" level="project" />
     <orderEntry type="library" name="Maven: org.apache.geronimo.specs:geronimo-jcache_1.0_spec:1.0-alpha-1" level="project" />
     <orderEntry type="library" name="Maven: org.ehcache:ehcache:3.3.1" level="project" />
     <orderEntry type="library" name="Maven: com.zaxxer:HikariCP-java7:2.4.12" level="project" />

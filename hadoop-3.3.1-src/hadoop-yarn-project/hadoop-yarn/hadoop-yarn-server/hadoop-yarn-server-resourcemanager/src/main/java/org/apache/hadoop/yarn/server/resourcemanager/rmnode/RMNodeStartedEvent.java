@@ -28,39 +28,37 @@ import org.apache.hadoop.yarn.server.api.records.NodeStatus;
 
 public class RMNodeStartedEvent extends RMNodeEvent {
 
-  private final NodeStatus nodeStatus;
-  private List<NMContainerStatus> containerStatuses;
-  private List<ApplicationId> runningApplications;
-  private List<LogAggregationReport> logAggregationReportsForApps;
+    private final NodeStatus nodeStatus;
+    private List<NMContainerStatus> containerStatuses;
+    private List<ApplicationId> runningApplications;
+    private List<LogAggregationReport> logAggregationReportsForApps;
 
-  public RMNodeStartedEvent(NodeId nodeId,
-      List<NMContainerStatus> containerReports,
-      List<ApplicationId> runningApplications,
-      NodeStatus nodeStatus) {
-    super(nodeId, RMNodeEventType.STARTED);
-    this.containerStatuses = containerReports;
-    this.runningApplications = runningApplications;
-    this.nodeStatus = nodeStatus;
-  }
+    public RMNodeStartedEvent(NodeId nodeId, List<NMContainerStatus> containerReports, List<ApplicationId> runningApplications,
+                              NodeStatus nodeStatus) {
+        // TODO_MA 马中华 注释： RMNodeEventType.STARTED 事件
+        super(nodeId, RMNodeEventType.STARTED);
+        this.containerStatuses = containerReports;
+        this.runningApplications = runningApplications;
+        this.nodeStatus = nodeStatus;
+    }
 
-  public List<NMContainerStatus> getNMContainerStatuses() {
-    return this.containerStatuses;
-  }
-  
-  public List<ApplicationId> getRunningApplications() {
-    return runningApplications;
-  }
+    public List<NMContainerStatus> getNMContainerStatuses() {
+        return this.containerStatuses;
+    }
 
-  public NodeStatus getNodeStatus() {
-    return nodeStatus;
-  }
+    public List<ApplicationId> getRunningApplications() {
+        return runningApplications;
+    }
 
-  public List<LogAggregationReport> getLogAggregationReportsForApps() {
-    return this.logAggregationReportsForApps;
-  }
+    public NodeStatus getNodeStatus() {
+        return nodeStatus;
+    }
 
-  public void setLogAggregationReportsForApps(
-      List<LogAggregationReport> logAggregationReportsForApps) {
-    this.logAggregationReportsForApps = logAggregationReportsForApps;
-  }
+    public List<LogAggregationReport> getLogAggregationReportsForApps() {
+        return this.logAggregationReportsForApps;
+    }
+
+    public void setLogAggregationReportsForApps(List<LogAggregationReport> logAggregationReportsForApps) {
+        this.logAggregationReportsForApps = logAggregationReportsForApps;
+    }
 }

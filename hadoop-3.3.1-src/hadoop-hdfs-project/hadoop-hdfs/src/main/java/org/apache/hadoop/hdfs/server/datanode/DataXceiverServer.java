@@ -56,8 +56,11 @@ class DataXceiverServer implements Runnable {
 
     private final PeerServer peerServer;
     private final DataNode datanode;
+
+    // TODO_MA 马中华 注释： 两张登记表
     private final HashMap<Peer, Thread> peers = new HashMap<>();
     private final HashMap<Peer, DataXceiver> peersXceiver = new HashMap<>();
+
     private final Lock lock = new ReentrantLock();
     private final Condition noPeers = lock.newCondition();
     private boolean closed = false;
@@ -243,12 +246,13 @@ class DataXceiverServer implements Runnable {
                 /*************************************************
                  * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
                  *  注释： 建立 TCP 链接，得到一个 NioInetPeer
-                 *  peerServer = TcpPeerServer 内部包装了一个 SocketServer BIO 服务端
+                 *  peerServer = TcpPeerServer 内部包装了一个 SocketServer 服务端
                  */
                 peer = peerServer.accept();
 
                 // Make sure the xceiver count is not exceeded
                 int curXceiverCount = datanode.getXceiverCount();
+                // TODO_MA 马中华 注释： maxXceiverCount = 4096
                 if (curXceiverCount > maxXceiverCount) {
                     throw new IOException(
                             "Xceiver count " + curXceiverCount + " exceeds the limit of concurrent xcievers: " + maxXceiverCount);
@@ -345,7 +349,7 @@ class DataXceiverServer implements Runnable {
 
             /*************************************************
              * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-             *  注释：
+             *  注释： 注册
              */
             peersXceiver.put(peer, xceiver);
             datanode.metrics.incrDataNodeActiveXceiversCount();

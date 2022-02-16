@@ -158,6 +158,10 @@ public class IPCLoggerChannel implements AsyncLogger {
         @Override
         public AsyncLogger createLogger(Configuration conf, NamespaceInfo nsInfo, String journalId, String nameServiceId,
                                         InetSocketAddress addr) {
+            /*************************************************
+             * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+             *  注释：
+             */
             return new IPCLoggerChannel(conf, nsInfo, journalId, nameServiceId, addr);
         }
     };

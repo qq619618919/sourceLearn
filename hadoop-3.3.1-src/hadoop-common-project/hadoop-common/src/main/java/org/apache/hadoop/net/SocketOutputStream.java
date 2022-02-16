@@ -217,7 +217,7 @@ public class SocketOutputStream extends OutputStream implements WritableByteChan
 
             /*************************************************
              * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-             *  注释：
+             *  注释： 通过 FileChannel 写出数据。
              */
             int nTransfered = (int) fileCh.transferTo(position, count, getChannel());
 

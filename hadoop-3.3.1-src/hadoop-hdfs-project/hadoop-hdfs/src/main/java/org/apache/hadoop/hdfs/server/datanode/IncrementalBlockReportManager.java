@@ -82,7 +82,13 @@ class IncrementalBlockReportManager {
         void put(ReceivedDeletedBlockInfo rdbi) {
             /*************************************************
              * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-             *  注释：
+             *  注释： 每个 datanode 的里面都有一个集合 blocks，去管理 变动的 block
+             *  datanode 有一个数据块汇报机制
+             *  1、增量汇报： 其实就是把这个 blocks 集合中的 block 信息汇报给 namenode
+             *      实时处理，但是老板不相信
+             *  2、全量汇报： datanode 扫描所有存储目录中的所有 block 然后执行汇报！
+             *      批处理：校验
+             *  namenode 管理者， datanode 汇报数据块的状态给 namenode
              */
             blocks.put(rdbi.getBlock(), rdbi);
             increaseBlocksCounter(rdbi);

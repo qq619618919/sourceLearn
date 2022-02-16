@@ -367,7 +367,7 @@ public class ResourceTrackerService extends AbstractService implements ResourceT
         Resource physicalResource = request.getPhysicalResource();
         NodeStatus nodeStatus = request.getNodeStatus();
 
-        // TODO_MA 马中华 注释： 生成一个响应，
+        // TODO_MA 马中华 注释： 生成一个响应
         RegisterNodeManagerResponse response = recordFactory.newRecordInstance(RegisterNodeManagerResponse.class);
 
         if (!minimumNodeManagerVersion.equals("NONE")) {
@@ -447,6 +447,7 @@ public class ResourceTrackerService extends AbstractService implements ResourceT
          */
         RMNode oldNode = this.rmContext.getRMNodes().putIfAbsent(nodeId, rmNode);
 
+        // TODO_MA 马中华 注释： 正常情况，之前没有注册对象存在
         if (oldNode == null) {
             RMNodeStartedEvent startEvent = new RMNodeStartedEvent(nodeId, request.getNMContainerStatuses(),
                     request.getRunningApplications(), nodeStatus
@@ -459,6 +460,7 @@ public class ResourceTrackerService extends AbstractService implements ResourceT
                 }
                 startEvent.setLogAggregationReportsForApps(request.getLogAggregationReportsForApps());
             }
+            // TODO_MA 马中华 注释： 提交 RMNodeStartedEvent(RMNodeEventType.STARTED 事件)
             this.rmContext.getDispatcher().getEventHandler().handle(startEvent);
         } else {
             LOG.info("Reconnect from the node at: " + host);
@@ -555,6 +557,11 @@ public class ResourceTrackerService extends AbstractService implements ResourceT
         }
 
         LOG.info(message.toString());
+
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释： 正常响应
+         */
         response.setNodeAction(NodeAction.NORMAL);
         response.setRMIdentifier(ResourceManager.getClusterTimeStamp());
         response.setRMVersion(YarnVersionInfo.getVersion());
@@ -942,6 +949,7 @@ public class ResourceTrackerService extends AbstractService implements ResourceT
         try {
             String[] nodes = this.drConf.getNodes();
             if (nodes != null && Arrays.asList(nodes).contains(nodeId)) {
+                // TODO_MA 马中华 注释： 8G 内存 + 8 个 cpu
                 return Resource.newInstance(this.drConf.getMemoryPerNode(nodeId), this.drConf.getVcoresPerNode(nodeId));
             } else {
                 return null;
