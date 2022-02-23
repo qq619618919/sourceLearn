@@ -200,6 +200,11 @@ public class NettyShuffleEnvironment implements ShuffleEnvironment<ResultPartiti
                                                              ExecutionAttemptID executionAttemptID,
                                                              MetricGroup parentGroup) {
         MetricGroup nettyGroup = createShuffleIOOwnerMetricGroup(checkNotNull(parentGroup));
+
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释：
+         */
         return new ShuffleIOOwnerContext(checkNotNull(ownerName),
                 checkNotNull(executionAttemptID),
                 parentGroup,
@@ -214,8 +219,18 @@ public class NettyShuffleEnvironment implements ShuffleEnvironment<ResultPartiti
         synchronized (lock) {
             Preconditions.checkState(!isClosed, "The NettyShuffleEnvironment has already been shut down.");
 
+            // TODO_MA 马中华 注释： 结果容器， 单流处理场景中，这个 ResultPartition 数组的长度就是 1
             ResultPartition[] resultPartitions = new ResultPartition[resultPartitionDeploymentDescriptors.size()];
+
+            // TODO_MA 马中华 注释： 遍历创建 ResultPartition
             for (int partitionIndex = 0; partitionIndex < resultPartitions.length; partitionIndex++) {
+
+                /*************************************************
+                 * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+                 *  注释： 根据 ResultPartition 的 DeploymentDescriptor 创建 ResultPartition
+                 *  1、先创建 PipelinedResultPartition
+                 *  2、然后创建 PipelinedResultPartition 内的 PipelinedResultSubPartition
+                 */
                 resultPartitions[partitionIndex] = resultPartitionFactory.create(ownerContext.getOwnerName(),
                         partitionIndex,
                         resultPartitionDeploymentDescriptors.get(partitionIndex)
@@ -223,6 +238,11 @@ public class NettyShuffleEnvironment implements ShuffleEnvironment<ResultPartiti
             }
 
             registerOutputMetrics(config.isNetworkDetailedMetrics(), ownerContext.getOutputGroup(), resultPartitions);
+
+            /*************************************************
+             * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+             *  注释： 返回结果
+             */
             return Arrays.asList(resultPartitions);
         }
     }
@@ -245,11 +265,13 @@ public class NettyShuffleEnvironment implements ShuffleEnvironment<ResultPartiti
 
             // TODO_MA 马中华 注释： 创建 SingleInputGate
             for (int gateIndex = 0; gateIndex < inputGates.length; gateIndex++) {
+
+                // TODO_MA 马中华 注释： 获取 InputGateDeploymentDescriptor
                 final InputGateDeploymentDescriptor igdd = inputGateDeploymentDescriptors.get(gateIndex);
 
                 /*************************************************
                  * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-                 *  注释：
+                 *  注释： 具体实现是： SingleInputGate
                  */
                 SingleInputGate inputGate = singleInputGateFactory.create(ownerContext.getOwnerName(),
                         gateIndex,
@@ -322,6 +344,11 @@ public class NettyShuffleEnvironment implements ShuffleEnvironment<ResultPartiti
 
             try {
                 LOG.debug("Starting network connection manager");
+
+                /*************************************************
+                 * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+                 *  注释：
+                 */
                 return connectionManager.start();
             } catch (IOException t) {
                 throw new IOException("Failed to instantiate network connection manager.", t);

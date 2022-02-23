@@ -44,19 +44,22 @@ public class EdgeManager {
 
     /*************************************************
      * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-     *  注释：
+     *  注释： 维护 IntermediateResultPartition 和 ExecutionVertex 之间的关系
+     *  一个 IntermediateResultPartition 对应到下游的多个 ExecutionVertex
      */
     private final Map<IntermediateResultPartitionID, List<ConsumerVertexGroup>> partitionConsumers = new HashMap<>();
 
     /*************************************************
      * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-     *  注释：
+     *  注释： 维护 ExecutionVertex 和 IntermediateResultPartition 之间的关系
+     *  一个 ExecutionVertex 有多个 IntermediateResultPartition 输出
      */
     private final Map<ExecutionVertexID, List<ConsumedPartitionGroup>> vertexConsumedPartitions = new HashMap<>();
 
     /*************************************************
      * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
      *  注释：
+     *
      */
     private final Map<IntermediateResultPartitionID, List<ConsumedPartitionGroup>> consumedPartitionsById = new HashMap<>();
 

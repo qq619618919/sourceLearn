@@ -48,6 +48,7 @@ import static org.apache.flink.util.Preconditions.checkState;
  * LENGTH (4) | MAGIC NUMBER (4) | ID (1) | +------------------+------------------+--------+
  */
 public class NettyMessageClientDecoderDelegate extends ChannelInboundHandlerAdapter {
+
     private final Logger LOG = LoggerFactory.getLogger(NettyMessageClientDecoderDelegate.class);
 
     /** The decoder for BufferResponse. */
@@ -63,9 +64,8 @@ public class NettyMessageClientDecoderDelegate extends ChannelInboundHandlerAdap
     private NettyMessageDecoder currentDecoder;
 
     NettyMessageClientDecoderDelegate(NetworkClientHandler networkClientHandler) {
-        this.bufferResponseDecoder =
-                new BufferResponseDecoder(
-                        new NetworkBufferAllocator(checkNotNull(networkClientHandler)));
+        this.bufferResponseDecoder = new BufferResponseDecoder(new NetworkBufferAllocator(checkNotNull(
+                networkClientHandler)));
         this.nonBufferResponseDecoder = new NonBufferResponseDecoder();
     }
 
@@ -110,11 +110,9 @@ public class NettyMessageClientDecoderDelegate extends ChannelInboundHandlerAdap
                         break;
                     }
                     ctx.fireChannelRead(result.getMessage());
-
                     currentDecoder = null;
                     frameHeaderBuffer.clear();
                 }
-
                 decodeFrameHeader(data);
             }
             checkState(!data.isReadable(), "Not all data of the received buffer consumed.");
@@ -124,23 +122,18 @@ public class NettyMessageClientDecoderDelegate extends ChannelInboundHandlerAdap
     }
 
     private void decodeFrameHeader(ByteBuf data) {
-        ByteBuf fullFrameHeaderBuf =
-                ByteBufUtils.accumulate(
-                        frameHeaderBuffer,
-                        data,
-                        FRAME_HEADER_LENGTH,
-                        frameHeaderBuffer.readableBytes());
+        ByteBuf fullFrameHeaderBuf = ByteBufUtils.accumulate(frameHeaderBuffer,
+                data,
+                FRAME_HEADER_LENGTH,
+                frameHeaderBuffer.readableBytes()
+        );
 
         if (fullFrameHeaderBuf != null) {
             int messageAndFrameLength = fullFrameHeaderBuf.readInt();
-            checkState(
-                    messageAndFrameLength >= 0,
-                    "The length field of current message must be non-negative");
+            checkState(messageAndFrameLength >= 0, "The length field of current message must be non-negative");
 
             int magicNumber = fullFrameHeaderBuf.readInt();
-            checkState(
-                    magicNumber == MAGIC_NUMBER,
-                    "Network stream corrupted: received incorrect magic number.");
+            checkState(magicNumber == MAGIC_NUMBER, "Network stream corrupted: received incorrect magic number.");
 
             int msgId = fullFrameHeaderBuf.readByte();
             if (msgId == NettyMessage.BufferResponse.ID) {

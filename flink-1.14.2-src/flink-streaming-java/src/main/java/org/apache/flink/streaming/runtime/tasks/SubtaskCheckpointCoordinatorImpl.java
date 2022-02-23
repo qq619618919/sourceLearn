@@ -272,7 +272,6 @@ class SubtaskCheckpointCoordinatorImpl implements SubtaskCheckpointCoordinator {
             );
             return;
         }
-
         // if checkpoint has been previously unaligned, but was forced to be aligned (pointwise
         // connection), revert it here so that it can jump over output data
         if (options.getAlignment() == CheckpointOptions.AlignmentType.FORCED_ALIGNED) {
@@ -291,7 +290,7 @@ class SubtaskCheckpointCoordinatorImpl implements SubtaskCheckpointCoordinator {
         // Step (2): Send the checkpoint barrier downstream
         /*************************************************
          * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-         *  注释：
+         *  注释： 往 Operator 中广播 CheckpointBarrier
          */
         operatorChain.broadcastEvent(new CheckpointBarrier(metadata.getCheckpointId(),
                 metadata.getTimestamp(),
@@ -308,10 +307,12 @@ class SubtaskCheckpointCoordinatorImpl implements SubtaskCheckpointCoordinator {
             channelStateWriter.finishOutput(metadata.getCheckpointId());
         }
 
-        // Step (4): Take the state snapshot. This should be largely asynchronous, to not impact
-        // progress of the
-        // streaming topology
-
+        // Step (4): Take the state snapshot.
+        // This should be largely asynchronous, to not impact progress of the streaming topology
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释： 拍摄快照
+         */
         Map<OperatorID, OperatorSnapshotFutures> snapshotFutures = new HashMap<>(operatorChain.getNumberOfOperators());
         try {
             /*************************************************
@@ -319,6 +320,11 @@ class SubtaskCheckpointCoordinatorImpl implements SubtaskCheckpointCoordinator {
              *  注释：
              */
             if (takeSnapshotSync(snapshotFutures, metadata, metrics, options, operatorChain, isRunning)) {
+
+                /*************************************************
+                 * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+                 *  注释：
+                 */
                 finishAndReportAsync(snapshotFutures,
                         metadata,
                         metrics,
@@ -403,7 +409,7 @@ class SubtaskCheckpointCoordinatorImpl implements SubtaskCheckpointCoordinator {
 
             /*************************************************
              * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-             *  注释：
+             *  注释： 将内存 buffer 数据也拍摄快照
              */
             prepareInflightDataSnapshot(id);
         }
@@ -529,6 +535,11 @@ class SubtaskCheckpointCoordinatorImpl implements SubtaskCheckpointCoordinator {
     }
 
     private void prepareInflightDataSnapshot(long checkpointId) throws CheckpointException {
+
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释：
+         */
         prepareInputSnapshot.apply(channelStateWriter, checkpointId).whenComplete((unused, ex) -> {
             if (ex != null) {
                 channelStateWriter.abort(checkpointId, ex, false /* result is needed and cleaned by getWriteResult */);
@@ -589,7 +600,8 @@ class SubtaskCheckpointCoordinatorImpl implements SubtaskCheckpointCoordinator {
 
         /*************************************************
          * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-         *  注释：
+         *  注释： 解析 CheckpointStorageLocation
+         *  返回的结果： FsCheckpointStorageLocation
          */
         CheckpointStreamFactory storage = checkpointStorage.resolveCheckpointStorageLocation(checkpointId,
                 checkpointOptions.getTargetLocation()
@@ -598,7 +610,7 @@ class SubtaskCheckpointCoordinatorImpl implements SubtaskCheckpointCoordinator {
         try {
             /*************************************************
              * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-             *  注释：
+             *  注释： 拍摄快照
              */
             operatorChain.snapshotState(operatorSnapshotsInProgress,
                     checkpointMetaData,
@@ -660,6 +672,10 @@ class SubtaskCheckpointCoordinatorImpl implements SubtaskCheckpointCoordinator {
                                                                         CheckpointStorageLocationReference reference) {
             return cache.computeIfAbsent(checkpointId, id -> {
                 try {
+                    /*************************************************
+                     * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+                     *  注释： FsCheckpointStorageLocation
+                     */
                     return delegate.resolveCheckpointStorageLocation(checkpointId, reference);
                 } catch (IOException e) {
                     throw new FlinkRuntimeException(e);

@@ -75,8 +75,7 @@ public class DistributedCache {
         }
 
         /** Server-side constructor used during job-submission for zipped directories. */
-        public DistributedCacheEntry(
-                String filePath, Boolean isExecutable, byte[] blobKey, boolean isZipped) {
+        public DistributedCacheEntry(String filePath, Boolean isExecutable, byte[] blobKey, boolean isZipped) {
             this.filePath = filePath;
             this.isExecutable = isExecutable;
             this.blobKey = blobKey;
@@ -97,10 +96,9 @@ public class DistributedCache {
                 return false;
             }
             DistributedCacheEntry that = (DistributedCacheEntry) o;
-            return isZipped == that.isZipped
-                    && Objects.equals(filePath, that.filePath)
-                    && Objects.equals(isExecutable, that.isExecutable)
-                    && Arrays.equals(blobKey, that.blobKey);
+            return isZipped == that.isZipped && Objects.equals(filePath, that.filePath) && Objects.equals(isExecutable,
+                    that.isExecutable
+            ) && Arrays.equals(blobKey, that.blobKey);
         }
 
         @Override
@@ -112,17 +110,8 @@ public class DistributedCache {
 
         @Override
         public String toString() {
-            return "DistributedCacheEntry{"
-                    + "filePath='"
-                    + filePath
-                    + '\''
-                    + ", isExecutable="
-                    + isExecutable
-                    + ", isZipped="
-                    + isZipped
-                    + ", blobKey="
-                    + Arrays.toString(blobKey)
-                    + '}';
+            return "DistributedCacheEntry{" + "filePath='" + filePath + '\'' + ", isExecutable=" + isExecutable
+                    + ", isZipped=" + isZipped + ", blobKey=" + Arrays.toString(blobKey) + '}';
         }
     }
 
@@ -144,10 +133,7 @@ public class DistributedCache {
         Future<Path> future = cacheCopyTasks.get(name);
         if (future == null) {
             throw new IllegalArgumentException(
-                    "File with name '"
-                            + name
-                            + "' is not available."
-                            + " Did you forget to register the file?");
+                    "File with name '" + name + "' is not available." + " Did you forget to register the file?");
         }
 
         try {
@@ -158,10 +144,7 @@ public class DistributedCache {
             throw new RuntimeException("An error occurred while copying the file.", e.getCause());
         } catch (Exception e) {
             throw new RuntimeException(
-                    "Error while getting the file registered under '"
-                            + name
-                            + "' from the distributed cache",
-                    e);
+                    "Error while getting the file registered under '" + name + "' from the distributed cache", e);
         }
     }
 
@@ -169,8 +152,7 @@ public class DistributedCache {
     //  Utilities to read/write cache files from/to the configuration
     // ------------------------------------------------------------------------
 
-    public static void writeFileInfoToConfig(
-            String name, DistributedCacheEntry e, Configuration conf) {
+    public static void writeFileInfoToConfig(String name, DistributedCacheEntry e, Configuration conf) {
         int num = conf.getInteger(CACHE_FILE_NUM, 0) + 1;
         conf.setInteger(CACHE_FILE_NUM, num);
         conf.setString(CACHE_FILE_NAME + num, name);
@@ -182,15 +164,13 @@ public class DistributedCache {
         }
     }
 
-    public static Set<Entry<String, DistributedCacheEntry>> readFileInfoFromConfig(
-            Configuration conf) {
+    public static Set<Entry<String, DistributedCacheEntry>> readFileInfoFromConfig(Configuration conf) {
         int num = conf.getInteger(CACHE_FILE_NUM, 0);
         if (num == 0) {
             return Collections.emptySet();
         }
 
-        Map<String, DistributedCacheEntry> cacheFiles =
-                new HashMap<String, DistributedCacheEntry>();
+        Map<String, DistributedCacheEntry> cacheFiles = new HashMap<String, DistributedCacheEntry>();
         for (int i = 1; i <= num; i++) {
             String name = conf.getString(CACHE_FILE_NAME + i, null);
             String filePath = conf.getString(CACHE_FILE_PATH + i, null);
@@ -198,8 +178,7 @@ public class DistributedCache {
             boolean isDirectory = conf.getBoolean(CACHE_FILE_DIR + i, false);
 
             byte[] blobKey = conf.getBytes(CACHE_FILE_BLOB_KEY + i, null);
-            cacheFiles.put(
-                    name, new DistributedCacheEntry(filePath, isExecutable, blobKey, isDirectory));
+            cacheFiles.put(name, new DistributedCacheEntry(filePath, isExecutable, blobKey, isDirectory));
         }
         return cacheFiles.entrySet();
     }
@@ -212,19 +191,15 @@ public class DistributedCache {
      *
      * @param files List of string encoded distributed cache entries.
      */
-    public static List<Tuple2<String, DistributedCacheEntry>> parseCachedFilesFromString(
-            List<String> files) {
-        return files.stream()
+    public static List<Tuple2<String, DistributedCacheEntry>> parseCachedFilesFromString(List<String> files) {
+        return files
+                .stream()
                 .map(ConfigurationUtils::parseMap)
-                .map(
-                        m ->
-                                Tuple2.of(
-                                        m.get("name"),
-                                        new DistributedCacheEntry(
-                                                m.get("path"),
-                                                Optional.ofNullable(m.get("executable"))
-                                                        .map(Boolean::parseBoolean)
-                                                        .orElse(false))))
+                .map(m -> Tuple2.of(m.get("name"),
+                        new DistributedCacheEntry(m.get("path"),
+                                Optional.ofNullable(m.get("executable")).map(Boolean::parseBoolean).orElse(false)
+                        )
+                ))
                 .collect(Collectors.toList());
     }
 

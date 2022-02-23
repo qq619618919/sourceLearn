@@ -122,7 +122,9 @@ final class OperatorCoordinatorCheckpoints {
 
     private static void acknowledgeAllCoordinators(PendingCheckpoint checkpoint,
                                                    Collection<CoordinatorSnapshot> snapshots) throws CheckpointException {
+
         for (final CoordinatorSnapshot snapshot : snapshots) {
+
             final PendingCheckpoint.TaskAcknowledgeResult result = checkpoint.acknowledgeCoordinatorState(snapshot.coordinator,
                     snapshot.state
             );

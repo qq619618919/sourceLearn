@@ -49,7 +49,7 @@ public class DefaultDispatcherRunnerFactory implements DispatcherRunnerFactory {
                                                    RpcService rpcService,
                                                    PartialDispatcherServices partialDispatcherServices) throws Exception {
 
-        // TODO_MA 马中华 注释：
+        // TODO_MA 马中华 注释： 额外的工作组件，先不关注
         final DispatcherLeaderProcessFactory dispatcherLeaderProcessFactory = dispatcherLeaderProcessFactoryFactory.createFactory(
                 jobGraphStoreFactory,
                 ioExecutor,
@@ -60,7 +60,7 @@ public class DefaultDispatcherRunnerFactory implements DispatcherRunnerFactory {
 
         /*************************************************
          * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-         *  注释：
+         *  注释： 必然是创建 DefaultDispatcherRunner
          */
         return DefaultDispatcherRunner.create(leaderElectionService, fatalErrorHandler, dispatcherLeaderProcessFactory);
     }
@@ -68,10 +68,23 @@ public class DefaultDispatcherRunnerFactory implements DispatcherRunnerFactory {
     public static DefaultDispatcherRunnerFactory createSessionRunner(DispatcherFactory dispatcherFactory) {
 
         // TODO_MA 马中华 注释： 参数：SessionDispatcherLeaderProcessFactoryFactory
+        // TODO_MA 马中华 注释： 最上层： XXXComponentFactory
+        // TODO_MA 马中华 注释： X = DefaultDispatcherRunnerFactory
+        // TODO_MA 马中华 注释： Y = LeaderProcessFactoryFactory
+        // TODO_MA 马中华 注释： Z = LeaderProcessFactory
+        // TODO_MA 马中华 注释： Z 创建的实例： LeaderProcess
         return new DefaultDispatcherRunnerFactory(SessionDispatcherLeaderProcessFactoryFactory.create(dispatcherFactory));
     }
 
     public static DefaultDispatcherRunnerFactory createJobRunner(JobGraphRetriever jobGraphRetriever) {
-        return new DefaultDispatcherRunnerFactory(JobDispatcherLeaderProcessFactoryFactory.create(jobGraphRetriever));
+
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释：
+         */
+        return new DefaultDispatcherRunnerFactory(
+
+                // TODO_MA 马中华 注释： JobDispatcherLeaderProcessFactoryFactory
+                JobDispatcherLeaderProcessFactoryFactory.create(jobGraphRetriever));
     }
 }

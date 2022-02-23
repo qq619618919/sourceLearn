@@ -42,39 +42,35 @@ public class StreamSourceContexts {
      *   <li>{@link TimeCharacteristic#EventTime} = {@code ManualWatermarkContext}
      * </ul>
      */
-    public static <OUT> SourceFunction.SourceContext<OUT> getSourceContext(
-            TimeCharacteristic timeCharacteristic,
-            ProcessingTimeService processingTimeService,
-            Object checkpointLock,
-            Output<StreamRecord<OUT>> output,
-            long watermarkInterval,
-            long idleTimeout,
-            boolean emitProgressiveWatermarks) {
+    public static <OUT> SourceFunction.SourceContext<OUT> getSourceContext(TimeCharacteristic timeCharacteristic,
+                                                                           ProcessingTimeService processingTimeService,
+                                                                           Object checkpointLock,
+                                                                           Output<StreamRecord<OUT>> output,
+                                                                           long watermarkInterval,
+                                                                           long idleTimeout,
+                                                                           boolean emitProgressiveWatermarks) {
 
         final SourceFunction.SourceContext<OUT> ctx;
         switch (timeCharacteristic) {
             case EventTime:
-                ctx =
-                        new ManualWatermarkContext<>(
-                                output,
-                                processingTimeService,
-                                checkpointLock,
-                                idleTimeout,
-                                emitProgressiveWatermarks);
+                ctx = new ManualWatermarkContext<>(output,
+                        processingTimeService,
+                        checkpointLock,
+                        idleTimeout,
+                        emitProgressiveWatermarks
+                );
 
                 break;
             case IngestionTime:
-                Preconditions.checkState(
-                        emitProgressiveWatermarks,
-                        "Ingestion time is not available when emitting progressive watermarks "
-                                + "is disabled.");
-                ctx =
-                        new AutomaticWatermarkContext<>(
-                                output,
-                                watermarkInterval,
-                                processingTimeService,
-                                checkpointLock,
-                                idleTimeout);
+                Preconditions.checkState(emitProgressiveWatermarks,
+                        "Ingestion time is not available when emitting progressive watermarks " + "is disabled."
+                );
+                ctx = new AutomaticWatermarkContext<>(output,
+                        watermarkInterval,
+                        processingTimeService,
+                        checkpointLock,
+                        idleTimeout
+                );
                 break;
             case ProcessingTime:
                 ctx = new NonTimestampContext<>(checkpointLock, output);
@@ -184,9 +180,7 @@ public class StreamSourceContexts {
         private final StreamRecord<T> reuse;
 
         private NonTimestampContext(Object checkpointLock, Output<StreamRecord<T>> output) {
-            this.lock =
-                    Preconditions.checkNotNull(
-                            checkpointLock, "The checkpoint lock cannot be null.");
+            this.lock = Preconditions.checkNotNull(checkpointLock, "The checkpoint lock cannot be null.");
             this.output = Preconditions.checkNotNull(output, "The output cannot be null.");
             this.reuse = new StreamRecord<>(null);
         }
@@ -194,6 +188,10 @@ public class StreamSourceContexts {
         @Override
         public void collect(T element) {
             synchronized (lock) {
+                /*************************************************
+                 * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+                 *  注释：output = RecordWriter
+                 */
                 output.collect(reuse.replace(element));
             }
         }
@@ -201,6 +199,10 @@ public class StreamSourceContexts {
         @Override
         public void collectWithTimestamp(T element, long timestamp) {
             // ignore the timestamp
+            /*************************************************
+             * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+             *  注释：
+             */
             collect(element);
         }
 
@@ -220,7 +222,8 @@ public class StreamSourceContexts {
         }
 
         @Override
-        public void close() {}
+        public void close() {
+        }
     }
 
     /**
@@ -241,19 +244,17 @@ public class StreamSourceContexts {
 
         private boolean idle = false;
 
-        private AutomaticWatermarkContext(
-                final Output<StreamRecord<T>> output,
-                final long watermarkInterval,
-                final ProcessingTimeService timeService,
-                final Object checkpointLock,
-                final long idleTimeout) {
+        private AutomaticWatermarkContext(final Output<StreamRecord<T>> output,
+                                          final long watermarkInterval,
+                                          final ProcessingTimeService timeService,
+                                          final Object checkpointLock,
+                                          final long idleTimeout) {
 
             super(timeService, checkpointLock, idleTimeout);
 
             this.output = Preconditions.checkNotNull(output, "The output cannot be null.");
 
-            Preconditions.checkArgument(
-                    watermarkInterval >= 1L, "The watermark interval cannot be smaller than 1 ms.");
+            Preconditions.checkArgument(watermarkInterval >= 1L, "The watermark interval cannot be smaller than 1 ms.");
             this.watermarkInterval = watermarkInterval;
 
             this.reuse = new StreamRecord<>(null);
@@ -261,10 +262,9 @@ public class StreamSourceContexts {
             this.lastRecordTime = Long.MIN_VALUE;
 
             long now = this.timeService.getCurrentProcessingTime();
-            this.nextWatermarkTimer =
-                    this.timeService.registerTimer(
-                            now + watermarkInterval,
-                            new WatermarkEmittingTask(this.timeService, checkpointLock, output));
+            this.nextWatermarkTimer = this.timeService.registerTimer(now + watermarkInterval,
+                    new WatermarkEmittingTask(this.timeService, checkpointLock, output)
+            );
         }
 
         @Override
@@ -336,10 +336,9 @@ public class StreamSourceContexts {
             private final Object lock;
             private final Output<StreamRecord<T>> output;
 
-            private WatermarkEmittingTask(
-                    ProcessingTimeService timeService,
-                    Object checkpointLock,
-                    Output<StreamRecord<T>> output) {
+            private WatermarkEmittingTask(ProcessingTimeService timeService,
+                                          Object checkpointLock,
+                                          Output<StreamRecord<T>> output) {
                 this.timeService = timeService;
                 this.lock = checkpointLock;
                 this.output = output;
@@ -366,8 +365,7 @@ public class StreamSourceContexts {
                             // align the watermarks across all machines. this will ensure that we
                             // don't have watermarks that creep along at different intervals because
                             // the machine clocks are out of sync
-                            final long watermarkTime =
-                                    currentTime - (currentTime % watermarkInterval);
+                            final long watermarkTime = currentTime - (currentTime % watermarkInterval);
 
                             output.emitWatermark(new Watermark(watermarkTime));
                             nextWatermarkTime = watermarkTime + watermarkInterval;
@@ -376,10 +374,9 @@ public class StreamSourceContexts {
                 }
 
                 long nextWatermark = currentTime + watermarkInterval;
-                nextWatermarkTimer =
-                        this.timeService.registerTimer(
-                                nextWatermark,
-                                new WatermarkEmittingTask(this.timeService, lock, output));
+                nextWatermarkTimer = this.timeService.registerTimer(nextWatermark,
+                        new WatermarkEmittingTask(this.timeService, lock, output)
+                );
             }
         }
     }
@@ -399,12 +396,11 @@ public class StreamSourceContexts {
         private final StreamRecord<T> reuse;
         private boolean idle = false;
 
-        private ManualWatermarkContext(
-                final Output<StreamRecord<T>> output,
-                final ProcessingTimeService timeService,
-                final Object checkpointLock,
-                final long idleTimeout,
-                final boolean emitProgressiveWatermarks) {
+        private ManualWatermarkContext(final Output<StreamRecord<T>> output,
+                                       final ProcessingTimeService timeService,
+                                       final Object checkpointLock,
+                                       final long idleTimeout,
+                                       final boolean emitProgressiveWatermarks) {
 
             super(timeService, checkpointLock, idleTimeout);
 
@@ -420,6 +416,10 @@ public class StreamSourceContexts {
 
         @Override
         protected void processAndCollectWithTimestamp(T element, long timestamp) {
+            /*************************************************
+             * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+             *  注释：
+             */
             output.collect(reuse.replace(element, timestamp));
         }
 
@@ -480,19 +480,15 @@ public class StreamSourceContexts {
          * @param checkpointLock the checkpoint lock
          * @param idleTimeout (-1 if idleness checking is disabled)
          */
-        public WatermarkContext(
-                final ProcessingTimeService timeService,
-                final Object checkpointLock,
-                final long idleTimeout) {
+        public WatermarkContext(final ProcessingTimeService timeService,
+                                final Object checkpointLock,
+                                final long idleTimeout) {
 
-            this.timeService =
-                    Preconditions.checkNotNull(timeService, "Time Service cannot be null.");
-            this.checkpointLock =
-                    Preconditions.checkNotNull(checkpointLock, "Checkpoint Lock cannot be null.");
+            this.timeService = Preconditions.checkNotNull(timeService, "Time Service cannot be null.");
+            this.checkpointLock = Preconditions.checkNotNull(checkpointLock, "Checkpoint Lock cannot be null.");
 
             if (idleTimeout != -1) {
-                Preconditions.checkArgument(
-                        idleTimeout >= 1, "The idle timeout cannot be smaller than 1 ms.");
+                Preconditions.checkArgument(idleTimeout >= 1, "The idle timeout cannot be smaller than 1 ms.");
             }
             this.idleTimeout = idleTimeout;
 
@@ -517,6 +513,8 @@ public class StreamSourceContexts {
         @Override
         public final void collectWithTimestamp(T element, long timestamp) {
             synchronized (checkpointLock) {
+
+                // TODO_MA 马中华 注释：
                 processAndEmitWatermarkStatus(WatermarkStatus.ACTIVE);
 
                 if (nextCheck != null) {
@@ -525,6 +523,10 @@ public class StreamSourceContexts {
                     scheduleNextIdleDetectionTask();
                 }
 
+                /*************************************************
+                 * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+                 *  注释：
+                 */
                 processAndCollectWithTimestamp(element, timestamp);
             }
         }
@@ -585,10 +587,9 @@ public class StreamSourceContexts {
             if (idleTimeout != -1) {
                 // reset flag; if it remains true when task fires, we have detected idleness
                 failOnNextCheck = true;
-                nextCheck =
-                        this.timeService.registerTimer(
-                                this.timeService.getCurrentProcessingTime() + idleTimeout,
-                                new IdlenessDetectionTask());
+                nextCheck = this.timeService.registerTimer(this.timeService.getCurrentProcessingTime() + idleTimeout,
+                        new IdlenessDetectionTask()
+                );
             }
         }
 

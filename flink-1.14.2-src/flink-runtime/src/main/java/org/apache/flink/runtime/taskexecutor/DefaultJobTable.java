@@ -39,6 +39,7 @@ import java.util.Optional;
 
 /** Default implementation of the {@link JobTable}. */
 public final class DefaultJobTable implements JobTable {
+
     private final Map<JobID, JobOrConnection> jobs;
 
     private final Map<ResourceID, JobID> resourceIdJobIdIndex;
@@ -54,6 +55,11 @@ public final class DefaultJobTable implements JobTable {
         JobOrConnection job = jobs.get(jobId);
 
         if (job == null) {
+
+            /*************************************************
+             * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+             *  注释： 维护当前 Task 和 JobMaster 的通信
+             */
             job = new JobOrConnection(jobId, jobServicesSupplier.get());
             jobs.put(jobId, job);
         }
@@ -197,10 +203,8 @@ public final class DefaultJobTable implements JobTable {
         }
 
         @Override
-        public JobTable.Connection connect(ResourceID resourceId,
-                                           JobMasterGateway jobMasterGateway,
-                                           TaskManagerActions taskManagerActions,
-                                           CheckpointResponder checkpointResponder,
+        public JobTable.Connection connect(ResourceID resourceId, JobMasterGateway jobMasterGateway,
+                                           TaskManagerActions taskManagerActions, CheckpointResponder checkpointResponder,
                                            GlobalAggregateManager aggregateManager,
                                            ResultPartitionConsumableNotifier resultPartitionConsumableNotifier,
                                            PartitionProducerStateChecker partitionStateChecker) {
@@ -211,14 +215,8 @@ public final class DefaultJobTable implements JobTable {
              * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
              *  注释：
              */
-            connection = new EstablishedConnection(resourceId,
-                    jobMasterGateway,
-                    taskManagerActions,
-                    checkpointResponder,
-                    aggregateManager,
-                    resultPartitionConsumableNotifier,
-                    partitionStateChecker
-            );
+            connection = new EstablishedConnection(resourceId, jobMasterGateway, taskManagerActions, checkpointResponder,
+                    aggregateManager, resultPartitionConsumableNotifier, partitionStateChecker);
             resourceIdJobIdIndex.put(resourceId, jobId);
 
             return this;
@@ -272,10 +270,8 @@ public final class DefaultJobTable implements JobTable {
         // Partition state checker for the specific job manager
         private final PartitionProducerStateChecker partitionStateChecker;
 
-        private EstablishedConnection(ResourceID resourceID,
-                                      JobMasterGateway jobMasterGateway,
-                                      TaskManagerActions taskManagerActions,
-                                      CheckpointResponder checkpointResponder,
+        private EstablishedConnection(ResourceID resourceID, JobMasterGateway jobMasterGateway,
+                                      TaskManagerActions taskManagerActions, CheckpointResponder checkpointResponder,
                                       GlobalAggregateManager globalAggregateManager,
                                       ResultPartitionConsumableNotifier resultPartitionConsumableNotifier,
                                       PartitionProducerStateChecker partitionStateChecker) {

@@ -34,11 +34,14 @@ import java.util.stream.IntStream;
 import static org.apache.flink.util.Preconditions.checkNotNull;
 
 /**
+ * // TODO_MA 马中华 注释： 输入门消耗单个生成的中间结果的一个或多个分区。
  * An input gate consumes one or more partitions of a single produced intermediate result.
  *
+ * // TODO_MA 马中华 注释： 每个中间结果在其产生的并行子任务上进行分区；此外，这些分区中的每一个都被划分为一个或多个子分区。
  * <p>Each intermediate result is partitioned over its producing parallel subtasks; each of these
  * partitions is furthermore partitioned into one or more subpartitions.
  *
+ * // TODO_MA 马中华 注释： 例如，考虑一个 map-reduce 程序，其中 map 运算符生成数据，reduce 运算符使用生成的数据。
  * <p>As an example, consider a map-reduce program, where the map operator produces data and the
  * reduce operator consumes the produced data.
  *
@@ -48,6 +51,7 @@ import static org.apache.flink.util.Preconditions.checkNotNull;
  * +-----+              +---------------------+              +--------+
  * }</pre>
  *
+ * // TODO_MA 马中华 注释： 当并行部署这样的程序时，中间结果将被划分到其产生的并行子任务上；此外，这些分区中的每一个都被划分为一个或多个子分区。
  * <p>When deploying such a program in parallel, the intermediate result will be partitioned over
  * its producing parallel subtasks; each of these partitions is furthermore partitioned into one or
  * more subpartitions.
@@ -139,10 +143,9 @@ public abstract class InputGate implements PullingAsyncDataInput<BufferOrEvent>,
 
     /** Returns the channel infos of this gate. */
     public List<InputChannelInfo> getChannelInfos() {
-        return IntStream
-                .range(0, getNumberOfInputChannels())
-                .mapToObj(index -> getChannel(index).getChannelInfo())
-                .collect(Collectors.toList());
+        return IntStream.range(0, getNumberOfInputChannels())
+                        .mapToObj(index -> getChannel(index).getChannelInfo())
+                        .collect(Collectors.toList());
     }
 
     /**
@@ -160,7 +163,10 @@ public abstract class InputGate implements PullingAsyncDataInput<BufferOrEvent>,
         protected final boolean moreAvailable;
         protected final boolean morePriorityEvents;
 
-        InputWithData(INPUT input, DATA data, boolean moreAvailable, boolean morePriorityEvents) {
+        InputWithData(INPUT input,
+                      DATA data,
+                      boolean moreAvailable,
+                      boolean morePriorityEvents) {
             this.input = checkNotNull(input);
             this.data = checkNotNull(data);
             this.moreAvailable = moreAvailable;
@@ -169,8 +175,7 @@ public abstract class InputGate implements PullingAsyncDataInput<BufferOrEvent>,
 
         @Override
         public String toString() {
-            return "InputWithData{" + "input=" + input + ", data=" + data + ", moreAvailable=" + moreAvailable
-                    + ", morePriorityEvents=" + morePriorityEvents + '}';
+            return "InputWithData{" + "input=" + input + ", data=" + data + ", moreAvailable=" + moreAvailable + ", morePriorityEvents=" + morePriorityEvents + '}';
         }
     }
 

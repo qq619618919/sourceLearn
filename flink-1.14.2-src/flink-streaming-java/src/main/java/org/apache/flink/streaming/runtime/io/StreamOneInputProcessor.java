@@ -47,8 +47,9 @@ public final class StreamOneInputProcessor<IN> implements StreamInputProcessor {
 
     private final BoundedMultiInput endOfInputAware;
 
-    public StreamOneInputProcessor(
-            StreamTaskInput<IN> input, DataOutput<IN> output, BoundedMultiInput endOfInputAware) {
+    public StreamOneInputProcessor(StreamTaskInput<IN> input,
+                                   DataOutput<IN> output,
+                                   BoundedMultiInput endOfInputAware) {
 
         this.input = checkNotNull(input);
         this.output = checkNotNull(output);
@@ -62,6 +63,11 @@ public final class StreamOneInputProcessor<IN> implements StreamInputProcessor {
 
     @Override
     public DataInputStatus processInput() throws Exception {
+
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释： StreamTaskNetworkInput
+         */
         DataInputStatus status = input.emitNext(output);
 
         if (status == DataInputStatus.END_OF_DATA) {
@@ -78,8 +84,8 @@ public final class StreamOneInputProcessor<IN> implements StreamInputProcessor {
     }
 
     @Override
-    public CompletableFuture<Void> prepareSnapshot(
-            ChannelStateWriter channelStateWriter, long checkpointId) throws CheckpointException {
+    public CompletableFuture<Void> prepareSnapshot(ChannelStateWriter channelStateWriter,
+                                                   long checkpointId) throws CheckpointException {
         return input.prepareSnapshot(channelStateWriter, checkpointId);
     }
 

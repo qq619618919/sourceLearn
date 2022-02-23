@@ -88,6 +88,10 @@ public class ResourceManagerServiceImpl implements ResourceManagerService, Leade
     @GuardedBy("lock")
     private CompletableFuture<Void> previousResourceManagerTerminationFuture;
 
+    /*************************************************
+     * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+     *  注释：
+     */
     private ResourceManagerServiceImpl(ResourceManagerFactory<?> resourceManagerFactory,
                                        ResourceManagerProcessContext rmProcessContext) {
 
@@ -118,6 +122,8 @@ public class ResourceManagerServiceImpl implements ResourceManagerService, Leade
 
     @Override
     public void start() throws Exception {
+
+        // TODO_MA 马中华 注释： 状态的更新
         synchronized (lock) {
             if (running) {
                 LOG.debug("Resource manager service has already started.");
@@ -130,9 +136,18 @@ public class ResourceManagerServiceImpl implements ResourceManagerService, Leade
 
         /*************************************************
          * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-         *  注释：
+         *  注释： 这句代码的具体执行机制：
+         *  1、leaderElectionService = DefaultLeaderElectionService
+         *  2、调用 start() 启动选举/注册
+         *  3、选举成功或者失败，都会回调 leaderContender 的某个方法： grantLeadership()
+         *  -
+         *  补充：
+         *  1、leaderContender 有四个： resourcemanager + dispatcher + webmontorEndpoint + jobmaster
+         *  2、此时此刻的 leaderContender = this = ResourceMangerServieImpl
          */
         leaderElectionService.start(this);
+
+        // TODO_MA 马中华 注释： 之后去到： this.grantLeadership()
     }
 
     @Override
@@ -196,6 +211,8 @@ public class ResourceManagerServiceImpl implements ResourceManagerService, Leade
                     /*************************************************
                      * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
                      *  注释：
+                     *  1、创建
+                     *  2、启动
                      */
                     startNewLeaderResourceManager(newLeaderSessionID);
                 } catch (Throwable t) {
@@ -242,7 +259,7 @@ public class ResourceManagerServiceImpl implements ResourceManagerService, Leade
 
         /*************************************************
          * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-         *  注释：
+         *  注释： 关闭
          */
         stopLeaderResourceManager();
 
@@ -250,7 +267,9 @@ public class ResourceManagerServiceImpl implements ResourceManagerService, Leade
 
         /*************************************************
          * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-         *  注释： StandaloneResourceManager
+         *  注释： 第一件事： 创建
+         *  1、standalone 模式下： StandaloneResourceManager
+         *  2、on YARN 模式下： ActiveResourceManager
          */
         this.leaderResourceManager = resourceManagerFactory.createResourceManager(rmProcessContext,
                 newLeaderSessionID,
@@ -259,11 +278,12 @@ public class ResourceManagerServiceImpl implements ResourceManagerService, Leade
 
         final ResourceManager<?> newLeaderResourceManager = this.leaderResourceManager;
 
+        // TODO_MA 马中华 注释： 都是异步编程的 API ，都是 java8 提供的特性
         previousResourceManagerTerminationFuture.thenComposeAsync((ignore) -> {
             synchronized (lock) {
                 /*************************************************
                  * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-                 *  注释：
+                 *  注释： 第二件事： 启动
                  */
                 return startResourceManagerIfIsLeader(newLeaderResourceManager);
             }
@@ -286,7 +306,9 @@ public class ResourceManagerServiceImpl implements ResourceManagerService, Leade
 
             /*************************************************
              * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-             *  注释：
+             *  注释： 启动这个 RpcEndpoint 组件：
+             *  resourceManager = StandaloneResourcemanager
+             *  onStart() 在父类中
              */
             resourceManager.start();
 
@@ -321,6 +343,10 @@ public class ResourceManagerServiceImpl implements ResourceManagerService, Leade
     private void stopLeaderResourceManager() {
         if (leaderResourceManager != null) {
             previousResourceManagerTerminationFuture = previousResourceManagerTerminationFuture.thenCombine(
+                    /*************************************************
+                     * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+                     *  注释： close
+                     */
                     leaderResourceManager.closeAsync(),
                     (ignore1, ignore2) -> null
             );
@@ -361,9 +387,16 @@ public class ResourceManagerServiceImpl implements ResourceManagerService, Leade
 
         /*************************************************
          * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-         *  注释：
+         *  注释： ResourceManagerServiceImpl 的 resourceManager 的服务包装
          */
-        return new ResourceManagerServiceImpl(resourceManagerFactory,
+        return new ResourceManagerServiceImpl(
+                // TODO_MA 马中华 注释： resourceManagerFactory 是用来创建 resourceManager 的
+                // TODO_MA 马中华 注释： 具体的创建时机，比较靠后
+                resourceManagerFactory,
+                // TODO_MA 马中华 注释： 上下文Context ： 你需要什么东西，你就问他要， 这就是上下文
+                // TODO_MA 马中华 注释： 写作文： 你说的某一句话，我不太理解到底是什么意思，我的了解上下文 = 语境
+                // TODO_MA 马中华 注释： 很多技术里面都有这个概念
+                // TODO_MA 马中华 注释： SparkContext 里面包含了所有的工作组价
                 resourceManagerFactory.createResourceManagerProcessContext(configuration,
                         rpcService,
                         highAvailabilityServices,

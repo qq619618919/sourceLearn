@@ -41,6 +41,7 @@ import static org.apache.flink.util.Preconditions.checkArgument;
 import static org.apache.flink.util.Preconditions.checkState;
 
 /**
+ * // TODO_MA 马中华 注释：
  * A fixed-size {@link MemorySegment} pool used by batch shuffle for shuffle data read (currently
  * only used by sort-merge blocking shuffle).
  */
@@ -86,22 +87,16 @@ public class BatchShuffleReadBufferPool {
     public BatchShuffleReadBufferPool(long totalBytes, int bufferSize) {
         checkArgument(totalBytes > 0, "Total memory size must be positive.");
         checkArgument(bufferSize > 0, "Size of buffer must be positive.");
-        checkArgument(
-                totalBytes >= bufferSize,
-                String.format(
-                        "Illegal configuration, config value for '%s' must be no smaller than '%s',"
-                                + " please increase '%s' to at least %d bytes.",
-                        TaskManagerOptions.NETWORK_BATCH_SHUFFLE_READ_MEMORY.key(),
-                        TaskManagerOptions.MEMORY_SEGMENT_SIZE.key(),
-                        TaskManagerOptions.NETWORK_BATCH_SHUFFLE_READ_MEMORY.key(),
-                        bufferSize));
+        checkArgument(totalBytes >= bufferSize, String.format(
+                "Illegal configuration, config value for '%s' must be no smaller than '%s'," + " please increase '%s' to at least %d bytes.",
+                TaskManagerOptions.NETWORK_BATCH_SHUFFLE_READ_MEMORY.key(), TaskManagerOptions.MEMORY_SEGMENT_SIZE.key(),
+                TaskManagerOptions.NETWORK_BATCH_SHUFFLE_READ_MEMORY.key(), bufferSize));
 
         this.totalBytes = totalBytes;
         this.bufferSize = bufferSize;
 
         this.numTotalBuffers = (int) Math.min(totalBytes / bufferSize, Integer.MAX_VALUE);
-        this.numBuffersPerRequest =
-                Math.min(numTotalBuffers, Math.max(1, NUM_BYTES_PER_REQUEST / bufferSize));
+        this.numBuffersPerRequest = Math.min(numTotalBuffers, Math.max(1, NUM_BYTES_PER_REQUEST / bufferSize));
     }
 
     @VisibleForTesting
@@ -151,30 +146,16 @@ public class BatchShuffleReadBufferPool {
                 int allocated = buffers.size();
                 buffers.forEach(MemorySegment::free);
                 buffers.clear();
-                throw new OutOfMemoryError(
-                        String.format(
-                                "Can't allocate enough direct buffer for batch shuffle read buffer "
-                                        + "pool (bytes allocated: %d, bytes still needed: %d). To "
-                                        + "avoid the exception, you need to do one of the following"
-                                        + " adjustments: 1) If you have ever decreased %s, you need"
-                                        + " to undo the decrement; 2) If you ever increased %s, you"
-                                        + " should also increase %s; 3) If neither the above cases,"
-                                        + " it usually means some other parts of your application "
-                                        + "have consumed too many direct memory and the value of %s"
-                                        + " should be increased.",
-                                allocated * bufferSize,
-                                (numTotalBuffers - allocated) * bufferSize,
-                                TaskManagerOptions.FRAMEWORK_OFF_HEAP_MEMORY.key(),
-                                TaskManagerOptions.NETWORK_BATCH_SHUFFLE_READ_MEMORY.key(),
-                                TaskManagerOptions.FRAMEWORK_OFF_HEAP_MEMORY.key(),
-                                TaskManagerOptions.TASK_OFF_HEAP_MEMORY.key()));
+                throw new OutOfMemoryError(String.format(
+                        "Can't allocate enough direct buffer for batch shuffle read buffer " + "pool (bytes allocated: %d, bytes still needed: %d). To " + "avoid the exception, you need to do one of the following" + " adjustments: 1) If you have ever decreased %s, you need" + " to undo the decrement; 2) If you ever increased %s, you" + " should also increase %s; 3) If neither the above cases," + " it usually means some other parts of your application " + "have consumed too many direct memory and the value of %s" + " should be increased.",
+                        allocated * bufferSize, (numTotalBuffers - allocated) * bufferSize,
+                        TaskManagerOptions.FRAMEWORK_OFF_HEAP_MEMORY.key(),
+                        TaskManagerOptions.NETWORK_BATCH_SHUFFLE_READ_MEMORY.key(),
+                        TaskManagerOptions.FRAMEWORK_OFF_HEAP_MEMORY.key(), TaskManagerOptions.TASK_OFF_HEAP_MEMORY.key()));
             }
         }
 
-        LOG.info(
-                "Batch shuffle IO buffer pool initialized: numBuffers={}, bufferSize={}.",
-                numTotalBuffers,
-                bufferSize);
+        LOG.info("Batch shuffle IO buffer pool initialized: numBuffers={}, bufferSize={}.", numTotalBuffers, bufferSize);
     }
 
     /**

@@ -25,6 +25,7 @@ import java.util.concurrent.CompletableFuture;
  * <p>Should be created and closed outside of the lock.
  */
 class GateNotificationHelper implements AutoCloseable {
+
     private final InputGate inputGate;
     private final Object availabilityMonitor;
 
@@ -33,6 +34,7 @@ class GateNotificationHelper implements AutoCloseable {
 
     public GateNotificationHelper(InputGate inputGate, Object availabilityMonitor) {
         this.inputGate = inputGate;
+        // TODO_MA 马中华 注释： inputChannelsWithData
         this.availabilityMonitor = availabilityMonitor;
     }
 
@@ -55,6 +57,10 @@ class GateNotificationHelper implements AutoCloseable {
      * Must be called under lock to ensure integrity of availabilityHelper and allow notification.
      */
     public void notifyDataAvailable() {
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释： 解除 inputChannelsWithData 的阻塞，表示有数据可消费
+         */
         availabilityMonitor.notifyAll();
         toNotify = inputGate.availabilityHelper.getUnavailableToResetAvailable();
     }

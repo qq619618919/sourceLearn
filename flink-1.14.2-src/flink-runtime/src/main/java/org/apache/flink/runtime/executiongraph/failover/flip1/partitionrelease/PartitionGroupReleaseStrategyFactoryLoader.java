@@ -25,10 +25,8 @@ import org.apache.flink.configuration.JobManagerOptions;
 /** Instantiates a {@link RegionPartitionGroupReleaseStrategy}. */
 public final class PartitionGroupReleaseStrategyFactoryLoader {
 
-    public static PartitionGroupReleaseStrategy.Factory loadPartitionGroupReleaseStrategyFactory(
-            final Configuration configuration) {
-        final boolean partitionReleaseDuringJobExecution =
-                configuration.getBoolean(JobManagerOptions.PARTITION_RELEASE_DURING_JOB_EXECUTION);
+    public static PartitionGroupReleaseStrategy.Factory loadPartitionGroupReleaseStrategyFactory(final Configuration configuration) {
+        final boolean partitionReleaseDuringJobExecution = configuration.getBoolean(JobManagerOptions.PARTITION_RELEASE_DURING_JOB_EXECUTION);
         if (partitionReleaseDuringJobExecution) {
             return new RegionPartitionGroupReleaseStrategy.Factory();
         } else {
@@ -36,5 +34,6 @@ public final class PartitionGroupReleaseStrategyFactoryLoader {
         }
     }
 
-    private PartitionGroupReleaseStrategyFactoryLoader() {}
+    private PartitionGroupReleaseStrategyFactoryLoader() {
+    }
 }

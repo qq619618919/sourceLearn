@@ -50,8 +50,7 @@ public class HadoopUtils {
     private static final String[] FLINK_CONFIG_PREFIXES = {"flink.hadoop."};
 
     @SuppressWarnings("deprecation")
-    public static Configuration getHadoopConfiguration(
-            org.apache.flink.configuration.Configuration flinkConfiguration) {
+    public static Configuration getHadoopConfiguration(org.apache.flink.configuration.Configuration flinkConfiguration) {
 
         // Instantiate an HdfsConfiguration to load the hdfs-site.xml and hdfs-default.xml
         // from the classpath
@@ -82,39 +81,31 @@ public class HadoopUtils {
         }
 
         // Approach 2: Flink configuration (deprecated)
-        final String hdfsDefaultPath =
-                flinkConfiguration.getString(ConfigConstants.HDFS_DEFAULT_CONFIG, null);
+        final String hdfsDefaultPath = flinkConfiguration.getString(ConfigConstants.HDFS_DEFAULT_CONFIG, null);
         if (hdfsDefaultPath != null) {
             result.addResource(new org.apache.hadoop.fs.Path(hdfsDefaultPath));
-            LOG.debug(
-                    "Using hdfs-default configuration-file path from Flink config: {}",
-                    hdfsDefaultPath);
+            LOG.debug("Using hdfs-default configuration-file path from Flink config: {}", hdfsDefaultPath);
             foundHadoopConfiguration = true;
         }
 
-        final String hdfsSitePath =
-                flinkConfiguration.getString(ConfigConstants.HDFS_SITE_CONFIG, null);
+        final String hdfsSitePath = flinkConfiguration.getString(ConfigConstants.HDFS_SITE_CONFIG, null);
         if (hdfsSitePath != null) {
             result.addResource(new org.apache.hadoop.fs.Path(hdfsSitePath));
-            LOG.debug(
-                    "Using hdfs-site configuration-file path from Flink config: {}", hdfsSitePath);
+            LOG.debug("Using hdfs-site configuration-file path from Flink config: {}", hdfsSitePath);
             foundHadoopConfiguration = true;
         }
 
-        final String hadoopConfigPath =
-                flinkConfiguration.getString(ConfigConstants.PATH_HADOOP_CONFIG, null);
+        final String hadoopConfigPath = flinkConfiguration.getString(ConfigConstants.PATH_HADOOP_CONFIG, null);
         if (hadoopConfigPath != null) {
             LOG.debug("Searching Hadoop configuration files in Flink config: {}", hadoopConfigPath);
-            foundHadoopConfiguration =
-                    addHadoopConfIfFound(result, hadoopConfigPath) || foundHadoopConfiguration;
+            foundHadoopConfiguration = addHadoopConfIfFound(result, hadoopConfigPath) || foundHadoopConfiguration;
         }
 
         // Approach 3: HADOOP_CONF_DIR environment variable
         String hadoopConfDir = System.getenv("HADOOP_CONF_DIR");
         if (hadoopConfDir != null) {
             LOG.debug("Searching Hadoop configuration files in HADOOP_CONF_DIR: {}", hadoopConfDir);
-            foundHadoopConfiguration =
-                    addHadoopConfIfFound(result, hadoopConfDir) || foundHadoopConfiguration;
+            foundHadoopConfiguration = addHadoopConfIfFound(result, hadoopConfDir) || foundHadoopConfiguration;
         }
 
         // Approach 4: Flink configuration
@@ -125,20 +116,15 @@ public class HadoopUtils {
                     String newKey = key.substring(prefix.length());
                     String value = flinkConfiguration.getString(key, null);
                     result.set(newKey, value);
-                    LOG.debug(
-                            "Adding Flink config entry for {} as {}={} to Hadoop config",
-                            key,
-                            newKey,
-                            value);
+                    LOG.debug("Adding Flink config entry for {} as {}={} to Hadoop config", key, newKey, value);
                     foundHadoopConfiguration = true;
                 }
             }
         }
 
         if (!foundHadoopConfiguration) {
-            LOG.warn(
-                    "Could not find Hadoop configuration via any of the supported methods "
-                            + "(Flink configuration, environment variables).");
+            LOG.warn("Could not find Hadoop configuration via any of the supported methods "
+                    + "(Flink configuration, environment variables).");
         }
 
         return result;
@@ -146,12 +132,10 @@ public class HadoopUtils {
 
     public static boolean isKerberosSecurityEnabled(UserGroupInformation ugi) {
         return UserGroupInformation.isSecurityEnabled()
-                && ugi.getAuthenticationMethod()
-                        == UserGroupInformation.AuthenticationMethod.KERBEROS;
+                && ugi.getAuthenticationMethod() == UserGroupInformation.AuthenticationMethod.KERBEROS;
     }
 
-    public static boolean areKerberosCredentialsValid(
-            UserGroupInformation ugi, boolean useTicketCache) {
+    public static boolean areKerberosCredentialsValid(UserGroupInformation ugi, boolean useTicketCache) {
         Preconditions.checkState(isKerberosSecurityEnabled(ugi));
 
         // note: UGI::hasKerberosCredentials inaccurately reports false
@@ -159,14 +143,12 @@ public class HadoopUtils {
         // so we check only in ticket cache scenario.
         if (useTicketCache && !ugi.hasKerberosCredentials()) {
             if (hasHDFSDelegationToken(ugi)) {
-                LOG.warn(
-                        "Hadoop security is enabled but current login user does not have Kerberos credentials, "
-                                + "use delegation token instead. Flink application will terminate after token expires.");
+                LOG.warn("Hadoop security is enabled but current login user does not have Kerberos credentials, "
+                        + "use delegation token instead. Flink application will terminate after token expires.");
                 return true;
             } else {
-                LOG.error(
-                        "Hadoop security is enabled, but current login user has neither Kerberos credentials "
-                                + "nor delegation tokens!");
+                LOG.error("Hadoop security is enabled, but current login user has neither Kerberos credentials "
+                        + "nor delegation tokens!");
                 return false;
             }
         }
@@ -209,8 +191,7 @@ public class HadoopUtils {
 
         if (versionParts.length < 2) {
             throw new FlinkRuntimeException(
-                    "Cannot determine version of Hadoop, unexpected version string: "
-                            + versionString);
+                    "Cannot determine version of Hadoop, unexpected version string: " + versionString);
         }
 
         int maj = Integer.parseInt(versionParts[0]);
@@ -222,26 +203,17 @@ public class HadoopUtils {
      * Search Hadoop configuration files in the given path, and add them to the configuration if
      * found.
      */
-    private static boolean addHadoopConfIfFound(
-            Configuration configuration, String possibleHadoopConfPath) {
+    private static boolean addHadoopConfIfFound(Configuration configuration, String possibleHadoopConfPath) {
         boolean foundHadoopConfiguration = false;
         if (new File(possibleHadoopConfPath).exists()) {
             if (new File(possibleHadoopConfPath + "/core-site.xml").exists()) {
-                configuration.addResource(
-                        new org.apache.hadoop.fs.Path(possibleHadoopConfPath + "/core-site.xml"));
-                LOG.debug(
-                        "Adding "
-                                + possibleHadoopConfPath
-                                + "/core-site.xml to hadoop configuration");
+                configuration.addResource(new org.apache.hadoop.fs.Path(possibleHadoopConfPath + "/core-site.xml"));
+                LOG.debug("Adding " + possibleHadoopConfPath + "/core-site.xml to hadoop configuration");
                 foundHadoopConfiguration = true;
             }
             if (new File(possibleHadoopConfPath + "/hdfs-site.xml").exists()) {
-                configuration.addResource(
-                        new org.apache.hadoop.fs.Path(possibleHadoopConfPath + "/hdfs-site.xml"));
-                LOG.debug(
-                        "Adding "
-                                + possibleHadoopConfPath
-                                + "/hdfs-site.xml to hadoop configuration");
+                configuration.addResource(new org.apache.hadoop.fs.Path(possibleHadoopConfPath + "/hdfs-site.xml"));
+                LOG.debug("Adding " + possibleHadoopConfPath + "/hdfs-site.xml to hadoop configuration");
                 foundHadoopConfiguration = true;
             }
         }

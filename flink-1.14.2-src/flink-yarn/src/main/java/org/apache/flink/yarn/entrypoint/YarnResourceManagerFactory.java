@@ -38,31 +38,47 @@ public class YarnResourceManagerFactory extends ActiveResourceManagerFactory<Yar
 
     private static final YarnResourceManagerFactory INSTANCE = new YarnResourceManagerFactory();
 
-    private YarnResourceManagerFactory() {}
+    private YarnResourceManagerFactory() {
+    }
 
     public static YarnResourceManagerFactory getInstance() {
         return INSTANCE;
     }
 
     @Override
-    protected ResourceManagerDriver<YarnWorkerNode> createResourceManagerDriver(
-            Configuration configuration, String webInterfaceUrl, String rpcAddress) {
-        final YarnResourceManagerDriverConfiguration yarnResourceManagerDriverConfiguration =
-                new YarnResourceManagerDriverConfiguration(
-                        System.getenv(), rpcAddress, webInterfaceUrl);
+    protected ResourceManagerDriver<YarnWorkerNode> createResourceManagerDriver(Configuration configuration,
+                                                                                String webInterfaceUrl,
+                                                                                String rpcAddress) {
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释：
+         */
+        final YarnResourceManagerDriverConfiguration yarnResourceManagerDriverConfiguration = new YarnResourceManagerDriverConfiguration(
+                System.getenv(),
+                rpcAddress,
+                webInterfaceUrl
+        );
 
-        return new YarnResourceManagerDriver(
-                configuration,
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释：
+         */
+        return new YarnResourceManagerDriver(configuration,
                 yarnResourceManagerDriverConfiguration,
+
+                // TODO_MA 马中华 注释： DefaultYarnResourceManagerClientFactory
                 DefaultYarnResourceManagerClientFactory.getInstance(),
-                DefaultYarnNodeManagerClientFactory.getInstance());
+
+                // TODO_MA 马中华 注释： DefaultYarnNodeManagerClientFactory
+                DefaultYarnNodeManagerClientFactory.getInstance()
+        );
     }
 
     @Override
-    protected ResourceManagerRuntimeServicesConfiguration
-            createResourceManagerRuntimeServicesConfiguration(Configuration configuration)
-                    throws ConfigurationException {
-        return ResourceManagerRuntimeServicesConfiguration.fromConfiguration(
-                configuration, YarnWorkerResourceSpecFactory.INSTANCE);
+    protected ResourceManagerRuntimeServicesConfiguration createResourceManagerRuntimeServicesConfiguration(
+            Configuration configuration) throws ConfigurationException {
+        return ResourceManagerRuntimeServicesConfiguration.fromConfiguration(configuration,
+                YarnWorkerResourceSpecFactory.INSTANCE
+        );
     }
 }

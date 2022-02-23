@@ -36,7 +36,8 @@ import java.util.Optional;
  */
 public abstract class LocationPreferenceSlotSelectionStrategy implements SlotSelectionStrategy {
 
-    LocationPreferenceSlotSelectionStrategy() {}
+    LocationPreferenceSlotSelectionStrategy() {
+    }
 
     @Override
     public Optional<SlotInfoAndLocality> selectBestSlotForProfile(
@@ -55,7 +56,7 @@ public abstract class LocationPreferenceSlotSelectionStrategy implements SlotSel
         return locationPreferences.isEmpty()
                 ? selectWithoutLocationPreference(availableSlots, resourceProfile)
                 : selectWithLocationPreference(
-                        availableSlots, locationPreferences, resourceProfile);
+                availableSlots, locationPreferences, resourceProfile);
     }
 
     @Nonnull
@@ -112,7 +113,7 @@ public abstract class LocationPreferenceSlotSelectionStrategy implements SlotSel
         // at the end of the iteration, we return the candidate with best possible locality or null.
         return bestCandidate != null
                 ? Optional.of(
-                        SlotInfoAndLocality.of(bestCandidate.getSlotInfo(), bestCandidateLocality))
+                SlotInfoAndLocality.of(bestCandidate.getSlotInfo(), bestCandidateLocality))
                 : Optional.empty();
     }
 
@@ -122,7 +123,9 @@ public abstract class LocationPreferenceSlotSelectionStrategy implements SlotSel
             @Nonnull ResourceProfile resourceProfile);
 
     protected abstract double calculateCandidateScore(
-            int localWeigh, int hostLocalWeigh, double taskExecutorUtilization);
+            int localWeigh,
+            int hostLocalWeigh,
+            double taskExecutorUtilization);
 
     // -------------------------------------------------------------------------------------------
     // Factory methods

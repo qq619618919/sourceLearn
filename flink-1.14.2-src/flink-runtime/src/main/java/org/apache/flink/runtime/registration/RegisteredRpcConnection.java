@@ -32,10 +32,15 @@ import static org.apache.flink.util.Preconditions.checkNotNull;
 import static org.apache.flink.util.Preconditions.checkState;
 
 /**
+ * // TODO_MA 马中华 注释： 该实用程序类实现了从一个组件到另一个组件的 RPC 连接的基础，
+ * // TODO_MA 马中华 注释： 例如从 TaskExecutor 到 ResourceManager 的 RPC 连接。
+ * // TODO_MA 马中华 注释： 这个 {@code RegisteredRpcConnection} 实现注册和获取目标网关。
  * This utility class implements the basis of RPC connecting from one component to another
  * component, for example the RPC connection from TaskExecutor to ResourceManager. This {@code
  * RegisteredRpcConnection} implements registration and get target gateway.
  *
+ * // TODO_MA 马中华 注释： 注册可以访问在成功注册后完成的未来。
+ * // TODO_MA 马中华 注释： RPC 连接可以关闭，例如当它尝试注册的目标失去领导者状态时。
  * <p>The registration gives access to a future that is completed upon successful registration. The
  * RPC connection can be closed, for example when the target where it tries to register at looses
  * leader status.
@@ -48,10 +53,7 @@ import static org.apache.flink.util.Preconditions.checkState;
 public abstract class RegisteredRpcConnection<F extends Serializable, G extends RpcGateway, S extends RegistrationResponse.Success, R extends RegistrationResponse.Rejection> {
 
     private static final AtomicReferenceFieldUpdater<RegisteredRpcConnection, RetryingRegistration> REGISTRATION_UPDATER = AtomicReferenceFieldUpdater.newUpdater(
-            RegisteredRpcConnection.class,
-            RetryingRegistration.class,
-            "pendingRegistration"
-    );
+            RegisteredRpcConnection.class, RetryingRegistration.class, "pendingRegistration");
 
     /** The logger for all log messages of this class. */
     protected final Logger log;
@@ -79,7 +81,10 @@ public abstract class RegisteredRpcConnection<F extends Serializable, G extends 
 
     // ------------------------------------------------------------------------
 
-    public RegisteredRpcConnection(Logger log, String targetAddress, F fencingToken, Executor executor) {
+    public RegisteredRpcConnection(Logger log,
+                                   String targetAddress,
+                                   F fencingToken,
+                                   Executor executor) {
         this.log = checkNotNull(log);
         this.targetAddress = checkNotNull(targetAddress);
         this.fencingToken = checkNotNull(fencingToken);
@@ -90,26 +95,50 @@ public abstract class RegisteredRpcConnection<F extends Serializable, G extends 
     //  Life cycle
     // ------------------------------------------------------------------------
 
+    /*************************************************
+     * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+     *  注释： 启动的时候，调用
+     *  接下来，这是一个通用的注册机制！
+     *  1\ TaskExecutor 启动好了之后，需要向 ResourceManager 注册
+     *  2\ JobMaster    启动好了之后，需要向 ResourceManager 注册
+     *  关于注册机制，就是通过： RegisteredRpcConnection 来实现的
+     *  -
+     *  A： 生成一个代表一次注册行为的抽象对象： RetryingRegistion
+     *  B： 真正执行注册：发送 RPC 请求给 主节点，接收到响应
+     *  C： 拿到注册结果，然后执行 注册成功或失败的 相应回调
+     *  D： 解析到这个响应，解析响应，生成注册结果
+     *  -
+     *  A B C D  是看到的代码的顺序
+     *  A B D C  是代码的执行顺序
+     */
     public void start() {
         checkState(!closed, "The RPC connection is already closed");
         checkState(!isConnected() && pendingRegistration == null, "The RPC connection is already started");
 
         /*************************************************
          * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-         *  注释：
+         *  注释： 第一个步骤： 创建注册对象： RetryingRegistration 尝试做一次注册的一个动作的抽象
+         *  跟之前的那个 TaskExecutorRegistration 是不一样的： 只是包含了一些必要的从节点的信息
+         *  -
+         *  内部做了两件事：
+         *  1、生成一个 RetryingRegistration   A
+         *  2、构建了一个回调逻辑   C
          */
         final RetryingRegistration<F, G, S, R> newRegistration = createNewRegistration();
 
         if (REGISTRATION_UPDATER.compareAndSet(this, null, newRegistration)) {
             /*************************************************
              * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-             *  注释：
+             *  注释： 第二个步骤： 开启注册流程  B
+             *  内部还有另外一个动作叫做： D：解析响应，生成 注册结果
              */
             newRegistration.startRegistration();
         } else {
             // concurrent start operation
             newRegistration.cancel();
         }
+        // TODO_MA 马中华 注释： 真正的执行顺序是: A, B, C
+        // TODO_MA 马中华 注释： 真正的执行顺序是：A, B, D, C
     }
 
     /**
@@ -118,6 +147,10 @@ public abstract class RegisteredRpcConnection<F extends Serializable, G extends 
      *
      * @return {@code false} if the connection has been closed or a concurrent modification has
      *         happened; otherwise {@code true}
+     */
+    /*************************************************
+     * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+     *  注释： 重连的时候调用
      */
     public boolean tryReconnect() {
         checkState(isConnected(), "Cannot reconnect to an unknown destination.");
@@ -245,43 +278,59 @@ public abstract class RegisteredRpcConnection<F extends Serializable, G extends 
 
         /*************************************************
          * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-         *  注释：
+         *  注释：  A 生成链接实例
          */
         RetryingRegistration<F, G, S, R> newRegistration = checkNotNull(generateRegistration());
 
         CompletableFuture<RetryingRegistration.RetryingRegistrationResult<G, S, R>> future = newRegistration.getFuture();
 
+        // TODO_MA 马中华 注释： RetryingRegistration 代表一次注册行为，必然是这个行为完成了之后，才回调
+        // TODO_MA 马中华 注释： 这个注册行为，事实上是包含了 A, B , D 三个动作的
+        // TODO_MA 马中华 注释： A ： 生成一个抽象对象，表示这一次注册行为
+        // TODO_MA 马中华 注释： B ： 真正执行
+        // TODO_MA 马中华 注释： D ： 解析注册响应，生成注册结果
+
         /*************************************************
          * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-         *  注释：
+         *  注释： C 依据注册的结果来执行 成功回调 或者 失败回调
          */
         future.whenCompleteAsync((RetryingRegistration.RetryingRegistrationResult<G, S, R> result, Throwable failure) -> {
             if (failure != null) {
                 if (failure instanceof CancellationException) {
                     // we ignore cancellation exceptions because they originate from
-                    // cancelling
-                    // the RetryingRegistration
+                    // cancelling the RetryingRegistration
                     log.debug("Retrying registration towards {} was cancelled.", targetAddress);
                 } else {
-                    // this future should only ever fail if there is a bug, not if the
-                    // registration is declined
+                    // this future should only ever fail if there is a bug, not if the registration is declined
+                    /*************************************************
+                     * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+                     *  注释： 注册失败的回调
+                     */
                     onRegistrationFailure(failure);
                 }
             } else {
+
+                // TODO_MA 马中华 注释： 注册成功
                 if (result.isSuccess()) {
                     targetGateway = result.getGateway();
 
                     /*************************************************
                      * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-                     *  注释：
+                     *  注释： 注册成功的回调
                      */
                     onRegistrationSuccess(result.getSuccess());
-                } else if (result.isRejection()) {
+                }
+
+                // TODO_MA 马中华 注释： 注册被拒绝
+                else if (result.isRejection()) {
+
+                    /*************************************************
+                     * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+                     *  注释：
+                     */
                     onRegistrationRejection(result.getRejection());
                 } else {
-                    throw new IllegalArgumentException(String.format("Unknown retrying registration response: %s.",
-                            result
-                    ));
+                    throw new IllegalArgumentException(String.format("Unknown retrying registration response: %s.", result));
                 }
             }
         }, executor);

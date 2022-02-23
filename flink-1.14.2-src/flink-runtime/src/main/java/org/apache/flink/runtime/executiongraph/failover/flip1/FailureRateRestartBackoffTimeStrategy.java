@@ -111,7 +111,8 @@ public class FailureRateRestartBackoffTimeStrategy implements RestartBackoffTime
     }
 
     public static FailureRateRestartBackoffTimeStrategyFactory createFactory(final Configuration configuration) {
-        int maxFailuresPerInterval = configuration.getInteger(RestartStrategyOptions.RESTART_STRATEGY_FAILURE_RATE_MAX_FAILURES_PER_INTERVAL);
+        int maxFailuresPerInterval = configuration.getInteger(
+                RestartStrategyOptions.RESTART_STRATEGY_FAILURE_RATE_MAX_FAILURES_PER_INTERVAL);
         long failuresInterval = configuration
                 .get(RestartStrategyOptions.RESTART_STRATEGY_FAILURE_RATE_FAILURE_RATE_INTERVAL)
                 .toMillis();

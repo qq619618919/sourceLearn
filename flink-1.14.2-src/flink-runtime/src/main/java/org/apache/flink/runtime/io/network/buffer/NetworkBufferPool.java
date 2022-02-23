@@ -50,10 +50,15 @@ import static org.apache.flink.util.Preconditions.checkArgument;
 import static org.apache.flink.util.Preconditions.checkNotNull;
 
 /**
+ * // TODO_MA 马中华 注释： NetworkBufferPool 是网络堆栈的固定大小的 {@link MemorySegment} 实例池。
  * The NetworkBufferPool is a fixed size pool of {@link MemorySegment} instances for the network stack.
  *
+ * // TODO_MA 马中华 注释： NetworkBufferPool 创建 {@link LocalBufferPool}，各个任务从中提取缓冲区以进行网络数据传输。
  * <p>The NetworkBufferPool creates {@link LocalBufferPool}s from which the individual tasks draw
- * the buffers for the network data transfer. When new local buffer pools are created, the
+ * the buffers for the network data transfer.
+ *
+ * // TODO_MA 马中华 注释： 当创建新的本地缓冲池时，NetworkBufferPool 会在池之间动态重新分配缓冲区。
+ * When new local buffer pools are created, the
  * NetworkBufferPool dynamically redistributes the buffers between the pools.
  */
 public class NetworkBufferPool implements BufferPoolFactory, MemorySegmentProvider, AvailabilityProvider {
@@ -64,6 +69,10 @@ public class NetworkBufferPool implements BufferPoolFactory, MemorySegmentProvid
 
     private final int memorySegmentSize;
 
+    /*************************************************
+     * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+     *  注释： 一个 MemorySegment 队列
+     */
     private final ArrayDeque<MemorySegment> availableMemorySegments;
 
     private volatile boolean isDestroyed;
@@ -89,6 +98,8 @@ public class NetworkBufferPool implements BufferPoolFactory, MemorySegmentProvid
     public NetworkBufferPool(int numberOfSegmentsToAllocate, int segmentSize, Duration requestSegmentsTimeout) {
 
         this.totalNumberOfMemorySegments = numberOfSegmentsToAllocate;
+
+        // TODO_MA 马中华 注释： 32k
         this.memorySegmentSize = segmentSize;
 
         Preconditions.checkNotNull(requestSegmentsTimeout);
@@ -99,6 +110,7 @@ public class NetworkBufferPool implements BufferPoolFactory, MemorySegmentProvid
 
         final long sizeInLong = (long) segmentSize;
 
+        // TODO_MA 马中华 注释： MemorySegment 队列初始化
         try {
             this.availableMemorySegments = new ArrayDeque<>(numberOfSegmentsToAllocate);
         } catch (OutOfMemoryError err) {
@@ -109,11 +121,11 @@ public class NetworkBufferPool implements BufferPoolFactory, MemorySegmentProvid
         try {
             /*************************************************
              * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-             *  注释：
+             *  注释： 一口气申请足额数量的 MemorySegment 内存片段，之后会封装成 NetworkBuffer
              */
             for (int i = 0; i < numberOfSegmentsToAllocate; i++) {
 
-                // TODO_MA 马中华 注释：
+                // TODO_MA 马中华 注释： 申请 MemorySegment 添加到 availableMemorySegments 队列中
                 availableMemorySegments.add(MemorySegmentFactory.allocateUnpooledOffHeapMemory(segmentSize, null));
             }
         } catch (OutOfMemoryError err) {
@@ -134,7 +146,11 @@ public class NetworkBufferPool implements BufferPoolFactory, MemorySegmentProvid
 
         availabilityHelper.resetAvailable();
 
-        long allocatedMb = (sizeInLong * availableMemorySegments.size()) >> 20;
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释： 计算申请到的总内存的大小
+         */
+        long allocatedMb = (sizeInLong * availableMemorySegments.size()) >>  20;
 
         LOG.info("Allocated {} MB for network buffer pool (number of memory segments: {}, bytes per segment: {}).",
                 allocatedMb,
@@ -169,36 +185,52 @@ public class NetworkBufferPool implements BufferPoolFactory, MemorySegmentProvid
             if (isDestroyed) {
                 throw new IllegalStateException("Network buffer pool has already been destroyed.");
             }
-
             if (numberOfSegmentsToRequest == 0) {
                 return Collections.emptyList();
             }
-
             tryRedistributeBuffers(numberOfSegmentsToRequest);
         }
 
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释：
+         */
         return internalRequestMemorySegments(numberOfSegmentsToRequest);
     }
 
     private List<MemorySegment> internalRequestMemorySegments(int numberOfSegmentsToRequest) throws IOException {
+
+        // TODO_MA 马中华 注释： 结果容器
         final List<MemorySegment> segments = new ArrayList<>(numberOfSegmentsToRequest);
+
         try {
             final Deadline deadline = Deadline.fromNow(requestSegmentsTimeout);
+
+            // TODO_MA 马中华 注释： 循环
             while (true) {
                 if (isDestroyed) {
                     throw new IllegalStateException("Buffer pool is destroyed.");
                 }
-
                 MemorySegment segment;
                 synchronized (availableMemorySegments) {
+
+                    /*************************************************
+                     * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+                     *  注释： 申请 MemorySegment
+                     */
                     if ((segment = internalRequestMemorySegment()) == null) {
+
+                        // TODO_MA 马中华 注释： 如果从队列中申请 MemorySegment 申请内存不到，则等待 2s 在继续
                         availableMemorySegments.wait(2000);
                     }
                 }
+
+                // TODO_MA 马中华 注释： 添加到集合中国
                 if (segment != null) {
                     segments.add(segment);
                 }
 
+                // TODO_MA 马中华 注释： 达到数量，则退出循环
                 if (segments.size() >= numberOfSegmentsToRequest) {
                     break;
                 }
@@ -217,6 +249,7 @@ public class NetworkBufferPool implements BufferPoolFactory, MemorySegmentProvid
             ExceptionUtils.rethrowIOException(e);
         }
 
+        // TODO_MA 马中华 注释： 返回申请到 MemorySegment 集合
         return segments;
     }
 
@@ -224,7 +257,12 @@ public class NetworkBufferPool implements BufferPoolFactory, MemorySegmentProvid
     private MemorySegment internalRequestMemorySegment() {
         assert Thread.holdsLock(availableMemorySegments);
 
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释： 从队列中获取， 非阻塞方法
+         */
         final MemorySegment segment = availableMemorySegments.poll();
+
         if (availableMemorySegments.isEmpty() && segment != null) {
             availabilityHelper.resetUnavailable();
         }
@@ -336,6 +374,10 @@ public class NetworkBufferPool implements BufferPoolFactory, MemorySegmentProvid
 
     @Override
     public BufferPool createBufferPool(int numRequiredBuffers, int maxUsedBuffers) throws IOException {
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释：
+         */
         return internalCreateBufferPool(numRequiredBuffers, maxUsedBuffers, 0, Integer.MAX_VALUE);
     }
 
@@ -376,8 +418,11 @@ public class NetworkBufferPool implements BufferPoolFactory, MemorySegmentProvid
 
             this.numTotalRequiredBuffers += numRequiredBuffers;
 
-            // We are good to go, create a new buffer pool and redistribute
-            // non-fixed size buffers.
+            // We are good to go, create a new buffer pool and redistribute non-fixed size buffers.
+            /*************************************************
+             * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+             *  注释： 创建一个 LocalBufferPool
+             */
             LocalBufferPool localBufferPool = new LocalBufferPool(this,
                     numRequiredBuffers,
                     maxUsedBuffers,
@@ -385,6 +430,7 @@ public class NetworkBufferPool implements BufferPoolFactory, MemorySegmentProvid
                     maxBuffersPerChannel
             );
 
+            // TODO_MA 马中华 注释： 添加到 NetworkBufferPool 中
             allBufferPools.add(localBufferPool);
 
             redistributeBuffers();

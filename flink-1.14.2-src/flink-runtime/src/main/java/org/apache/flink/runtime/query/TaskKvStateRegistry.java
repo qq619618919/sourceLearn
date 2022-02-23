@@ -62,8 +62,7 @@ public class TaskKvStateRegistry {
             String registrationName,
             InternalKvState<?, ?, ?> kvState,
             ClassLoader userClassLoader) {
-        KvStateID kvStateId =
-                registry.registerKvState(
+        KvStateID kvStateId = registry.registerKvState(
                         jobId,
                         jobVertexId,
                         keyGroupRange,

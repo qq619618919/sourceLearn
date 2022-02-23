@@ -27,15 +27,19 @@ package org.apache.flink.runtime.leaderretrieval;
  * once.
  *
  * <p>The service should be stopped by calling the stop method.
+ * // TODO_MA 马中华 注释： 观察者 设计模式
  */
 public interface LeaderRetrievalService {
 
     /**
      * Starts the leader retrieval service with the given listener to listen for new leaders. This
      * method can only be called once.
+     * // TODO_MA 马中华 注释： 启动监听
      *
      * @param listener The leader retrieval listener which will be notified about new leaders.
      * @throws Exception
+     * // TODO_MA 马中华 注释： 如果通过这个 LeaderRetrievalService 的 start(listener) 启动了监听之后响应了。
+     * // TODO_MA 马中华 注释： 则回调 listener 的notifyLeaderAddress 的方法
      */
     void start(LeaderRetrievalListener listener) throws Exception;
 

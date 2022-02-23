@@ -46,12 +46,10 @@ import static org.apache.flink.util.Preconditions.checkNotNull;
  *
  * @param <ClusterID> the type of the id of the cluster.
  * @param <ClientFactory> the type of the {@link ClusterClientFactory} used to create/retrieve a
- *     client to the target cluster.
+ *         client to the target cluster.
  */
 @Internal
-public class AbstractJobClusterExecutor<
-                ClusterID, ClientFactory extends ClusterClientFactory<ClusterID>>
-        implements PipelineExecutor {
+public class AbstractJobClusterExecutor<ClusterID, ClientFactory extends ClusterClientFactory<ClusterID>> implements PipelineExecutor {
 
     private static final Logger LOG = LoggerFactory.getLogger(AbstractJobClusterExecutor.class);
 
@@ -62,29 +60,41 @@ public class AbstractJobClusterExecutor<
     }
 
     @Override
-    public CompletableFuture<JobClient> execute(
-            @Nonnull final Pipeline pipeline,
-            @Nonnull final Configuration configuration,
-            @Nonnull final ClassLoader userCodeClassloader)
-            throws Exception {
+    public CompletableFuture<JobClient> execute(@Nonnull final Pipeline pipeline,
+                                                @Nonnull final Configuration configuration,
+                                                @Nonnull final ClassLoader userCodeClassloader) throws Exception {
+
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释：
+         */
         final JobGraph jobGraph = PipelineExecutorUtils.getJobGraph(pipeline, configuration);
 
-        try (final ClusterDescriptor<ClusterID> clusterDescriptor =
-                clusterClientFactory.createClusterDescriptor(configuration)) {
-            final ExecutionConfigAccessor configAccessor =
-                    ExecutionConfigAccessor.fromConfiguration(configuration);
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释：
+         */
+        try (final ClusterDescriptor<ClusterID> clusterDescriptor = clusterClientFactory.createClusterDescriptor(
+                configuration)) {
+            final ExecutionConfigAccessor configAccessor = ExecutionConfigAccessor.fromConfiguration(configuration);
 
-            final ClusterSpecification clusterSpecification =
-                    clusterClientFactory.getClusterSpecification(configuration);
+            final ClusterSpecification clusterSpecification = clusterClientFactory.getClusterSpecification(configuration);
 
-            final ClusterClientProvider<ClusterID> clusterClientProvider =
-                    clusterDescriptor.deployJobCluster(
-                            clusterSpecification, jobGraph, configAccessor.getDetachedMode());
+            /*************************************************
+             * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+             *  注释：
+             */
+            final ClusterClientProvider<ClusterID> clusterClientProvider = clusterDescriptor.deployJobCluster(
+                    clusterSpecification,
+                    jobGraph,
+                    configAccessor.getDetachedMode()
+            );
             LOG.info("Job has been submitted with JobID " + jobGraph.getJobID());
 
-            return CompletableFuture.completedFuture(
-                    new ClusterClientJobClientAdapter<>(
-                            clusterClientProvider, jobGraph.getJobID(), userCodeClassloader));
+            return CompletableFuture.completedFuture(new ClusterClientJobClientAdapter<>(clusterClientProvider,
+                    jobGraph.getJobID(),
+                    userCodeClassloader
+            ));
         }
     }
 }

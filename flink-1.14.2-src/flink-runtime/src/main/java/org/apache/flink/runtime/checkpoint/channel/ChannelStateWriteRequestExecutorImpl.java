@@ -43,25 +43,37 @@ import static org.apache.flink.util.IOUtils.closeAll;
 @ThreadSafe
 class ChannelStateWriteRequestExecutorImpl implements ChannelStateWriteRequestExecutor {
 
-    private static final Logger LOG =
-            LoggerFactory.getLogger(ChannelStateWriteRequestExecutorImpl.class);
+    private static final Logger LOG = LoggerFactory.getLogger(ChannelStateWriteRequestExecutorImpl.class);
 
+    /*************************************************
+     * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+     *  注释： Request 分发器
+     */
     private final ChannelStateWriteRequestDispatcher dispatcher;
+
+    /*************************************************
+     * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+     *  注释： 队列
+     */
     private final BlockingDeque<ChannelStateWriteRequest> deque;
+
+    /*************************************************
+     * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+     *  注释： 队列的消费线程
+     */
     private final Thread thread;
+
     private volatile Exception thrown = null;
     private volatile boolean wasClosed = false;
     private final String taskName;
 
-    ChannelStateWriteRequestExecutorImpl(
-            String taskName, ChannelStateWriteRequestDispatcher dispatcher) {
+    ChannelStateWriteRequestExecutorImpl(String taskName, ChannelStateWriteRequestDispatcher dispatcher) {
         this(taskName, dispatcher, new LinkedBlockingDeque<>());
     }
 
-    ChannelStateWriteRequestExecutorImpl(
-            String taskName,
-            ChannelStateWriteRequestDispatcher dispatcher,
-            BlockingDeque<ChannelStateWriteRequest> deque) {
+    ChannelStateWriteRequestExecutorImpl(String taskName,
+                                         ChannelStateWriteRequestDispatcher dispatcher,
+                                         BlockingDeque<ChannelStateWriteRequest> deque) {
         this.taskName = taskName;
         this.dispatcher = dispatcher;
         this.deque = deque;
@@ -72,16 +84,19 @@ class ChannelStateWriteRequestExecutorImpl implements ChannelStateWriteRequestEx
     @VisibleForTesting
     void run() {
         try {
+
+            /*************************************************
+             * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+             *  注释：
+             */
             loop();
         } catch (Exception ex) {
             thrown = ex;
         } finally {
             try {
-                closeAll(
-                        this::cleanupRequests,
-                        () ->
-                                dispatcher.fail(
-                                        thrown == null ? new CancellationException() : thrown));
+                closeAll(this::cleanupRequests,
+                        () -> dispatcher.fail(thrown == null ? new CancellationException() : thrown)
+                );
             } catch (Exception e) {
                 //noinspection NonAtomicOperationOnVolatileField
                 thrown = ExceptionUtils.firstOrSuppressed(e, thrown);
@@ -93,13 +108,14 @@ class ChannelStateWriteRequestExecutorImpl implements ChannelStateWriteRequestEx
     private void loop() throws Exception {
         while (!wasClosed) {
             try {
+                /*************************************************
+                 * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+                 *  注释：
+                 */
                 dispatcher.dispatch(deque.take());
             } catch (InterruptedException e) {
                 if (!wasClosed) {
-                    LOG.debug(
-                            taskName
-                                    + " interrupted while waiting for a request (continue waiting)",
-                            e);
+                    LOG.debug(taskName + " interrupted while waiting for a request (continue waiting)", e);
                 } else {
                     Thread.currentThread().interrupt();
                 }
@@ -112,10 +128,10 @@ class ChannelStateWriteRequestExecutorImpl implements ChannelStateWriteRequestEx
         List<ChannelStateWriteRequest> drained = new ArrayList<>();
         deque.drainTo(drained);
         LOG.info("{} discarding {} drained requests", taskName, drained.size());
-        closeAll(
-                drained.stream()
-                        .<AutoCloseable>map(request -> () -> request.cancel(cause))
-                        .collect(Collectors.toList()));
+        closeAll(drained
+                .stream()
+                .<AutoCloseable>map(request -> () -> request.cancel(cause))
+                .collect(Collectors.toList()));
     }
 
     @Override
@@ -133,8 +149,7 @@ class ChannelStateWriteRequestExecutorImpl implements ChannelStateWriteRequestEx
         submitInternal(request, () -> deque.addFirst(request));
     }
 
-    private void submitInternal(ChannelStateWriteRequest request, RunnableWithException action)
-            throws Exception {
+    private void submitInternal(ChannelStateWriteRequest request, RunnableWithException action) throws Exception {
         try {
             action.run();
         } catch (Exception ex) {
@@ -149,8 +164,7 @@ class ChannelStateWriteRequestExecutorImpl implements ChannelStateWriteRequestEx
         // checking before is not enough because (check + enqueue) is not atomic
         if (wasClosed || !thread.isAlive()) {
             cleanupRequests();
-            throw ExceptionUtils.firstOrSuppressed(
-                    new IllegalStateException("not running"), thrown);
+            throw ExceptionUtils.firstOrSuppressed(new IllegalStateException("not running"), thrown);
         }
     }
 

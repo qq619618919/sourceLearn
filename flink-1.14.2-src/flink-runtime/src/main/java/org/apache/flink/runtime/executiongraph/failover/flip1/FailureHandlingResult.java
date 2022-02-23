@@ -50,10 +50,12 @@ public class FailureHandlingResult {
      * The {@link ExecutionVertexID} refering to the {@link ExecutionVertex} the failure is
      * originating from or {@code null} if it's a global failure.
      */
-    @Nullable private final ExecutionVertexID failingExecutionVertexId;
+    @Nullable
+    private final ExecutionVertexID failingExecutionVertexId;
 
     /** Failure reason. {@code @Nullable} because of FLINK-21376. */
-    @Nullable private final Throwable error;
+    @Nullable
+    private final Throwable error;
 
     /** Failure timestamp. */
     private final long timestamp;

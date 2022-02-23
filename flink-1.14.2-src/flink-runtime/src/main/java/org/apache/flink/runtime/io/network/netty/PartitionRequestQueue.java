@@ -48,6 +48,7 @@ import static org.apache.flink.runtime.io.network.netty.NettyMessage.BufferRespo
 import static org.apache.flink.util.Preconditions.checkArgument;
 
 /**
+ * // TODO_MA 马中华 注释： 分区队列的 nonEmptyReader，它在写入和刷新 {@link Buffer} 实例之前侦听通道可写性更改事件。
  * A nonEmptyReader of partition queues, which listens for channel writability changed events before
  * writing and flushing {@link Buffer} instances.
  */
@@ -55,15 +56,14 @@ class PartitionRequestQueue extends ChannelInboundHandlerAdapter {
 
     private static final Logger LOG = LoggerFactory.getLogger(PartitionRequestQueue.class);
 
-    private final ChannelFutureListener writeListener =
-            new WriteAndFlushNextMessageIfPossibleListener();
+    // TODO_MA 马中华 注释：
+    private final ChannelFutureListener writeListener = new WriteAndFlushNextMessageIfPossibleListener();
 
     /** The readers which are already enqueued available for transferring data. */
     private final ArrayDeque<NetworkSequenceViewReader> availableReaders = new ArrayDeque<>();
 
     /** All the readers created for the consumers' partition requests. */
-    private final ConcurrentMap<InputChannelID, NetworkSequenceViewReader> allReaders =
-            new ConcurrentHashMap<>();
+    private final ConcurrentMap<InputChannelID, NetworkSequenceViewReader> allReaders = new ConcurrentHashMap<>();
 
     private boolean fatalError;
 
@@ -74,7 +74,6 @@ class PartitionRequestQueue extends ChannelInboundHandlerAdapter {
         if (this.ctx == null) {
             this.ctx = ctx;
         }
-
         super.channelRegistered(ctx);
     }
 
@@ -88,6 +87,11 @@ class PartitionRequestQueue extends ChannelInboundHandlerAdapter {
         // TODO This could potentially have a bad performance impact as in the
         // worst case (network consumes faster than the producer) each buffer
         // will trigger a separate event loop task being scheduled.
+
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释：
+         */
         ctx.executor().execute(() -> ctx.pipeline().fireUserEventTriggered(reader));
     }
 
@@ -103,8 +107,7 @@ class PartitionRequestQueue extends ChannelInboundHandlerAdapter {
             return;
         }
 
-        ResultSubpartitionView.AvailabilityWithBacklog availabilityWithBacklog =
-                reader.getAvailabilityAndBacklog();
+        ResultSubpartitionView.AvailabilityWithBacklog availabilityWithBacklog = reader.getAvailabilityAndBacklog();
         if (!availabilityWithBacklog.isAvailable()) {
             int backlog = availabilityWithBacklog.getBacklog();
             if (backlog > 0 && reader.needAnnounceBacklog()) {
@@ -159,9 +162,8 @@ class PartitionRequestQueue extends ChannelInboundHandlerAdapter {
      * @param receiverId The input channel id to identify the consumer.
      * @param operation The operation to be performed (add credit or resume data consumption).
      */
-    void addCreditOrResumeConsumption(
-            InputChannelID receiverId, Consumer<NetworkSequenceViewReader> operation)
-            throws Exception {
+    void addCreditOrResumeConsumption(InputChannelID receiverId,
+                                      Consumer<NetworkSequenceViewReader> operation) throws Exception {
         if (fatalError) {
             return;
         }
@@ -198,8 +200,7 @@ class PartitionRequestQueue extends ChannelInboundHandlerAdapter {
     NetworkSequenceViewReader obtainReader(InputChannelID receiverId) {
         NetworkSequenceViewReader reader = allReaders.get(receiverId);
         if (reader == null) {
-            throw new IllegalStateException(
-                    "No reader for receiverId = " + receiverId + " exists.");
+            throw new IllegalStateException("No reader for receiverId = " + receiverId + " exists.");
         }
 
         return reader;
@@ -212,17 +213,14 @@ class PartitionRequestQueue extends ChannelInboundHandlerAdapter {
     private void announceBacklog(NetworkSequenceViewReader reader, int backlog) {
         checkArgument(backlog > 0, "Backlog must be positive.");
 
-        NettyMessage.BacklogAnnouncement announcement =
-                new NettyMessage.BacklogAnnouncement(backlog, reader.getReceiverId());
-        ctx.channel()
-                .writeAndFlush(announcement)
-                .addListener(
-                        (ChannelFutureListener)
-                                future -> {
-                                    if (!future.isSuccess()) {
-                                        onChannelFutureFailure(future);
-                                    }
-                                });
+        NettyMessage.BacklogAnnouncement announcement = new NettyMessage.BacklogAnnouncement(backlog,
+                reader.getReceiverId()
+        );
+        ctx.channel().writeAndFlush(announcement).addListener((ChannelFutureListener) future -> {
+            if (!future.isSuccess()) {
+                onChannelFutureFailure(future);
+            }
+        });
     }
 
     @Override
@@ -282,9 +280,9 @@ class PartitionRequestQueue extends ChannelInboundHandlerAdapter {
 
                     Throwable cause = reader.getFailureCause();
                     if (cause != null) {
-                        ErrorResponse msg =
-                                new ErrorResponse(
-                                        new ProducerFailedException(cause), reader.getReceiverId());
+                        ErrorResponse msg = new ErrorResponse(new ProducerFailedException(cause),
+                                reader.getReceiverId()
+                        );
 
                         ctx.writeAndFlush(msg);
                     }
@@ -295,12 +293,11 @@ class PartitionRequestQueue extends ChannelInboundHandlerAdapter {
                         registerAvailableReader(reader);
                     }
 
-                    BufferResponse msg =
-                            new BufferResponse(
-                                    next.buffer(),
-                                    next.getSequenceNumber(),
-                                    reader.getReceiverId(),
-                                    next.buffersInBacklog());
+                    BufferResponse msg = new BufferResponse(next.buffer(),
+                            next.getSequenceNumber(),
+                            reader.getReceiverId(),
+                            next.buffersInBacklog()
+                    );
 
                     // Write and flush and wait until this is done before
                     // trying to continue with the next buffer.
@@ -351,8 +348,7 @@ class PartitionRequestQueue extends ChannelInboundHandlerAdapter {
         releaseAllResources();
 
         if (channel.isActive()) {
-            channel.writeAndFlush(new ErrorResponse(cause))
-                    .addListener(ChannelFutureListener.CLOSE);
+            channel.writeAndFlush(new ErrorResponse(cause)).addListener(ChannelFutureListener.CLOSE);
         }
     }
 
@@ -375,8 +371,7 @@ class PartitionRequestQueue extends ChannelInboundHandlerAdapter {
         if (future.cause() != null) {
             handleException(future.channel(), future.cause());
         } else {
-            handleException(
-                    future.channel(), new IllegalStateException("Sending cancelled by user."));
+            handleException(future.channel(), new IllegalStateException("Sending cancelled by user."));
         }
     }
 

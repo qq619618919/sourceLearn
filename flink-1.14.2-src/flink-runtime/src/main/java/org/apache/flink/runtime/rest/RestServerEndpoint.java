@@ -81,7 +81,9 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
-/** An abstract class for netty-based REST server endpoints. */
+/**
+ * An abstract class for netty-based REST server endpoints.
+ */
 public abstract class RestServerEndpoint implements AutoCloseableAsync {
 
     protected final Logger log = LoggerFactory.getLogger(getClass());
@@ -160,6 +162,9 @@ public abstract class RestServerEndpoint implements AutoCloseableAsync {
     protected abstract List<Tuple2<RestHandlerSpecification, ChannelInboundHandler>> initializeHandlers(final CompletableFuture<String> localAddressFuture);
 
     /**
+     * // TODO_MA 马中华 注释： 注意 WebMonitorEndpoint 的具体实现是： RestServerEndpoint
+     * // TODO_MA 马中华 注释： 初始化了一大堆的 handler 组件，启动了一个 NettyServer，然后绑定这些 Hnadler 到 NeetyServer
+     * // TODO_MA 马中华 注释： 有一个细节： 这些 handler 通过一个路由器去管理的
      * Starts this REST server endpoint.
      *
      * @throws Exception if we cannot start the RestServerEndpoint
@@ -172,7 +177,7 @@ public abstract class RestServerEndpoint implements AutoCloseableAsync {
 
             /*************************************************
              * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-             *  注释： Router
+             *  注释： Router， 其实就是为了一个 路由规则（寻找方法） 和有个 登记表(url patten 到 handler 的映射)
              */
             final Router router = new Router();
 
@@ -181,6 +186,7 @@ public abstract class RestServerEndpoint implements AutoCloseableAsync {
             /*************************************************
              * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
              *  注释： 初始化各种 Handler
+             *  大概有 80 个
              */
             handlers = initializeHandlers(restAddressFuture);
 
@@ -194,25 +200,27 @@ public abstract class RestServerEndpoint implements AutoCloseableAsync {
             // TODO_MA 马中华 注释： 排序
             Collections.sort(handlers, RestHandlerUrlComparator.INSTANCE);
 
-            // TODO_MA 马中华 注释：
+            // TODO_MA 马中华 注释： 去重
             checkAllEndpointsAndHandlersAreUnique(handlers);
 
             /*************************************************
              * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
              *  注释： 注册 Handler
+             *  把刚才创建的一丢 Handler 放到  Router 的 登记表中
              */
             handlers.forEach(handler -> registerHandler(router, handler, log));
 
             /*************************************************
              * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-             *  注释：
+             *  注释： 启动 NettyServer
              */
             ChannelInitializer<SocketChannel> initializer = new ChannelInitializer<SocketChannel>() {
 
                 @Override
                 protected void initChannel(SocketChannel ch) throws ConfigurationException {
 
-                    // TODO_MA 马中华 注释：
+                    // TODO_MA 马中华 注释： 只要接收到一个请求，则由这个 handler 来完成处理： 路由
+                    // TODO_MA 马中华 注释： 找到真正能处理这个 rest 请求的 handler
                     RouterHandler handler = new RouterHandler(router, responseHeaders);
 
                     // SSL should be the first handler in the pipeline
@@ -262,7 +270,7 @@ public abstract class RestServerEndpoint implements AutoCloseableAsync {
 
             /*************************************************
              * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-             *  注释：
+             *  注释： 通过这个引导程序来启动一个 NettyServer
              */
             bootstrap = new ServerBootstrap();
             bootstrap.group(bossGroup, workerGroup).channel(NioServerSocketChannel.class).childHandler(initializer);
@@ -276,7 +284,14 @@ public abstract class RestServerEndpoint implements AutoCloseableAsync {
                 throw new IllegalArgumentException("Invalid port range definition: " + restBindPortRange);
             }
 
-            // TODO_MA 马中华 注释：
+            // TODO_MA 马中华 注释： 这个端口不是固定的
+            // TODO_MA 马中华 注释： Flink 的端口使用的设计： 不是固定端口，而是动态端口
+            // TODO_MA 马中华 注释： 指定了一个范围： 44444 - 5555 之间   4455  4466
+            // TODO_MA 马中华 注释： 既然端口不固定，客户端怎么知道 服务端的端口呢？
+            // TODO_MA 马中华 注释： 这个信息，会注册到 ZK 中
+            // TODO_MA 马中华 注释： Flink 引入了 ZK ： 选举，监听，注册中心
+            // TODO_MA 马中华 注释： ResourceManager 和 Dispatcher 和 WebMonitorEndpoint 都是这么干的
+            // TODO_MA 马中华 注释： HDFS 是固定端口
             int chosenPort = 0;
             while (portsIterator.hasNext()) {
                 try {

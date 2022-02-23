@@ -67,77 +67,82 @@ public class TaskStateManagerImpl implements TaskStateManager {
      * The data given by the job manager to restore the job. This is null for a new job without
      * previous state.
      */
-    @Nullable private final JobManagerTaskRestore jobManagerTaskRestore;
+    @Nullable
+    private final JobManagerTaskRestore jobManagerTaskRestore;
 
     /** The local state store to which this manager reports local state snapshots. */
     private final TaskLocalStateStore localStateStore;
 
     /** The changelog storage where the manager reads and writes the changelog */
-    @Nullable private final StateChangelogStorage<?> stateChangelogStorage;
+    @Nullable
+    private final StateChangelogStorage<?> stateChangelogStorage;
 
     /** The checkpoint responder through which this manager can report to the job manager. */
     private final CheckpointResponder checkpointResponder;
 
     private final SequentialChannelStateReader sequentialChannelStateReader;
 
-    public TaskStateManagerImpl(
-            @Nonnull JobID jobId,
-            @Nonnull ExecutionAttemptID executionAttemptID,
-            @Nonnull TaskLocalStateStore localStateStore,
-            @Nullable StateChangelogStorage<?> stateChangelogStorage,
-            @Nullable JobManagerTaskRestore jobManagerTaskRestore,
-            @Nonnull CheckpointResponder checkpointResponder) {
-        this(
-                jobId,
+    public TaskStateManagerImpl(@Nonnull JobID jobId,
+                                @Nonnull ExecutionAttemptID executionAttemptID,
+                                @Nonnull TaskLocalStateStore localStateStore,
+                                @Nullable StateChangelogStorage<?> stateChangelogStorage,
+                                @Nullable JobManagerTaskRestore jobManagerTaskRestore,
+                                @Nonnull CheckpointResponder checkpointResponder) {
+        this(jobId,
                 executionAttemptID,
                 localStateStore,
                 stateChangelogStorage,
                 jobManagerTaskRestore,
                 checkpointResponder,
-                new SequentialChannelStateReaderImpl(
-                        jobManagerTaskRestore == null
-                                ? new TaskStateSnapshot()
-                                : jobManagerTaskRestore.getTaskStateSnapshot()));
+                new SequentialChannelStateReaderImpl(jobManagerTaskRestore
+                        == null ? new TaskStateSnapshot() : jobManagerTaskRestore.getTaskStateSnapshot())
+        );
     }
 
-    public TaskStateManagerImpl(
-            @Nonnull JobID jobId,
-            @Nonnull ExecutionAttemptID executionAttemptID,
-            @Nonnull TaskLocalStateStore localStateStore,
-            @Nullable StateChangelogStorage<?> stateChangelogStorage,
-            @Nullable JobManagerTaskRestore jobManagerTaskRestore,
-            @Nonnull CheckpointResponder checkpointResponder,
-            @Nonnull SequentialChannelStateReaderImpl sequentialChannelStateReader) {
+    public TaskStateManagerImpl(@Nonnull JobID jobId,
+                                @Nonnull ExecutionAttemptID executionAttemptID,
+                                @Nonnull TaskLocalStateStore localStateStore,
+                                @Nullable StateChangelogStorage<?> stateChangelogStorage,
+                                @Nullable JobManagerTaskRestore jobManagerTaskRestore,
+                                @Nonnull CheckpointResponder checkpointResponder,
+                                @Nonnull SequentialChannelStateReaderImpl sequentialChannelStateReader) {
         this.jobId = jobId;
         this.localStateStore = localStateStore;
         this.stateChangelogStorage = stateChangelogStorage;
         this.jobManagerTaskRestore = jobManagerTaskRestore;
         this.executionAttemptID = executionAttemptID;
         this.checkpointResponder = checkpointResponder;
+        // TODO_MA 马中华 注释： SequentialChannelStateReaderImpl
         this.sequentialChannelStateReader = sequentialChannelStateReader;
     }
 
     @Override
-    public void reportTaskStateSnapshots(
-            @Nonnull CheckpointMetaData checkpointMetaData,
-            @Nonnull CheckpointMetrics checkpointMetrics,
-            @Nullable TaskStateSnapshot acknowledgedState,
-            @Nullable TaskStateSnapshot localState) {
+    public void reportTaskStateSnapshots(@Nonnull CheckpointMetaData checkpointMetaData,
+                                         @Nonnull CheckpointMetrics checkpointMetrics,
+                                         @Nullable TaskStateSnapshot acknowledgedState,
+                                         @Nullable TaskStateSnapshot localState) {
 
         long checkpointId = checkpointMetaData.getCheckpointId();
 
         localStateStore.storeLocalState(checkpointId, localState);
 
-        checkpointResponder.acknowledgeCheckpoint(
-                jobId, executionAttemptID, checkpointId, checkpointMetrics, acknowledgedState);
+        checkpointResponder.acknowledgeCheckpoint(jobId,
+                executionAttemptID,
+                checkpointId,
+                checkpointMetrics,
+                acknowledgedState
+        );
     }
 
     @Override
-    public void reportIncompleteTaskStateSnapshots(
-            CheckpointMetaData checkpointMetaData, CheckpointMetrics checkpointMetrics) {
+    public void reportIncompleteTaskStateSnapshots(CheckpointMetaData checkpointMetaData,
+                                                   CheckpointMetrics checkpointMetrics) {
 
-        checkpointResponder.reportCheckpointMetrics(
-                jobId, executionAttemptID, checkpointMetaData.getCheckpointId(), checkpointMetrics);
+        checkpointResponder.reportCheckpointMetrics(jobId,
+                executionAttemptID,
+                checkpointMetaData.getCheckpointId(),
+                checkpointMetrics
+        );
     }
 
     @Override
@@ -183,46 +188,36 @@ public class TaskStateManagerImpl implements TaskStateManager {
 
         TaskStateSnapshot jobManagerStateSnapshot = jobManagerTaskRestore.getTaskStateSnapshot();
 
-        OperatorSubtaskState jobManagerSubtaskState =
-                jobManagerStateSnapshot.getSubtaskStateByOperatorID(operatorID);
+        OperatorSubtaskState jobManagerSubtaskState = jobManagerStateSnapshot.getSubtaskStateByOperatorID(operatorID);
 
         if (jobManagerSubtaskState == null) {
-            return PrioritizedOperatorSubtaskState.empty(
-                    jobManagerTaskRestore.getRestoreCheckpointId());
+            return PrioritizedOperatorSubtaskState.empty(jobManagerTaskRestore.getRestoreCheckpointId());
         }
 
         long restoreCheckpointId = jobManagerTaskRestore.getRestoreCheckpointId();
 
-        TaskStateSnapshot localStateSnapshot =
-                localStateStore.retrieveLocalState(restoreCheckpointId);
+        TaskStateSnapshot localStateSnapshot = localStateStore.retrieveLocalState(restoreCheckpointId);
 
-        localStateStore.pruneMatchingCheckpoints(
-                (long checkpointId) -> checkpointId != restoreCheckpointId);
+        localStateStore.pruneMatchingCheckpoints((long checkpointId) -> checkpointId != restoreCheckpointId);
 
         List<OperatorSubtaskState> alternativesByPriority = Collections.emptyList();
 
         if (localStateSnapshot != null) {
-            OperatorSubtaskState localSubtaskState =
-                    localStateSnapshot.getSubtaskStateByOperatorID(operatorID);
+            OperatorSubtaskState localSubtaskState = localStateSnapshot.getSubtaskStateByOperatorID(operatorID);
 
             if (localSubtaskState != null) {
                 alternativesByPriority = Collections.singletonList(localSubtaskState);
             }
         }
 
-        LOG.debug(
-                "Operator {} has remote state {} from job manager and local state alternatives {} from local "
-                        + "state store {}.",
-                operatorID,
+        LOG.debug("Operator {} has remote state {} from job manager and local state alternatives {} from local "
+                + "state store {}.", operatorID, jobManagerSubtaskState, alternativesByPriority, localStateStore);
+
+        PrioritizedOperatorSubtaskState.Builder builder = new PrioritizedOperatorSubtaskState.Builder(
                 jobManagerSubtaskState,
                 alternativesByPriority,
-                localStateStore);
-
-        PrioritizedOperatorSubtaskState.Builder builder =
-                new PrioritizedOperatorSubtaskState.Builder(
-                        jobManagerSubtaskState,
-                        alternativesByPriority,
-                        jobManagerTaskRestore.getRestoreCheckpointId());
+                jobManagerTaskRestore.getRestoreCheckpointId()
+        );
 
         return builder.build();
     }

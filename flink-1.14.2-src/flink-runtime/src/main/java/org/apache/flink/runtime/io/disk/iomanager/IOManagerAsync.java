@@ -67,6 +67,7 @@ public class IOManagerAsync extends IOManager implements UncaughtExceptionHandle
     }
 
     /**
+     * // TODO_MA 马中华 注释： 构造一个新的异步 IO 管理器，在给定的目录中循环写入文件。
      * Constructs a new asynchronous I/O manager, writing file round robin across the given
      * directories.
      *
@@ -75,6 +76,10 @@ public class IOManagerAsync extends IOManager implements UncaughtExceptionHandle
     public IOManagerAsync(String[] tempDirs) {
         super(tempDirs);
 
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释： 负责 IO 写
+         */
         // start a write worker thread for each directory
         this.writers = new WriterThread[tempDirs.length];
         for (int i = 0; i < this.writers.length; i++) {
@@ -86,6 +91,10 @@ public class IOManagerAsync extends IOManager implements UncaughtExceptionHandle
             t.start();
         }
 
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释： 负责 IO 读
+         */
         // start a reader worker thread for each directory
         this.readers = new ReaderThread[tempDirs.length];
         for (int i = 0; i < this.readers.length; i++) {
@@ -142,7 +151,8 @@ public class IOManagerAsync extends IOManager implements UncaughtExceptionHandle
                     rt.join();
                 }
             } catch (InterruptedException ie) {
-                Thread.currentThread().interrupt();
+                Thread.currentThread()
+                        .interrupt();
             }
         });
 
@@ -198,10 +208,7 @@ public class IOManagerAsync extends IOManager implements UncaughtExceptionHandle
     public BlockChannelWriterWithCallback<MemorySegment> createBlockChannelWriter(FileIOChannel.ID channelID,
                                                                                   RequestDoneCallback<MemorySegment> callback) throws IOException {
         checkState(!isShutdown.get(), "I/O-Manager is shut down.");
-        return new AsynchronousBlockWriterWithCallback(channelID,
-                this.writers[channelID.getThreadNum()].requestQueue,
-                callback
-        );
+        return new AsynchronousBlockWriterWithCallback(channelID, this.writers[channelID.getThreadNum()].requestQueue, callback);
     }
 
     /**
@@ -243,10 +250,7 @@ public class IOManagerAsync extends IOManager implements UncaughtExceptionHandle
                                                                  RequestDoneCallback<FileSegment> callback) throws IOException {
         checkState(!isShutdown.get(), "I/O-Manager is shut down.");
 
-        return new AsynchronousBufferFileSegmentReader(channelID,
-                readers[channelID.getThreadNum()].requestQueue,
-                callback
-        );
+        return new AsynchronousBufferFileSegmentReader(channelID, readers[channelID.getThreadNum()].requestQueue, callback);
     }
 
     /**
@@ -267,15 +271,11 @@ public class IOManagerAsync extends IOManager implements UncaughtExceptionHandle
      * @throws IOException Thrown, if the channel for the reader could not be opened.
      */
     @Override
-    public BulkBlockChannelReader createBulkBlockChannelReader(FileIOChannel.ID channelID,
-                                                               List<MemorySegment> targetSegments,
+    public BulkBlockChannelReader createBulkBlockChannelReader(FileIOChannel.ID channelID, List<MemorySegment> targetSegments,
                                                                int numBlocks) throws IOException {
         checkState(!isShutdown.get(), "I/O-Manager is shut down.");
-        return new AsynchronousBulkBlockReader(channelID,
-                this.readers[channelID.getThreadNum()].requestQueue,
-                targetSegments,
-                numBlocks
-        );
+        return new AsynchronousBulkBlockReader(channelID, this.readers[channelID.getThreadNum()].requestQueue, targetSegments,
+                numBlocks);
     }
 
     // -------------------------------------------------------------------------
@@ -339,8 +339,7 @@ public class IOManagerAsync extends IOManager implements UncaughtExceptionHandle
                             request.requestDone(ioex);
                         } catch (Throwable t) {
                             IOManagerAsync.LOG.error(
-                                    "The handler of the request complete callback threw an exception" + (
-                                            t.getMessage() == null ? "." : ": " + t.getMessage()
+                                    "The handler of the request complete callback threw an exception" + (t.getMessage() == null ? "." : ": " + t.getMessage()
                                     ), t);
                         }
                     }
@@ -373,7 +372,6 @@ public class IOManagerAsync extends IOManager implements UncaughtExceptionHandle
 
                 // remember any IO exception that occurs, so it can be reported to the writer
                 IOException ioex = null;
-
                 try {
                     // read buffer from the specified channel
                     request.read();
@@ -381,18 +379,18 @@ public class IOManagerAsync extends IOManager implements UncaughtExceptionHandle
                     ioex = e;
                 } catch (Throwable t) {
                     ioex = new IOException("The buffer could not be read: " + t.getMessage(), t);
-                    IOManagerAsync.LOG.error("I/O reading thread encountered an error" + (
-                            t.getMessage() == null ? "." : ": " + t.getMessage()
-                    ), t);
+                    IOManagerAsync.LOG.error(
+                            "I/O reading thread encountered an error" + (t.getMessage() == null ? "." : ": " + t.getMessage()
+                            ), t);
                 }
 
                 // invoke the processed buffer handler of the request issuing reader object
                 try {
                     request.requestDone(ioex);
                 } catch (Throwable t) {
-                    IOManagerAsync.LOG.error("The handler of the request-complete-callback threw an exception" + (
-                            t.getMessage() == null ? "." : ": " + t.getMessage()
-                    ), t);
+                    IOManagerAsync.LOG.error(
+                            "The handler of the request-complete-callback threw an exception" + (t.getMessage() == null ? "." : ": " + t.getMessage()
+                            ), t);
                 }
             } // end while alive
         }
@@ -443,8 +441,7 @@ public class IOManagerAsync extends IOManager implements UncaughtExceptionHandle
                             request.requestDone(ioex);
                         } catch (Throwable t) {
                             IOManagerAsync.LOG.error(
-                                    "The handler of the request complete callback threw an exception" + (
-                                            t.getMessage() == null ? "." : ": " + t.getMessage()
+                                    "The handler of the request complete callback threw an exception" + (t.getMessage() == null ? "." : ": " + t.getMessage()
                                     ), t);
                         }
                     }
@@ -478,7 +475,6 @@ public class IOManagerAsync extends IOManager implements UncaughtExceptionHandle
 
                 // remember any IO exception that occurs, so it can be reported to the writer
                 IOException ioex = null;
-
                 try {
                     // write buffer to the specified channel
                     request.write();
@@ -486,18 +482,18 @@ public class IOManagerAsync extends IOManager implements UncaughtExceptionHandle
                     ioex = e;
                 } catch (Throwable t) {
                     ioex = new IOException("The buffer could not be written: " + t.getMessage(), t);
-                    IOManagerAsync.LOG.error("I/O writing thread encountered an error" + (
-                            t.getMessage() == null ? "." : ": " + t.getMessage()
-                    ), t);
+                    IOManagerAsync.LOG.error(
+                            "I/O writing thread encountered an error" + (t.getMessage() == null ? "." : ": " + t.getMessage()
+                            ), t);
                 }
 
                 // invoke the processed buffer handler of the request issuing writer object
                 try {
                     request.requestDone(ioex);
                 } catch (Throwable t) {
-                    IOManagerAsync.LOG.error("The handler of the request-complete-callback threw an exception" + (
-                            t.getMessage() == null ? "." : ": " + t.getMessage()
-                    ), t);
+                    IOManagerAsync.LOG.error(
+                            "The handler of the request-complete-callback threw an exception" + (t.getMessage() == null ? "." : ": " + t.getMessage()
+                            ), t);
                 }
             } // end while alive
         }

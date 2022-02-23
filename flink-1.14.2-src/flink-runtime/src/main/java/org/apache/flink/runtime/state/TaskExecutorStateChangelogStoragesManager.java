@@ -42,8 +42,7 @@ import java.util.Optional;
 public class TaskExecutorStateChangelogStoragesManager {
 
     /** Logger for this class. */
-    private static final Logger LOG =
-            LoggerFactory.getLogger(TaskExecutorStateChangelogStoragesManager.class);
+    private static final Logger LOG = LoggerFactory.getLogger(TaskExecutorStateChangelogStoragesManager.class);
 
     /**
      * This map holds all state changelog storages for tasks running on the task manager / executor
@@ -62,55 +61,54 @@ public class TaskExecutorStateChangelogStoragesManager {
         this.closed = false;
 
         // register a shutdown hook
-        this.shutdownHook =
-                ShutdownHookUtil.addShutdownHook(this::shutdown, getClass().getSimpleName(), LOG);
+        this.shutdownHook = ShutdownHookUtil.addShutdownHook(this::shutdown,
+                getClass().getSimpleName(),
+                LOG);
     }
 
     @Nullable
-    public StateChangelogStorage<?> stateChangelogStorageForJob(
-            @Nonnull JobID jobId, Configuration configuration) throws IOException {
+    public StateChangelogStorage<?> stateChangelogStorageForJob(@Nonnull JobID jobId,
+                                                                Configuration configuration) throws IOException {
         if (closed) {
-            throw new IllegalStateException(
-                    "TaskExecutorStateChangelogStoragesManager is already closed and cannot "
-                            + "register a new StateChangelogStorage.");
+            throw new IllegalStateException("TaskExecutorStateChangelogStoragesManager is already closed and cannot " + "register a new StateChangelogStorage.");
         }
 
-        Optional<StateChangelogStorage<?>> stateChangelogStorage =
-                changelogStoragesByJobId.get(jobId);
+        Optional<StateChangelogStorage<?>> stateChangelogStorage = changelogStoragesByJobId.get(jobId);
 
         if (stateChangelogStorage == null) {
             StateChangelogStorage<?> loaded = StateChangelogStorageLoader.load(configuration);
             stateChangelogStorage = Optional.ofNullable(loaded);
-            changelogStoragesByJobId.put(jobId, stateChangelogStorage);
+            changelogStoragesByJobId.put(jobId,
+                    stateChangelogStorage);
 
             if (loaded != null) {
-                LOG.debug("Registered new state changelog storage for job {} : {}.", jobId, loaded);
+                LOG.debug("Registered new state changelog storage for job {} : {}.",
+                        jobId,
+                        loaded);
             } else {
-                LOG.info(
-                        "Try to registered new state changelog storage for job {},"
-                                + " but result is null.",
+                LOG.info("Try to registered new state changelog storage for job {}," + " but result is null.",
                         jobId);
             }
         } else if (stateChangelogStorage.isPresent()) {
-            LOG.debug(
-                    "Found existing state changelog storage for job {}: {}.",
+            LOG.debug("Found existing state changelog storage for job {}: {}.",
                     jobId,
                     stateChangelogStorage.get());
         } else {
-            LOG.debug("Found a previously loaded NULL state changelog storage for job {}.", jobId);
+            LOG.debug("Found a previously loaded NULL state changelog storage for job {}.",
+                    jobId);
         }
 
         return stateChangelogStorage.orElse(null);
     }
 
     public void releaseStateChangelogStorageForJob(@Nonnull JobID jobId) {
-        LOG.debug("Releasing state changelog storage under job id {}.", jobId);
+        LOG.debug("Releasing state changelog storage under job id {}.",
+                jobId);
         if (closed) {
             return;
         }
 
-        Optional<StateChangelogStorage<?>> cleanupChangelogStorage =
-                changelogStoragesByJobId.remove(jobId);
+        Optional<StateChangelogStorage<?>> cleanupChangelogStorage = changelogStoragesByJobId.remove(jobId);
 
         if (cleanupChangelogStorage != null) {
             cleanupChangelogStorage.ifPresent(this::doRelease);
@@ -123,11 +121,12 @@ public class TaskExecutorStateChangelogStoragesManager {
         }
         closed = true;
 
-        HashMap<JobID, Optional<StateChangelogStorage<?>>> toRelease =
-                new HashMap<>(changelogStoragesByJobId);
+        HashMap<JobID, Optional<StateChangelogStorage<?>>> toRelease = new HashMap<>(changelogStoragesByJobId);
         changelogStoragesByJobId.clear();
 
-        ShutdownHookUtil.removeShutdownHook(shutdownHook, getClass().getSimpleName(), LOG);
+        ShutdownHookUtil.removeShutdownHook(shutdownHook,
+                getClass().getSimpleName(),
+                LOG);
 
         LOG.info("Shutting down TaskExecutorStateChangelogStoragesManager.");
 
@@ -141,7 +140,9 @@ public class TaskExecutorStateChangelogStoragesManager {
             try {
                 storage.close();
             } catch (Exception e) {
-                LOG.warn("Exception while disposing state changelog storage {}.", storage, e);
+                LOG.warn("Exception while disposing state changelog storage {}.",
+                        storage,
+                        e);
             }
         }
     }

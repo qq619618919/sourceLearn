@@ -33,21 +33,24 @@ import static org.apache.flink.runtime.executiongraph.failover.flip1.PipelinedRe
 /** Utils for computing {@link LogicalPipelinedRegion}s. */
 public final class LogicalPipelinedRegionComputeUtil {
 
-    public static Set<Set<LogicalVertex>> computePipelinedRegions(
-            final Iterable<? extends LogicalVertex> topologicallySortedVertices) {
+    public static Set<Set<LogicalVertex>> computePipelinedRegions(final Iterable<? extends LogicalVertex> topologicallySortedVertices) {
 
-        final Map<LogicalVertex, Set<LogicalVertex>> vertexToRegion =
-                buildRawRegions(
-                        topologicallySortedVertices,
-                        LogicalPipelinedRegionComputeUtil::getNonReconnectableConsumedResults);
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释： 第一步： 构建 Region
+         */
+        final Map<LogicalVertex, Set<LogicalVertex>> vertexToRegion = buildRawRegions(topologicallySortedVertices,
+                LogicalPipelinedRegionComputeUtil::getNonReconnectableConsumedResults);
 
-        // Since LogicalTopology is a DAG, there is no need to do cycle detection nor to merge
-        // regions on cycles.
+        // Since LogicalTopology is a DAG, there is no need to do cycle detection nor to merge regions on cycles.
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释： 第二步： Region 去重
+         */
         return uniqueRegions(vertexToRegion);
     }
 
-    private static Iterable<LogicalResult> getNonReconnectableConsumedResults(
-            LogicalVertex vertex) {
+    private static Iterable<LogicalResult> getNonReconnectableConsumedResults(LogicalVertex vertex) {
         List<LogicalResult> nonReconnectableConsumedResults = new ArrayList<>();
         for (LogicalResult consumedResult : vertex.getConsumedResults()) {
             if (!consumedResult.getResultType().isReconnectable()) {
@@ -57,5 +60,6 @@ public final class LogicalPipelinedRegionComputeUtil {
         return nonReconnectableConsumedResults;
     }
 
-    private LogicalPipelinedRegionComputeUtil() {}
+    private LogicalPipelinedRegionComputeUtil() {
+    }
 }

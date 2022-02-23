@@ -50,9 +50,11 @@ class NonBufferResponseDecoder extends NettyMessageDecoder {
 
     @Override
     public DecodingResult onChannelRead(ByteBuf data) throws Exception {
-        ByteBuf fullFrameHeaderBuf =
-                ByteBufUtils.accumulate(
-                        messageBuffer, data, messageLength, messageBuffer.readableBytes());
+        ByteBuf fullFrameHeaderBuf = ByteBufUtils.accumulate(messageBuffer,
+                data,
+                messageLength,
+                messageBuffer.readableBytes()
+        );
         if (fullFrameHeaderBuf == null) {
             return DecodingResult.NOT_FINISHED;
         }

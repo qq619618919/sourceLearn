@@ -245,6 +245,7 @@ public class WebMonitorEndpoint<T extends RestfulGateway> extends RestServerEndp
                 .build();
     }
 
+    // TODO_MA 马中华 注释： 很多很多
     @Override
     protected List<Tuple2<RestHandlerSpecification, ChannelInboundHandler>> initializeHandlers(final CompletableFuture<String> localAddressFuture) {
         ArrayList<Tuple2<RestHandlerSpecification, ChannelInboundHandler>> handlers = new ArrayList<>(30);
@@ -256,6 +257,7 @@ public class WebMonitorEndpoint<T extends RestfulGateway> extends RestServerEndp
 
         final Time timeout = restConfiguration.getTimeout();
 
+        // TODO_MA 马中华 注释：
         ClusterOverviewHandler clusterOverviewHandler = new ClusterOverviewHandler(leaderRetriever,
                 timeout,
                 responseHeaders,
@@ -484,8 +486,13 @@ public class WebMonitorEndpoint<T extends RestfulGateway> extends RestServerEndp
                 responseHeaders
         );
 
+        // TODO_MA 马中华 注释： state.savepoints.dir = savepoint 文件夹
         final String defaultSavepointDir = clusterConfiguration.getString(CheckpointingOptions.SAVEPOINT_DIRECTORY);
 
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释： savepoint 有关的 handler
+         */
         final SavepointHandlers savepointHandlers = new SavepointHandlers(defaultSavepointDir);
 
         final SavepointHandlers.StopWithSavepointHandler stopWithSavepointHandler = savepointHandlers

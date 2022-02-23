@@ -125,6 +125,11 @@ public enum ProgramOptionsUtils {
                 Configuration.class,
                 Configuration.class
         );
+
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释：
+         */
         mergeMethod.invoke(null, configuration, pythonConfiguration.get(programOptions));
     }
 }

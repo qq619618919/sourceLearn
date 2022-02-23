@@ -22,13 +22,7 @@ import org.apache.flink.runtime.jobgraph.IntermediateResultPartitionID;
 import org.apache.flink.runtime.topology.Topology;
 
 /** Topology of {@link SchedulingExecutionVertex}. */
-public interface SchedulingTopology
-        extends Topology<
-                ExecutionVertexID,
-                IntermediateResultPartitionID,
-                SchedulingExecutionVertex,
-                SchedulingResultPartition,
-                SchedulingPipelinedRegion> {
+public interface SchedulingTopology extends Topology<ExecutionVertexID, IntermediateResultPartitionID, SchedulingExecutionVertex, SchedulingResultPartition, SchedulingPipelinedRegion> {
 
     /**
      * Looks up the {@link SchedulingExecutionVertex} for the given {@link ExecutionVertexID}.
@@ -47,6 +41,5 @@ public interface SchedulingTopology
      * @return The respective scheduling result partition
      * @throws IllegalArgumentException If the partition does not exist
      */
-    SchedulingResultPartition getResultPartition(
-            IntermediateResultPartitionID intermediateResultPartitionId);
+    SchedulingResultPartition getResultPartition(IntermediateResultPartitionID intermediateResultPartitionId);
 }

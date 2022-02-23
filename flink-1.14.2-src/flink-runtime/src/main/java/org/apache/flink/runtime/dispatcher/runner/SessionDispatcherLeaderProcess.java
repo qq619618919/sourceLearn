@@ -56,11 +56,8 @@ public class SessionDispatcherLeaderProcess extends AbstractDispatcherLeaderProc
 
     private CompletableFuture<Void> onGoingRecoveryOperation = FutureUtils.completedVoidFuture();
 
-    private SessionDispatcherLeaderProcess(UUID leaderSessionId,
-                                           DispatcherGatewayServiceFactory dispatcherGatewayServiceFactory,
-                                           JobGraphStore jobGraphStore,
-                                           Executor ioExecutor,
-                                           FatalErrorHandler fatalErrorHandler) {
+    private SessionDispatcherLeaderProcess(UUID leaderSessionId, DispatcherGatewayServiceFactory dispatcherGatewayServiceFactory,
+                                           JobGraphStore jobGraphStore, Executor ioExecutor, FatalErrorHandler fatalErrorHandler) {
 
         /*************************************************
          * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
@@ -78,21 +75,22 @@ public class SessionDispatcherLeaderProcess extends AbstractDispatcherLeaderProc
 
         /*************************************************
          * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-         *  注释：
+         *  注释： 1、 启动 jobGraphStore 对 JobMaster 在 ZK 上的信息的监听
          */
         startServices();
 
         /*************************************************
          * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-         *  注释：
+         *  注释： 恢复 job 信息，但是未执行
          */
         onGoingRecoveryOperation = recoverJobsAsync()
 
                 /*************************************************
                  * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-                 *  注释：
-                 */
-                .thenAccept(this::createDispatcherIfRunning)
+                 *  注释： 两件事：
+                 *  1、创建 Dispatcher
+                 *  2、启动 Dispatcher
+                 */.thenAccept(this::createDispatcherIfRunning)
                 .handle(this::onErrorIfRunning);
     }
 
@@ -100,14 +98,13 @@ public class SessionDispatcherLeaderProcess extends AbstractDispatcherLeaderProc
         try {
             /*************************************************
              * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-             *  注释：
+             *  注释： 启动对 JobMaster 信息的监听
              */
             jobGraphStore.start(this);
         } catch (Exception e) {
             throw new FlinkRuntimeException(String.format("Could not start %s when trying to start the %s.",
-                    jobGraphStore.getClass().getSimpleName(),
-                    getClass().getSimpleName()
-            ), e);
+                    jobGraphStore.getClass()
+                                 .getSimpleName(), getClass().getSimpleName()), e);
         }
     }
 
@@ -126,8 +123,8 @@ public class SessionDispatcherLeaderProcess extends AbstractDispatcherLeaderProc
          * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
          *  注释：
          */
-        final DispatcherGatewayService dispatcherService = dispatcherGatewayServiceFactory.create(DispatcherId.fromUuid(
-                getLeaderSessionId()), jobGraphs, jobGraphStore);
+        final DispatcherGatewayService dispatcherService = dispatcherGatewayServiceFactory.create(
+                DispatcherId.fromUuid(getLeaderSessionId()), jobGraphs, jobGraphStore);
 
         completeDispatcherSetup(dispatcherService);
     }
@@ -143,19 +140,23 @@ public class SessionDispatcherLeaderProcess extends AbstractDispatcherLeaderProc
     private Collection<JobGraph> recoverJobsIfRunning() {
         /*************************************************
          * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-         *  注释：
+         *  注释： 从 ZK 和 HDFS 中，恢复得到 需要恢复执行的 Job 的 JObGraph
          */
         return supplyUnsynchronizedIfRunning(this::recoverJobs).orElse(Collections.emptyList());
     }
 
     private Collection<JobGraph> recoverJobs() {
         log.info("Recover all persisted job graphs.");
+
+        // TODO_MA 马中华 注释： 拿到一堆 jobID ， 集群停止之前未运行完毕的 job 的 ID
+        // TODO_MA 马中华 注释： 这是通过 JobGraphStore 从 ZK 拿到的一堆 JobID 信息
         final Collection<JobID> jobIds = getJobIds();
+
         final Collection<JobGraph> recoveredJobGraphs = new ArrayList<>();
 
         /*************************************************
          * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-         *  注释：
+         *  注释： 只是恢复这个 job 的信息，不是恢复执行
          */
         for (JobID jobId : jobIds) {
             recoveredJobGraphs.add(recoverJob(jobId));
@@ -163,11 +164,16 @@ public class SessionDispatcherLeaderProcess extends AbstractDispatcherLeaderProc
 
         log.info("Successfully recovered {} persisted job graphs.", recoveredJobGraphs.size());
 
+        // TODO_MA 马中华 注释： 返回这个集合
         return recoveredJobGraphs;
     }
 
     private Collection<JobID> getJobIds() {
         try {
+            /*************************************************
+             * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+             *  注释： 从 ZK 上获取 job 信息
+             */
             return jobGraphStore.getJobIds();
         } catch (Exception e) {
             throw new FlinkRuntimeException("Could not retrieve job ids of persisted jobs.", e);
@@ -179,7 +185,9 @@ public class SessionDispatcherLeaderProcess extends AbstractDispatcherLeaderProc
         try {
             /*************************************************
              * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-             *  注释：
+             *  注释： 是从 jobGraph store 中恢复
+             *  这个 jobGraphStore 的实现， 在 HA 集群中，是基于 ZK 实现的
+             *  意味着这个 job 的信息，其实存储在 ZK 中
              */
             return jobGraphStore.recoverJobGraph(jobId);
         } catch (Exception e) {
@@ -206,35 +214,47 @@ public class SessionDispatcherLeaderProcess extends AbstractDispatcherLeaderProc
 
     @Override
     public void onAddedJobGraph(JobID jobId) {
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释：
+         */
         runIfStateIs(State.RUNNING, () -> handleAddedJobGraph(jobId));
     }
 
     private void handleAddedJobGraph(JobID jobId) {
-        log.debug("Job {} has been added to the {} by another process.",
-                jobId,
-                jobGraphStore.getClass().getSimpleName()
-        );
+        log.debug("Job {} has been added to the {} by another process.", jobId, jobGraphStore.getClass()
+                                                                                             .getSimpleName());
 
         // serialize all ongoing recovery operations
         onGoingRecoveryOperation = onGoingRecoveryOperation
+                // TODO_MA 马中华 注释：
                 .thenApplyAsync(ignored -> recoverJobIfRunning(jobId), ioExecutor)
-                .thenCompose(optionalJobGraph -> optionalJobGraph
-                        .flatMap(this::submitAddedJobIfRunning)
-                        .orElse(FutureUtils.completedVoidFuture()))
+                // TODO_MA 马中华 注释：
+                .thenCompose(optionalJobGraph -> optionalJobGraph.flatMap(this::submitAddedJobIfRunning)
+                                                                 .orElse(FutureUtils.completedVoidFuture()))
                 .handle(this::onErrorIfRunning);
     }
 
     private Optional<CompletableFuture<Void>> submitAddedJobIfRunning(JobGraph jobGraph) {
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释：
+         */
         return supplyIfRunning(() -> submitAddedJob(jobGraph));
     }
 
     private CompletableFuture<Void> submitAddedJob(JobGraph jobGraph) {
+
+        // TODO_MA 马中华 注释：
         final DispatcherGateway dispatcherGateway = getDispatcherGatewayInternal();
 
-        return dispatcherGateway
-                .submitJob(jobGraph, RpcUtils.INF_TIMEOUT)
-                .thenApply(FunctionUtils.nullFn())
-                .exceptionally(this::filterOutDuplicateJobSubmissionException);
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释：
+         */
+        return dispatcherGateway.submitJob(jobGraph, RpcUtils.INF_TIMEOUT)
+                                .thenApply(FunctionUtils.nullFn())
+                                .exceptionally(this::filterOutDuplicateJobSubmissionException);
     }
 
     private Void filterOutDuplicateJobSubmissionException(Throwable throwable) {
@@ -243,9 +263,7 @@ public class SessionDispatcherLeaderProcess extends AbstractDispatcherLeaderProc
             final DuplicateJobSubmissionException duplicateJobSubmissionException = (DuplicateJobSubmissionException) strippedException;
 
             log.debug("Ignore recovered job {} because the job is currently being executed.",
-                    duplicateJobSubmissionException.getJobID(),
-                    duplicateJobSubmissionException
-            );
+                    duplicateJobSubmissionException.getJobID(), duplicateJobSubmissionException);
 
             return null;
         } else {
@@ -263,27 +281,39 @@ public class SessionDispatcherLeaderProcess extends AbstractDispatcherLeaderProc
 
     @Override
     public void onRemovedJobGraph(JobID jobId) {
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释：
+         */
         runIfStateIs(State.RUNNING, () -> handleRemovedJobGraph(jobId));
     }
 
     private void handleRemovedJobGraph(JobID jobId) {
-        log.debug("Job {} has been removed from the {} by another process.",
-                jobId,
-                jobGraphStore.getClass().getSimpleName()
-        );
+        log.debug("Job {} has been removed from the {} by another process.", jobId, jobGraphStore.getClass()
+                                                                                                 .getSimpleName());
 
         onGoingRecoveryOperation = onGoingRecoveryOperation
+                // TODO_MA 马中华 注释：
                 .thenCompose(ignored -> removeJobGraphIfRunning(jobId).orElse(FutureUtils.completedVoidFuture()))
                 .handle(this::onErrorIfRunning);
     }
 
     private Optional<CompletableFuture<Void>> removeJobGraphIfRunning(JobID jobId) {
+
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释：
+         */
         return supplyIfRunning(() -> removeJobGraph(jobId));
     }
 
     private CompletableFuture<Void> removeJobGraph(JobID jobId) {
         return getDispatcherService()
-                .map(dispatcherService -> dispatcherService.onRemovedJobGraph(jobId))
+
+                /*************************************************
+                 * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+                 *  注释：
+                 */.map(dispatcherService -> dispatcherService.onRemovedJobGraph(jobId))
                 .orElseGet(FutureUtils::completedVoidFuture);
     }
 
@@ -291,21 +321,14 @@ public class SessionDispatcherLeaderProcess extends AbstractDispatcherLeaderProc
     // Factory methods
     // ---------------------------------------------------------------
 
-    public static SessionDispatcherLeaderProcess create(UUID leaderSessionId,
-                                                        DispatcherGatewayServiceFactory dispatcherFactory,
-                                                        JobGraphStore jobGraphStore,
-                                                        Executor ioExecutor,
+    public static SessionDispatcherLeaderProcess create(UUID leaderSessionId, DispatcherGatewayServiceFactory dispatcherFactory,
+                                                        JobGraphStore jobGraphStore, Executor ioExecutor,
                                                         FatalErrorHandler fatalErrorHandler) {
 
         /*************************************************
          * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
          *  注释：
          */
-        return new SessionDispatcherLeaderProcess(leaderSessionId,
-                dispatcherFactory,
-                jobGraphStore,
-                ioExecutor,
-                fatalErrorHandler
-        );
+        return new SessionDispatcherLeaderProcess(leaderSessionId, dispatcherFactory, jobGraphStore, ioExecutor, fatalErrorHandler);
     }
 }

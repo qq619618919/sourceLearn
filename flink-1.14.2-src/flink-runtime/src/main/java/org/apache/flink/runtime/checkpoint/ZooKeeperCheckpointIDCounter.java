@@ -82,7 +82,13 @@ public class ZooKeeperCheckpointIDCounter implements CheckpointIDCounter {
     public ZooKeeperCheckpointIDCounter(CuratorFramework client,
                                         LastStateConnectionStateListener connectionStateListener) {
         this.client = checkNotNull(client, "Curator client");
+
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释： 通过 curator 的 SharedCount 来生成 分布式 ID
+         */
         this.counterPath = ZooKeeperUtils.getCheckpointIdCounterPath();
+
         this.sharedCount = new SharedCount(client, counterPath, INITIAL_CHECKPOINT_ID);
         this.connectionStateListener = connectionStateListener;
     }

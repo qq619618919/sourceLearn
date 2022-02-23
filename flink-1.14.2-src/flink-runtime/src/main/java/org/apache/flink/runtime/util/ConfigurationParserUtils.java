@@ -46,6 +46,7 @@ public class ConfigurationParserUtils {
      * Parses the configuration to get the number of slots and validates the value.
      *
      * @param configuration configuration object
+     *
      * @return the number of slots in task manager
      */
     public static int getSlot(Configuration configuration) {
@@ -55,11 +56,11 @@ public class ConfigurationParserUtils {
             slots = 1;
         }
 
-        ConfigurationParserUtils.checkConfigParameter(
-                slots >= 1,
+        ConfigurationParserUtils.checkConfigParameter(slots >= 1,
                 slots,
                 TaskManagerOptions.NUM_TASK_SLOTS.key(),
-                "Number of task slots must be at least one.");
+                "Number of task slots must be at least one."
+        );
 
         return slots;
     }
@@ -69,23 +70,20 @@ public class ConfigurationParserUtils {
      * condition does not hold.
      *
      * @param condition The condition that must hold. If the condition is false, an exception is
-     *     thrown.
+     *         thrown.
      * @param parameter The parameter value. Will be shown in the exception message.
      * @param name The name of the config parameter. Will be shown in the exception message.
      * @param errorMessage The optional custom error message to append to the exception message.
+     *
      * @throws IllegalConfigurationException if the condition does not hold
      */
-    public static void checkConfigParameter(
-            boolean condition, Object parameter, String name, String errorMessage)
-            throws IllegalConfigurationException {
+    public static void checkConfigParameter(boolean condition,
+                                            Object parameter,
+                                            String name,
+                                            String errorMessage) throws IllegalConfigurationException {
         if (!condition) {
             throw new IllegalConfigurationException(
-                    "Invalid configuration value for "
-                            + name
-                            + " : "
-                            + parameter
-                            + " - "
-                            + errorMessage);
+                    "Invalid configuration value for " + name + " : " + parameter + " - " + errorMessage);
         }
     }
 
@@ -93,26 +91,31 @@ public class ConfigurationParserUtils {
      * Parses the configuration to get the page size and validates the value.
      *
      * @param configuration configuration object
+     *
      * @return size of memory segment
      */
     public static int getPageSize(Configuration configuration) {
-        final int pageSize =
-                checkedDownCast(
-                        configuration.get(TaskManagerOptions.MEMORY_SEGMENT_SIZE).getBytes());
+
+        // TODO_MA 马中华 注释：taskmanager.memory.segment-size = 32k
+        final int pageSize = checkedDownCast(configuration.get(TaskManagerOptions.MEMORY_SEGMENT_SIZE).getBytes());
 
         // check page size of for minimum size
-        checkConfigParameter(
-                pageSize >= MemoryManager.MIN_PAGE_SIZE,
+        // TODO_MA 马中华 注释： MIN_PAGE_SIZE = 4k
+        checkConfigParameter(pageSize >= MemoryManager.MIN_PAGE_SIZE,
                 pageSize,
                 TaskManagerOptions.MEMORY_SEGMENT_SIZE.key(),
-                "Minimum memory segment size is " + MemoryManager.MIN_PAGE_SIZE);
-        // check page size for power of two
-        checkConfigParameter(
-                MathUtils.isPowerOf2(pageSize),
-                pageSize,
-                TaskManagerOptions.MEMORY_SEGMENT_SIZE.key(),
-                "Memory segment size must be a power of 2.");
+                "Minimum memory segment size is " + MemoryManager.MIN_PAGE_SIZE
+        );
 
+        // check page size for power of two
+        // TODO_MA 马中华 注释： 检测是否是 2 的指数倍
+        checkConfigParameter(MathUtils.isPowerOf2(pageSize),
+                pageSize,
+                TaskManagerOptions.MEMORY_SEGMENT_SIZE.key(),
+                "Memory segment size must be a power of 2."
+        );
+
+        // TODO_MA 马中华 注释： 返回每页内存大小 = 32k
         return pageSize;
     }
 
@@ -121,16 +124,20 @@ public class ConfigurationParserUtils {
      *
      * @param args the commandline arguments
      * @param cmdLineSyntax the syntax for this application
+     *
      * @return generated configuration
+     *
      * @throws FlinkParseException if the configuration cannot be generated
      */
-    public static Configuration loadCommonConfiguration(String[] args, String cmdLineSyntax)
-            throws FlinkParseException {
-        final CommandLineParser<ClusterConfiguration> commandLineParser =
-                new CommandLineParser<>(new ClusterConfigurationParserFactory());
+    public static Configuration loadCommonConfiguration(String[] args,
+                                                        String cmdLineSyntax) throws FlinkParseException {
+        final CommandLineParser<ClusterConfiguration> commandLineParser = new CommandLineParser<>(new ClusterConfigurationParserFactory());
 
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释：
+         */
         final ClusterConfiguration clusterConfiguration;
-
         try {
             clusterConfiguration = commandLineParser.parse(args);
         } catch (FlinkParseException e) {
@@ -139,9 +146,7 @@ public class ConfigurationParserUtils {
             throw e;
         }
 
-        final Configuration dynamicProperties =
-                ConfigurationUtils.createConfiguration(clusterConfiguration.getDynamicProperties());
-        return GlobalConfiguration.loadConfiguration(
-                clusterConfiguration.getConfigDir(), dynamicProperties);
+        final Configuration dynamicProperties = ConfigurationUtils.createConfiguration(clusterConfiguration.getDynamicProperties());
+        return GlobalConfiguration.loadConfiguration(clusterConfiguration.getConfigDir(), dynamicProperties);
     }
 }

@@ -50,8 +50,7 @@ import static org.apache.flink.util.Preconditions.checkNotNull;
  * FileEnumerator} and in {@link FileSplitAssigner}, respectively.
  */
 @Internal
-public class StaticFileSplitEnumerator
-        implements SplitEnumerator<FileSourceSplit, PendingSplitsCheckpoint<FileSourceSplit>> {
+public class StaticFileSplitEnumerator implements SplitEnumerator<FileSourceSplit, PendingSplitsCheckpoint<FileSourceSplit>> {
 
     private static final Logger LOG = LoggerFactory.getLogger(StaticFileSplitEnumerator.class);
 
@@ -61,8 +60,7 @@ public class StaticFileSplitEnumerator
 
     // ------------------------------------------------------------------------
 
-    public StaticFileSplitEnumerator(
-            SplitEnumeratorContext<FileSourceSplit> context, FileSplitAssigner splitAssigner) {
+    public StaticFileSplitEnumerator(SplitEnumeratorContext<FileSourceSplit> context, FileSplitAssigner splitAssigner) {
         this.context = checkNotNull(context);
         this.splitAssigner = checkNotNull(splitAssigner);
     }
@@ -90,8 +88,7 @@ public class StaticFileSplitEnumerator
         }
 
         if (LOG.isInfoEnabled()) {
-            final String hostInfo =
-                    hostname == null ? "(no host locality info)" : "(on host '" + hostname + "')";
+            final String hostInfo = hostname == null ? "(no host locality info)" : "(on host '" + hostname + "')";
             LOG.info("Subtask {} {} is requesting a file source split", subtask, hostInfo);
         }
 

@@ -32,6 +32,7 @@ import org.apache.flink.annotation.PublicEvolving;
 public enum ChainingStrategy {
 
     /**
+     * // TODO_MA 马中华 注释： 只要有可能，操作员就会被急切地锁住。
      * Operators will be eagerly chained whenever possible.
      *
      * <p>To optimize performance, it is generally a good practice to allow maximal chaining and
@@ -39,19 +40,24 @@ public enum ChainingStrategy {
      */
     ALWAYS,
 
-    /** The operator will not be chained to the preceding or succeeding operators. */
+    /**
+     * // TODO_MA 马中华 注释： 运算符不会链接到前面或后面的运算符。
+     * The operator will not be chained to the preceding or succeeding operators.
+     */
     NEVER,
 
     /**
-     * The operator will not be chained to the predecessor, but successors may chain to this
-     * operator.
+     * // TODO_MA 马中华 注释： 运算符不会链接到前任，但后继者可能会链接到此运算符。
+     * The operator will not be chained to the predecessor, but successors may chain to this operator.
      */
     HEAD,
 
     /**
+     * // TODO_MA 马中华 注释： 该运算符将在链的头部运行（类似于 {@link HEAD}，但如果可能，它还会尝试链接源输入。
      * This operator will run at the head of a chain (similar as in {@link #HEAD}, but it will
-     * additionally try to chain source inputs if possible. This allows multi-input operators to be
-     * chained with multiple sources into one task.
+     * additionally try to chain source inputs if possible.
+     * // TODO_MA 马中华 注释： 这允许多输入运算符与多个源链接到一个任务中。
+     * This allows multi-input operators to be chained with multiple sources into one task.
      */
     HEAD_WITH_SOURCES;
 

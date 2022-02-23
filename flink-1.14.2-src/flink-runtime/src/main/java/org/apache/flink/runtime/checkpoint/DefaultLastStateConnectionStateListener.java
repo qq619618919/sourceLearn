@@ -28,7 +28,8 @@ import java.util.Optional;
 /** A simple ConnectionState listener that remembers the last state. */
 public class DefaultLastStateConnectionStateListener implements LastStateConnectionStateListener {
 
-    @Nullable private volatile ConnectionState lastState = null;
+    @Nullable
+    private volatile ConnectionState lastState = null;
 
     @Override
     public Optional<ConnectionState> getLastState() {

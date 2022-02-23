@@ -79,98 +79,89 @@ public class ChangelogStateBackend implements DelegatingStateBackend, Configurab
     ChangelogStateBackend(StateBackend stateBackend) {
         this.delegatedStateBackend = Preconditions.checkNotNull(stateBackend);
 
-        Preconditions.checkArgument(
-                !(stateBackend instanceof DelegatingStateBackend),
-                "Recursive Delegation is not supported.");
+        Preconditions.checkArgument(!(stateBackend instanceof DelegatingStateBackend),
+                "Recursive Delegation is not supported."
+        );
 
-        LOG.info(
-                "ChangelogStateBackend is used, delegating {}.",
-                delegatedStateBackend.getClass().getSimpleName());
+        LOG.info("ChangelogStateBackend is used, delegating {}.", delegatedStateBackend.getClass().getSimpleName());
     }
 
     @Override
-    public <K> ChangelogKeyedStateBackend<K> createKeyedStateBackend(
-            Environment env,
-            JobID jobID,
-            String operatorIdentifier,
-            TypeSerializer<K> keySerializer,
-            int numberOfKeyGroups,
-            KeyGroupRange keyGroupRange,
-            TaskKvStateRegistry kvStateRegistry,
-            TtlTimeProvider ttlTimeProvider,
-            MetricGroup metricGroup,
-            @Nonnull Collection<KeyedStateHandle> stateHandles,
-            CloseableRegistry cancelStreamRegistry)
-            throws Exception {
-        return restore(
-                env,
+    public <K> ChangelogKeyedStateBackend<K> createKeyedStateBackend(Environment env,
+                                                                     JobID jobID,
+                                                                     String operatorIdentifier,
+                                                                     TypeSerializer<K> keySerializer,
+                                                                     int numberOfKeyGroups,
+                                                                     KeyGroupRange keyGroupRange,
+                                                                     TaskKvStateRegistry kvStateRegistry,
+                                                                     TtlTimeProvider ttlTimeProvider,
+                                                                     MetricGroup metricGroup,
+                                                                     @Nonnull Collection<KeyedStateHandle> stateHandles,
+                                                                     CloseableRegistry cancelStreamRegistry) throws Exception {
+        return restore(env,
                 operatorIdentifier,
                 keyGroupRange,
                 ttlTimeProvider,
                 stateHandles,
-                baseHandles ->
-                        (AbstractKeyedStateBackend<K>)
-                                delegatedStateBackend.createKeyedStateBackend(
-                                        env,
-                                        jobID,
-                                        operatorIdentifier,
-                                        keySerializer,
-                                        numberOfKeyGroups,
-                                        keyGroupRange,
-                                        kvStateRegistry,
-                                        ttlTimeProvider,
-                                        metricGroup,
-                                        baseHandles,
-                                        cancelStreamRegistry));
+                baseHandles -> (AbstractKeyedStateBackend<K>) delegatedStateBackend.createKeyedStateBackend(env,
+                        jobID,
+                        operatorIdentifier,
+                        keySerializer,
+                        numberOfKeyGroups,
+                        keyGroupRange,
+                        kvStateRegistry,
+                        ttlTimeProvider,
+                        metricGroup,
+                        baseHandles,
+                        cancelStreamRegistry
+                )
+        );
     }
 
     @Override
-    public <K> CheckpointableKeyedStateBackend<K> createKeyedStateBackend(
-            Environment env,
-            JobID jobID,
-            String operatorIdentifier,
-            TypeSerializer<K> keySerializer,
-            int numberOfKeyGroups,
-            KeyGroupRange keyGroupRange,
-            TaskKvStateRegistry kvStateRegistry,
-            TtlTimeProvider ttlTimeProvider,
-            MetricGroup metricGroup,
-            @Nonnull Collection<KeyedStateHandle> stateHandles,
-            CloseableRegistry cancelStreamRegistry,
-            double managedMemoryFraction)
-            throws Exception {
-        return restore(
-                env,
+    public <K> CheckpointableKeyedStateBackend<K> createKeyedStateBackend(Environment env,
+                                                                          JobID jobID,
+                                                                          String operatorIdentifier,
+                                                                          TypeSerializer<K> keySerializer,
+                                                                          int numberOfKeyGroups,
+                                                                          KeyGroupRange keyGroupRange,
+                                                                          TaskKvStateRegistry kvStateRegistry,
+                                                                          TtlTimeProvider ttlTimeProvider,
+                                                                          MetricGroup metricGroup,
+                                                                          @Nonnull Collection<KeyedStateHandle> stateHandles,
+                                                                          CloseableRegistry cancelStreamRegistry,
+                                                                          double managedMemoryFraction) throws Exception {
+        return restore(env,
                 operatorIdentifier,
                 keyGroupRange,
                 ttlTimeProvider,
                 stateHandles,
-                baseHandles ->
-                        (AbstractKeyedStateBackend<K>)
-                                delegatedStateBackend.createKeyedStateBackend(
-                                        env,
-                                        jobID,
-                                        operatorIdentifier,
-                                        keySerializer,
-                                        numberOfKeyGroups,
-                                        keyGroupRange,
-                                        kvStateRegistry,
-                                        ttlTimeProvider,
-                                        metricGroup,
-                                        baseHandles,
-                                        cancelStreamRegistry,
-                                        managedMemoryFraction));
+                baseHandles -> (AbstractKeyedStateBackend<K>) delegatedStateBackend.createKeyedStateBackend(env,
+                        jobID,
+                        operatorIdentifier,
+                        keySerializer,
+                        numberOfKeyGroups,
+                        keyGroupRange,
+                        kvStateRegistry,
+                        ttlTimeProvider,
+                        metricGroup,
+                        baseHandles,
+                        cancelStreamRegistry,
+                        managedMemoryFraction
+                )
+        );
     }
 
     @Override
-    public OperatorStateBackend createOperatorStateBackend(
-            Environment env,
-            String operatorIdentifier,
-            @Nonnull Collection<OperatorStateHandle> stateHandles,
-            CloseableRegistry cancelStreamRegistry)
-            throws Exception {
-        return delegatedStateBackend.createOperatorStateBackend(
-                env, operatorIdentifier, stateHandles, cancelStreamRegistry);
+    public OperatorStateBackend createOperatorStateBackend(Environment env,
+                                                           String operatorIdentifier,
+                                                           @Nonnull Collection<OperatorStateHandle> stateHandles,
+                                                           CloseableRegistry cancelStreamRegistry) throws Exception {
+        return delegatedStateBackend.createOperatorStateBackend(env,
+                operatorIdentifier,
+                stateHandles,
+                cancelStreamRegistry
+        );
     }
 
     @Override
@@ -184,65 +175,56 @@ public class ChangelogStateBackend implements DelegatingStateBackend, Configurab
     }
 
     @Override
-    public StateBackend configure(ReadableConfig config, ClassLoader classLoader)
-            throws IllegalConfigurationException {
+    public StateBackend configure(ReadableConfig config, ClassLoader classLoader) throws IllegalConfigurationException {
 
         if (delegatedStateBackend instanceof ConfigurableStateBackend) {
-            return new ChangelogStateBackend(
-                    ((ConfigurableStateBackend) delegatedStateBackend)
-                            .configure(config, classLoader));
+            return new ChangelogStateBackend(((ConfigurableStateBackend) delegatedStateBackend).configure(config,
+                    classLoader
+            ));
         }
 
         return this;
     }
 
     @SuppressWarnings({"unchecked", "rawtypes"})
-    private <K> ChangelogKeyedStateBackend<K> restore(
-            Environment env,
-            String operatorIdentifier,
-            KeyGroupRange keyGroupRange,
-            TtlTimeProvider ttlTimeProvider,
-            Collection<KeyedStateHandle> stateHandles,
-            BaseBackendBuilder<K> baseBackendBuilder)
-            throws Exception {
-        StateChangelogStorage<?> changelogStorage =
-                Preconditions.checkNotNull(
-                        env.getTaskStateManager().getStateChangelogStorage(),
-                        "Changelog storage is null when creating and restoring"
-                                + " the ChangelogKeyedStateBackend.");
-        return ChangelogBackendRestoreOperation.restore(
-                changelogStorage.createReader(),
+    private <K> ChangelogKeyedStateBackend<K> restore(Environment env,
+                                                      String operatorIdentifier,
+                                                      KeyGroupRange keyGroupRange,
+                                                      TtlTimeProvider ttlTimeProvider,
+                                                      Collection<KeyedStateHandle> stateHandles,
+                                                      BaseBackendBuilder<K> baseBackendBuilder) throws Exception {
+        StateChangelogStorage<?> changelogStorage = Preconditions.checkNotNull(env
+                        .getTaskStateManager()
+                        .getStateChangelogStorage(),
+                "Changelog storage is null when creating and restoring" + " the ChangelogKeyedStateBackend."
+        );
+        return ChangelogBackendRestoreOperation.restore(changelogStorage.createReader(),
                 env.getUserCodeClassLoader().asClassLoader(),
                 castHandles(stateHandles),
                 baseBackendBuilder,
-                (baseBackend, baseState) ->
-                        new ChangelogKeyedStateBackend(
-                                baseBackend,
-                                env.getExecutionConfig(),
-                                ttlTimeProvider,
-                                changelogStorage.createWriter(operatorIdentifier, keyGroupRange),
-                                baseState,
-                                env.getMainMailboxExecutor(),
-                                env.getAsyncOperationsThreadPool()));
+                (baseBackend, baseState) -> new ChangelogKeyedStateBackend(baseBackend,
+                        env.getExecutionConfig(),
+                        ttlTimeProvider,
+                        changelogStorage.createWriter(operatorIdentifier, keyGroupRange),
+                        baseState,
+                        env.getMainMailboxExecutor(),
+                        env.getAsyncOperationsThreadPool()
+                )
+        );
     }
 
-    private Collection<ChangelogStateBackendHandle> castHandles(
-            Collection<KeyedStateHandle> stateHandles) {
+    private Collection<ChangelogStateBackendHandle> castHandles(Collection<KeyedStateHandle> stateHandles) {
         if (stateHandles.stream().anyMatch(h -> !(h instanceof ChangelogStateBackendHandle))) {
-            LOG.warn(
-                    "Some state handles do not contain changelog: {} (ok if recovery from a savepoint)",
-                    stateHandles);
+            LOG.warn("Some state handles do not contain changelog: {} (ok if recovery from a savepoint)", stateHandles);
         }
-        return stateHandles.stream()
+        return stateHandles
+                .stream()
                 .filter(Objects::nonNull)
-                .map(
-                        keyedStateHandle ->
-                                keyedStateHandle instanceof ChangelogStateBackendHandle
-                                        ? (ChangelogStateBackendHandle) keyedStateHandle
-                                        : new ChangelogStateBackendHandleImpl(
-                                                singletonList(keyedStateHandle),
-                                                emptyList(),
-                                                keyedStateHandle.getKeyGroupRange()))
+                .map(keyedStateHandle -> keyedStateHandle instanceof ChangelogStateBackendHandle ? (ChangelogStateBackendHandle) keyedStateHandle : new ChangelogStateBackendHandleImpl(
+                        singletonList(keyedStateHandle),
+                        emptyList(),
+                        keyedStateHandle.getKeyGroupRange()
+                ))
                 .collect(Collectors.toList());
     }
 }

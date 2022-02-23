@@ -136,7 +136,8 @@ interface ChannelStateByteBuffer extends AutoCloseable {
             }
 
             @Override
-            public void close() {}
+            public void close() {
+            }
 
             @Override
             public int writeBytes(InputStream input, int bytesToRead) throws IOException {
@@ -158,7 +159,13 @@ class ChannelStateSerializerImpl implements ChannelStateSerializer {
 
     @Override
     public void writeData(DataOutputStream stream, Buffer... flinkBuffers) throws IOException {
+        // TODO_MA 马中华 注释：
         stream.writeInt(getSize(flinkBuffers));
+
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释：
+         */
         for (Buffer buffer : flinkBuffers) {
             ByteBuf nettyByteBuf = buffer.asByteBuf();
             nettyByteBuf.getBytes(nettyByteBuf.readerIndex(), stream, nettyByteBuf.readableBytes());
@@ -176,8 +183,7 @@ class ChannelStateSerializerImpl implements ChannelStateSerializer {
     @Override
     public void readHeader(InputStream stream) throws IOException {
         int version = readInt(stream);
-        Preconditions.checkArgument(
-                version == SERIALIZATION_VERSION, "unsupported version: " + version);
+        Preconditions.checkArgument(version == SERIALIZATION_VERSION, "unsupported version: " + version);
     }
 
     @Override
@@ -188,8 +194,11 @@ class ChannelStateSerializerImpl implements ChannelStateSerializer {
     }
 
     @Override
-    public int readData(InputStream stream, ChannelStateByteBuffer buffer, int bytes)
-            throws IOException {
+    public int readData(InputStream stream, ChannelStateByteBuffer buffer, int bytes) throws IOException {
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释：
+         */
         return buffer.writeBytes(stream, bytes);
     }
 
@@ -210,8 +219,7 @@ class ChannelStateSerializerImpl implements ChannelStateSerializer {
     }
 
     private byte[] extractByOffsets(byte[] data, List<Long> offsets) throws IOException {
-        DataInputStream lengthReadingStream =
-                new DataInputStream(new ByteArrayInputStream(data, 0, data.length));
+        DataInputStream lengthReadingStream = new DataInputStream(new ByteArrayInputStream(data, 0, data.length));
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         long prevOffset = 0;
         for (long offset : offsets) {

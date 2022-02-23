@@ -27,14 +27,14 @@ import java.io.Serializable;
 import java.time.Duration;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.TreeMap;
 import java.util.concurrent.TimeUnit;
 
 /**
  * This class defines methods to generate RestartStrategyConfigurations. These configurations are
  * used to create RestartStrategies at runtime.
  *
- * <p>The RestartStrategyConfigurations are used to decouple the core module from the runtime
- * module.
+ * <p>The RestartStrategyConfigurations are used to decouple the core module from the runtime module.
  */
 @PublicEvolving
 public class RestartStrategies {
@@ -61,7 +61,8 @@ public class RestartStrategies {
      *
      * @return FixedDelayRestartStrategy
      */
-    public static RestartStrategyConfiguration fixedDelayRestart(int restartAttempts, long delayBetweenAttempts) {
+    public static RestartStrategyConfiguration fixedDelayRestart(int restartAttempts,
+                                                                 long delayBetweenAttempts) {
         return fixedDelayRestart(restartAttempts, Time.of(delayBetweenAttempts, TimeUnit.MILLISECONDS));
     }
 
@@ -73,7 +74,8 @@ public class RestartStrategies {
      *
      * @return FixedDelayRestartStrategy
      */
-    public static RestartStrategyConfiguration fixedDelayRestart(int restartAttempts, Time delayInterval) {
+    public static RestartStrategyConfiguration fixedDelayRestart(int restartAttempts,
+                                                                 Time delayInterval) {
         return new FixedDelayRestartStrategyConfiguration(restartAttempts, delayInterval);
     }
 
@@ -115,6 +117,7 @@ public class RestartStrategies {
 
     /** Abstract configuration for restart strategies. */
     public abstract static class RestartStrategyConfiguration implements Serializable {
+
         private static final long serialVersionUID = 6285853591578313960L;
 
         private RestartStrategyConfiguration() {
@@ -122,7 +125,6 @@ public class RestartStrategies {
 
         /**
          * Returns a description which is shown in the web interface.
-         *
          * @return Description of the restart strategy
          */
         public abstract String getDescription();
@@ -163,7 +165,8 @@ public class RestartStrategies {
         private final int restartAttempts;
         private final Time delayBetweenAttemptsInterval;
 
-        FixedDelayRestartStrategyConfiguration(int restartAttempts, Time delayBetweenAttemptsInterval) {
+        FixedDelayRestartStrategyConfiguration(int restartAttempts,
+                                               Time delayBetweenAttemptsInterval) {
             this.restartAttempts = restartAttempts;
             this.delayBetweenAttemptsInterval = delayBetweenAttemptsInterval;
         }
@@ -380,9 +383,17 @@ public class RestartStrategies {
     public static Optional<RestartStrategyConfiguration> fromConfiguration(ReadableConfig configuration) {
         return configuration
                 .getOptional(RestartStrategyOptions.RESTART_STRATEGY)
+                /*************************************************
+                 * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+                 *  注释：
+                 */
                 .map(confName -> parseConfiguration(confName, configuration));
     }
 
+    /*************************************************
+     * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+     *  注释：
+     */
     private static RestartStrategyConfiguration parseConfiguration(String restartstrategyKind,
                                                                    ReadableConfig configuration) {
         switch (restartstrategyKind.toLowerCase()) {
@@ -397,10 +408,13 @@ public class RestartStrategies {
                 return fixedDelayRestart(attempts, delay.toMillis());
             case "exponentialdelay":
             case "exponential-delay":
-                Duration initialBackoff = configuration.get(RestartStrategyOptions.RESTART_STRATEGY_EXPONENTIAL_DELAY_INITIAL_BACKOFF);
+                Duration initialBackoff = configuration.get(
+                        RestartStrategyOptions.RESTART_STRATEGY_EXPONENTIAL_DELAY_INITIAL_BACKOFF);
                 Duration maxBackoff = configuration.get(RestartStrategyOptions.RESTART_STRATEGY_EXPONENTIAL_DELAY_MAX_BACKOFF);
-                double backoffMultiplier = configuration.get(RestartStrategyOptions.RESTART_STRATEGY_EXPONENTIAL_DELAY_BACKOFF_MULTIPLIER);
-                Duration resetBackoffThreshold = configuration.get(RestartStrategyOptions.RESTART_STRATEGY_EXPONENTIAL_DELAY_RESET_BACKOFF_THRESHOLD);
+                double backoffMultiplier = configuration.get(
+                        RestartStrategyOptions.RESTART_STRATEGY_EXPONENTIAL_DELAY_BACKOFF_MULTIPLIER);
+                Duration resetBackoffThreshold = configuration.get(
+                        RestartStrategyOptions.RESTART_STRATEGY_EXPONENTIAL_DELAY_RESET_BACKOFF_THRESHOLD);
                 double jitter = configuration.get(RestartStrategyOptions.RESTART_STRATEGY_EXPONENTIAL_DELAY_JITTER_FACTOR);
                 return exponentialDelayRestart(Time.milliseconds(initialBackoff.toMillis()),
                         Time.milliseconds(maxBackoff.toMillis()),
@@ -411,7 +425,8 @@ public class RestartStrategies {
             case "failurerate":
             case "failure-rate":
                 int maxFailures = configuration.get(RestartStrategyOptions.RESTART_STRATEGY_FAILURE_RATE_MAX_FAILURES_PER_INTERVAL);
-                Duration failureRateInterval = configuration.get(RestartStrategyOptions.RESTART_STRATEGY_FAILURE_RATE_FAILURE_RATE_INTERVAL);
+                Duration failureRateInterval = configuration.get(
+                        RestartStrategyOptions.RESTART_STRATEGY_FAILURE_RATE_FAILURE_RATE_INTERVAL);
                 Duration failureRateDelay = configuration.get(RestartStrategyOptions.RESTART_STRATEGY_FAILURE_RATE_DELAY);
                 return failureRateRestart(maxFailures,
                         Time.milliseconds(failureRateInterval.toMillis()),

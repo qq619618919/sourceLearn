@@ -75,22 +75,21 @@ public class ResultPartitionFactory {
 
     private final boolean sslEnabled;
 
-    public ResultPartitionFactory(
-            ResultPartitionManager partitionManager,
-            FileChannelManager channelManager,
-            BufferPoolFactory bufferPoolFactory,
-            BatchShuffleReadBufferPool batchShuffleReadBufferPool,
-            ExecutorService batchShuffleReadIOExecutor,
-            BoundedBlockingSubpartitionType blockingSubpartitionType,
-            int configuredNetworkBuffersPerChannel,
-            int floatingNetworkBuffersPerGate,
-            int networkBufferSize,
-            boolean blockingShuffleCompressionEnabled,
-            String compressionCodec,
-            int maxBuffersPerChannel,
-            int sortShuffleMinBuffers,
-            int sortShuffleMinParallelism,
-            boolean sslEnabled) {
+    public ResultPartitionFactory(ResultPartitionManager partitionManager,
+                                  FileChannelManager channelManager,
+                                  BufferPoolFactory bufferPoolFactory,
+                                  BatchShuffleReadBufferPool batchShuffleReadBufferPool,
+                                  ExecutorService batchShuffleReadIOExecutor,
+                                  BoundedBlockingSubpartitionType blockingSubpartitionType,
+                                  int configuredNetworkBuffersPerChannel,
+                                  int floatingNetworkBuffersPerGate,
+                                  int networkBufferSize,
+                                  boolean blockingShuffleCompressionEnabled,
+                                  String compressionCodec,
+                                  int maxBuffersPerChannel,
+                                  int sortShuffleMinBuffers,
+                                  int sortShuffleMinParallelism,
+                                  boolean sslEnabled) {
 
         this.partitionManager = partitionManager;
         this.channelManager = channelManager;
@@ -109,103 +108,125 @@ public class ResultPartitionFactory {
         this.sslEnabled = sslEnabled;
     }
 
-    public ResultPartition create(
-            String taskNameWithSubtaskAndId,
-            int partitionIndex,
-            ResultPartitionDeploymentDescriptor desc) {
-        return create(
-                taskNameWithSubtaskAndId,
+    public ResultPartition create(String taskNameWithSubtaskAndId,
+                                  int partitionIndex,
+                                  ResultPartitionDeploymentDescriptor desc) {
+
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释：
+         */
+        return create(taskNameWithSubtaskAndId,
                 partitionIndex,
                 desc.getShuffleDescriptor().getResultPartitionID(),
                 desc.getPartitionType(),
                 desc.getNumberOfSubpartitions(),
                 desc.getMaxParallelism(),
-                createBufferPoolFactory(desc.getNumberOfSubpartitions(), desc.getPartitionType()));
+                createBufferPoolFactory(desc.getNumberOfSubpartitions(), desc.getPartitionType())
+        );
     }
 
     @VisibleForTesting
-    public ResultPartition create(
-            String taskNameWithSubtaskAndId,
-            int partitionIndex,
-            ResultPartitionID id,
-            ResultPartitionType type,
-            int numberOfSubpartitions,
-            int maxParallelism,
-            SupplierWithException<BufferPool, IOException> bufferPoolFactory) {
+    public ResultPartition create(String taskNameWithSubtaskAndId,
+                                  int partitionIndex,
+                                  ResultPartitionID id,
+                                  ResultPartitionType type,
+                                  int numberOfSubpartitions,
+                                  int maxParallelism,
+                                  SupplierWithException<BufferPool, IOException> bufferPoolFactory) {
         BufferCompressor bufferCompressor = null;
         if (type.isBlocking() && blockingShuffleCompressionEnabled) {
             bufferCompressor = new BufferCompressor(networkBufferSize, compressionCodec);
         }
 
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释： ResultPartition 的 ResultSubPartition
+         */
         ResultSubpartition[] subpartitions = new ResultSubpartition[numberOfSubpartitions];
 
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释： 流式处理
+         */
         final ResultPartition partition;
-        if (type == ResultPartitionType.PIPELINED
-                || type == ResultPartitionType.PIPELINED_BOUNDED
+        if (type == ResultPartitionType.PIPELINED || type == ResultPartitionType.PIPELINED_BOUNDED
                 || type == ResultPartitionType.PIPELINED_APPROXIMATE) {
-            final PipelinedResultPartition pipelinedPartition =
-                    new PipelinedResultPartition(
-                            taskNameWithSubtaskAndId,
-                            partitionIndex,
-                            id,
-                            type,
-                            subpartitions,
-                            maxParallelism,
-                            partitionManager,
-                            bufferCompressor,
-                            bufferPoolFactory);
 
+            /*************************************************
+             * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+             *  注释： 构建一个 PipelinedResultPartition
+             */
+            final PipelinedResultPartition pipelinedPartition = new PipelinedResultPartition(taskNameWithSubtaskAndId,
+                    partitionIndex,
+                    id,
+                    type,
+                    subpartitions,
+                    maxParallelism,
+                    partitionManager,
+                    bufferCompressor,
+                    bufferPoolFactory
+            );
+
+            /*************************************************
+             * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+             *  注释： 构建该 PipelinedResultPartition 的 ResultSubPartition
+             */
             for (int i = 0; i < subpartitions.length; i++) {
                 if (type == ResultPartitionType.PIPELINED_APPROXIMATE) {
-                    subpartitions[i] =
-                            new PipelinedApproximateSubpartition(
-                                    i, configuredNetworkBuffersPerChannel, pipelinedPartition);
+                    subpartitions[i] = new PipelinedApproximateSubpartition(i,
+                            configuredNetworkBuffersPerChannel,
+                            pipelinedPartition
+                    );
                 } else {
-                    subpartitions[i] =
-                            new PipelinedSubpartition(
-                                    i, configuredNetworkBuffersPerChannel, pipelinedPartition);
+                    // TODO_MA 马中华 注释： 构建 ResultSubPartition， 具体实现是： PipelinedSubpartition
+                    subpartitions[i] = new PipelinedSubpartition(i,
+                            configuredNetworkBuffersPerChannel,
+                            pipelinedPartition
+                    );
                 }
             }
-
             partition = pipelinedPartition;
-        } else if (type == ResultPartitionType.BLOCKING
-                || type == ResultPartitionType.BLOCKING_PERSISTENT) {
-            if (numberOfSubpartitions >= sortShuffleMinParallelism) {
-                partition =
-                        new SortMergeResultPartition(
-                                taskNameWithSubtaskAndId,
-                                partitionIndex,
-                                id,
-                                type,
-                                subpartitions.length,
-                                maxParallelism,
-                                batchShuffleReadBufferPool,
-                                batchShuffleReadIOExecutor,
-                                partitionManager,
-                                channelManager.createChannel().getPath(),
-                                bufferCompressor,
-                                bufferPoolFactory);
-            } else {
-                final BoundedBlockingResultPartition blockingPartition =
-                        new BoundedBlockingResultPartition(
-                                taskNameWithSubtaskAndId,
-                                partitionIndex,
-                                id,
-                                type,
-                                subpartitions,
-                                maxParallelism,
-                                partitionManager,
-                                bufferCompressor,
-                                bufferPoolFactory);
+        }
 
-                initializeBoundedBlockingPartitions(
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释： 批处理
+         */
+        else if (type == ResultPartitionType.BLOCKING || type == ResultPartitionType.BLOCKING_PERSISTENT) {
+            if (numberOfSubpartitions >= sortShuffleMinParallelism) {
+                partition = new SortMergeResultPartition(taskNameWithSubtaskAndId,
+                        partitionIndex,
+                        id,
+                        type,
+                        subpartitions.length,
+                        maxParallelism,
+                        batchShuffleReadBufferPool,
+                        batchShuffleReadIOExecutor,
+                        partitionManager,
+                        channelManager.createChannel().getPath(),
+                        bufferCompressor,
+                        bufferPoolFactory
+                );
+            } else {
+                final BoundedBlockingResultPartition blockingPartition = new BoundedBlockingResultPartition(
+                        taskNameWithSubtaskAndId,
+                        partitionIndex,
+                        id,
+                        type,
                         subpartitions,
+                        maxParallelism,
+                        partitionManager,
+                        bufferCompressor,
+                        bufferPoolFactory
+                );
+                initializeBoundedBlockingPartitions(subpartitions,
                         blockingPartition,
                         blockingSubpartitionType,
                         networkBufferSize,
                         channelManager,
-                        sslEnabled);
-
+                        sslEnabled
+                );
                 partition = blockingPartition;
             }
         } else {
@@ -217,20 +238,17 @@ public class ResultPartitionFactory {
         return partition;
     }
 
-    private static void initializeBoundedBlockingPartitions(
-            ResultSubpartition[] subpartitions,
-            BoundedBlockingResultPartition parent,
-            BoundedBlockingSubpartitionType blockingSubpartitionType,
-            int networkBufferSize,
-            FileChannelManager channelManager,
-            boolean sslEnabled) {
+    private static void initializeBoundedBlockingPartitions(ResultSubpartition[] subpartitions,
+                                                            BoundedBlockingResultPartition parent,
+                                                            BoundedBlockingSubpartitionType blockingSubpartitionType,
+                                                            int networkBufferSize,
+                                                            FileChannelManager channelManager,
+                                                            boolean sslEnabled) {
         int i = 0;
         try {
             for (i = 0; i < subpartitions.length; i++) {
                 final File spillFile = channelManager.createChannel().getPathFile();
-                subpartitions[i] =
-                        blockingSubpartitionType.create(
-                                i, parent, spillFile, networkBufferSize, sslEnabled);
+                subpartitions[i] = blockingSubpartitionType.create(i, parent, spillFile, networkBufferSize, sslEnabled);
             }
         } catch (IOException e) {
             // undo all the work so that a failed constructor does not leave any resources
@@ -264,20 +282,23 @@ public class ResultPartitionFactory {
      * regression if processing input is based on at-least one buffer available on output side.
      */
     @VisibleForTesting
-    SupplierWithException<BufferPool, IOException> createBufferPoolFactory(
-            int numberOfSubpartitions, ResultPartitionType type) {
+    SupplierWithException<BufferPool, IOException> createBufferPoolFactory(int numberOfSubpartitions,
+                                                                           ResultPartitionType type) {
         return () -> {
-            Pair<Integer, Integer> pair =
-                    NettyShuffleUtils.getMinMaxNetworkBuffersPerResultPartition(
-                            configuredNetworkBuffersPerChannel,
-                            floatingNetworkBuffersPerGate,
-                            sortShuffleMinParallelism,
-                            sortShuffleMinBuffers,
-                            numberOfSubpartitions,
-                            type);
+            Pair<Integer, Integer> pair = NettyShuffleUtils.getMinMaxNetworkBuffersPerResultPartition(
+                    configuredNetworkBuffersPerChannel,
+                    floatingNetworkBuffersPerGate,
+                    sortShuffleMinParallelism,
+                    sortShuffleMinBuffers,
+                    numberOfSubpartitions,
+                    type
+            );
 
-            return bufferPoolFactory.createBufferPool(
-                    pair.getLeft(), pair.getRight(), numberOfSubpartitions, maxBuffersPerChannel);
+            return bufferPoolFactory.createBufferPool(pair.getLeft(),
+                    pair.getRight(),
+                    numberOfSubpartitions,
+                    maxBuffersPerChannel
+            );
         };
     }
 

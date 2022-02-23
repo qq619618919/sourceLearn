@@ -56,7 +56,11 @@ public enum SessionRestEndpointFactory implements RestEndpointFactory<Dispatcher
 
         /*************************************************
          * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-         *  注释：
+         *  注释： 最终的实现类是： DispatcherRestEndpoint
+         *  1、RestServerEndpoint 源码的方法实现中，会用到的概念
+         *  2、WebMonitorEndpoint 讲解的时候使用概念
+         *  3、具体的实现： DispatcherRestEndpoint
+         *  DispatcherRestEndpoint -> WebMonitorEndpoint -> RestServerEndpoint
          */
         return new DispatcherRestEndpoint(dispatcherGatewayRetriever,
                 configuration,

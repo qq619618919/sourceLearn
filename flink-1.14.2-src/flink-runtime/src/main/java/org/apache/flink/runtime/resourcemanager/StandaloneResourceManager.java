@@ -120,7 +120,7 @@ public class StandaloneResourceManager extends ResourceManager<ResourceID> {
         if (startupPeriodMillis > 0) {
             /*************************************************
              * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-             *  注释：
+             *  注释： 也是启动一个定时任务
              */
             scheduleRunAsync(() -> setFailUnfulfillableRequest(true), startupPeriodMillis, TimeUnit.MILLISECONDS);
         }

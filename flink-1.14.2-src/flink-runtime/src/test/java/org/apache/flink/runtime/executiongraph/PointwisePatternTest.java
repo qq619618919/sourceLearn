@@ -55,9 +55,7 @@ public class PointwisePatternTest {
             ConsumedPartitionGroup consumedPartitionGroup = ev.getConsumedPartitionGroup(0);
             assertEquals(1, consumedPartitionGroup.size());
 
-            assertEquals(
-                    ev.getParallelSubtaskIndex(),
-                    consumedPartitionGroup.getFirst().getPartitionNumber());
+            assertEquals(ev.getParallelSubtaskIndex(), consumedPartitionGroup.getFirst().getPartitionNumber());
         }
     }
 
@@ -75,9 +73,7 @@ public class PointwisePatternTest {
 
             int idx = 0;
             for (IntermediateResultPartitionID partitionId : consumedPartitionGroup) {
-                assertEquals(
-                        ev.getParallelSubtaskIndex() * 2L + idx++,
-                        partitionId.getPartitionNumber());
+                assertEquals(ev.getParallelSubtaskIndex() * 2L + idx++, partitionId.getPartitionNumber());
             }
         }
     }
@@ -96,9 +92,7 @@ public class PointwisePatternTest {
 
             int idx = 0;
             for (IntermediateResultPartitionID partitionId : consumedPartitionGroup) {
-                assertEquals(
-                        ev.getParallelSubtaskIndex() * 3L + idx++,
-                        partitionId.getPartitionNumber());
+                assertEquals(ev.getParallelSubtaskIndex() * 3L + idx++, partitionId.getPartitionNumber());
             }
         }
     }
@@ -115,9 +109,7 @@ public class PointwisePatternTest {
             ConsumedPartitionGroup consumedPartitionGroup = ev.getConsumedPartitionGroup(0);
             assertEquals(1, consumedPartitionGroup.size());
 
-            assertEquals(
-                    ev.getParallelSubtaskIndex() / 2,
-                    consumedPartitionGroup.getFirst().getPartitionNumber());
+            assertEquals(ev.getParallelSubtaskIndex() / 2, consumedPartitionGroup.getFirst().getPartitionNumber());
         }
     }
 
@@ -133,9 +125,7 @@ public class PointwisePatternTest {
             ConsumedPartitionGroup consumedPartitionGroup = ev.getConsumedPartitionGroup(0);
             assertEquals(1, consumedPartitionGroup.size());
 
-            assertEquals(
-                    ev.getParallelSubtaskIndex() / 7,
-                    consumedPartitionGroup.getFirst().getPartitionNumber());
+            assertEquals(ev.getParallelSubtaskIndex() / 7, consumedPartitionGroup.getFirst().getPartitionNumber());
         }
     }
 
@@ -163,19 +153,20 @@ public class PointwisePatternTest {
     @Test
     public void testPointwiseConnectionSequence() throws Exception {
         // upstream parallelism < downstream parallelism
-        testConnections(3, 5, new int[][] {{0}, {0}, {1}, {1}, {2}});
-        testConnections(3, 10, new int[][] {{0}, {0}, {0}, {0}, {1}, {1}, {1}, {2}, {2}, {2}});
-        testConnections(4, 6, new int[][] {{0}, {0}, {1}, {2}, {2}, {3}});
-        testConnections(6, 10, new int[][] {{0}, {0}, {1}, {1}, {2}, {3}, {3}, {4}, {4}, {5}});
+        testConnections(3, 5, new int[][]{{0}, {0}, {1}, {1}, {2}});
+        testConnections(3, 10, new int[][]{{0}, {0}, {0}, {0}, {1}, {1}, {1}, {2}, {2}, {2}});
+        testConnections(4, 6, new int[][]{{0}, {0}, {1}, {2}, {2}, {3}});
+        testConnections(6, 10, new int[][]{{0}, {0}, {1}, {1}, {2}, {3}, {3}, {4}, {4}, {5}});
 
         // upstream parallelism > downstream parallelism
-        testConnections(5, 3, new int[][] {{0}, {1, 2}, {3, 4}});
-        testConnections(10, 3, new int[][] {{0, 1, 2}, {3, 4, 5}, {6, 7, 8, 9}});
-        testConnections(6, 4, new int[][] {{0}, {1, 2}, {3}, {4, 5}});
-        testConnections(10, 6, new int[][] {{0}, {1, 2}, {3, 4}, {5}, {6, 7}, {8, 9}});
+        testConnections(5, 3, new int[][]{{0}, {1, 2}, {3, 4}});
+        testConnections(10, 3, new int[][]{{0, 1, 2}, {3, 4, 5}, {6, 7, 8, 9}});
+        testConnections(6, 4, new int[][]{{0}, {1, 2}, {3}, {4, 5}});
+        testConnections(10, 6, new int[][]{{0}, {1, 2}, {3, 4}, {5}, {6, 7}, {8, 9}});
     }
 
-    private void testLowToHigh(int lowDop, int highDop) throws Exception {
+    private void testLowToHigh(int lowDop,
+                               int highDop) throws Exception {
         if (highDop < lowDop) {
             throw new IllegalArgumentException();
         }
@@ -201,7 +192,8 @@ public class PointwisePatternTest {
         }
     }
 
-    private void testHighToLow(int highDop, int lowDop) throws Exception {
+    private void testHighToLow(int highDop,
+                               int lowDop) throws Exception {
         if (highDop < lowDop) {
             throw new IllegalArgumentException();
         }
@@ -223,9 +215,7 @@ public class PointwisePatternTest {
                 }
             }
 
-            assertTrue(
-                    consumedPartitions.size() >= factor
-                            && consumedPartitions.size() <= factor + delta);
+            assertTrue(consumedPartitions.size() >= factor && consumedPartitions.size() <= factor + delta);
 
             for (IntermediateResultPartitionID consumedPartition : consumedPartitions) {
                 timesUsed[consumedPartition.getPartitionNumber()]++;
@@ -236,8 +226,8 @@ public class PointwisePatternTest {
         }
     }
 
-    private ExecutionJobVertex setUpExecutionGraphAndGetDownstreamVertex(
-            int upstream, int downstream) throws Exception {
+    private ExecutionJobVertex setUpExecutionGraphAndGetDownstreamVertex(int upstream,
+                                                                         int downstream) throws Exception {
         JobVertex v1 = new JobVertex("vertex1");
         JobVertex v2 = new JobVertex("vertex2");
 
@@ -247,16 +237,12 @@ public class PointwisePatternTest {
         v1.setInvokableClass(AbstractInvokable.class);
         v2.setInvokableClass(AbstractInvokable.class);
 
-        v2.connectNewDataSetAsInput(
-                v1, DistributionPattern.POINTWISE, ResultPartitionType.PIPELINED);
+        v2.connectNewDataSetAsInput(v1, DistributionPattern.POINTWISE, ResultPartitionType.PIPELINED);
 
         List<JobVertex> ordered = new ArrayList<>(Arrays.asList(v1, v2));
 
-        ExecutionGraph eg =
-                TestingDefaultExecutionGraphBuilder.newBuilder()
-                        .setVertexParallelismStore(
-                                SchedulerBase.computeVertexParallelismStore(ordered))
-                        .build();
+        ExecutionGraph eg = TestingDefaultExecutionGraphBuilder.newBuilder()
+                .setVertexParallelismStore(SchedulerBase.computeVertexParallelismStore(ordered)).build();
         try {
             eg.attachJobGraph(ordered);
         } catch (JobException e) {
@@ -268,27 +254,22 @@ public class PointwisePatternTest {
     }
 
     /** Verify the connections between upstream result partitions and downstream vertices. */
-    private void testConnections(
-            int sourceParallelism, int targetParallelism, int[][] expectedConsumedPartitionNumber)
-            throws Exception {
+    private void testConnections(int sourceParallelism,
+                                 int targetParallelism,
+                                 int[][] expectedConsumedPartitionNumber) throws Exception {
 
-        ExecutionJobVertex target =
-                setUpExecutionGraphAndGetDownstreamVertex(sourceParallelism, targetParallelism);
+        ExecutionJobVertex target = setUpExecutionGraphAndGetDownstreamVertex(sourceParallelism, targetParallelism);
 
         for (int vertexIndex = 0; vertexIndex < target.getTaskVertices().length; vertexIndex++) {
 
             ExecutionVertex ev = target.getTaskVertices()[vertexIndex];
             ConsumedPartitionGroup consumedPartitionGroup = ev.getConsumedPartitionGroup(0);
 
-            assertEquals(
-                    expectedConsumedPartitionNumber[vertexIndex].length,
-                    consumedPartitionGroup.size());
+            assertEquals(expectedConsumedPartitionNumber[vertexIndex].length, consumedPartitionGroup.size());
 
             int partitionIndex = 0;
             for (IntermediateResultPartitionID partitionId : consumedPartitionGroup) {
-                assertEquals(
-                        expectedConsumedPartitionNumber[vertexIndex][partitionIndex++],
-                        partitionId.getPartitionNumber());
+                assertEquals(expectedConsumedPartitionNumber[vertexIndex][partitionIndex++], partitionId.getPartitionNumber());
             }
         }
     }

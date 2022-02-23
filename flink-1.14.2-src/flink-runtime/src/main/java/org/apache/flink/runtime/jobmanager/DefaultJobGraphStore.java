@@ -92,7 +92,9 @@ public class DefaultJobGraphStore<R extends ResourceVersion<R>> implements JobGr
                 this.jobGraphListener = checkNotNull(jobGraphListener);
                 /*************************************************
                  * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-                 *  注释：
+                 *  注释： 启动监听
+                 *  1、如果有新增 job，则回调 this.onAddedJobGraph()
+                 *  2、如果有删除 job，则回调 this.onRemovedJobGraph()
                  */
                 jobGraphStoreWatcher.start(this);
                 running = true;
@@ -187,6 +189,7 @@ public class DefaultJobGraphStore<R extends ResourceVersion<R>> implements JobGr
     public void putJobGraph(JobGraph jobGraph) throws Exception {
         checkNotNull(jobGraph, "Job graph");
 
+        // TODO_MA 马中华 注释： 获取 JobID 和 JobName
         final JobID jobID = jobGraph.getJobID();
         final String name = jobGraphStoreUtil.jobIDToName(jobID);
 
@@ -198,20 +201,35 @@ public class DefaultJobGraphStore<R extends ResourceVersion<R>> implements JobGr
             synchronized (lock) {
                 verifyIsRunning();
 
+                /*************************************************
+                 * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+                 *  注释： 检查是否已在 ZK 上注册了该 Job
+                 */
                 final R currentVersion = jobGraphStateHandleStore.exists(name);
 
+                // TODO_MA 马中华 注释： 如果没注册过，则进行注册
                 if (!currentVersion.isExisting()) {
                     try {
+
+                        // TODO_MA 马中华 注释： 注册到 ZK
+                        // TODO_MA 马中华 注释： 1、将 JobGraph 写到 FileSystem 然后拿到一个 StateHandle
+                        // TODO_MA 马中华 注释： 2、完成 将 StateHandle 向 ZK 的注册
                         jobGraphStateHandleStore.addAndLock(name, jobGraph);
 
+                        // TODO_MA 马中华 注释： 完成 Job 向 JobGraphStore 的注册
                         addedJobGraphs.add(jobID);
 
+                        // TODO_MA 马中华 注释： 标记注册成功
                         success = true;
                     } catch (StateHandleStore.AlreadyExistException ignored) {
                         LOG.warn("{} already exists in {}.", jobGraph, jobGraphStateHandleStore);
                     }
-                } else if (addedJobGraphs.contains(jobID)) {
+                }
+
+                // TODO_MA 马中华 注释： 如果已经注册过，则进行替换，同样标识注册成功
+                else if (addedJobGraphs.contains(jobID)) {
                     try {
+                        // TODO_MA 马中华 注释： 替换信息
                         jobGraphStateHandleStore.replace(name, currentVersion, jobGraph);
                         LOG.info("Updated {} in {}.", jobGraph, getClass().getSimpleName());
 
@@ -272,6 +290,12 @@ public class DefaultJobGraphStore<R extends ResourceVersion<R>> implements JobGr
     public Collection<JobID> getJobIds() throws Exception {
         LOG.debug("Retrieving all stored job ids from {}.", jobGraphStateHandleStore);
 
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释： 启动 Dispatcher 的时候，其实做了两件事：
+         *  1、从 ZK 中获取 StateHandler
+         *  2、从 StateHandler 中拿到 JobID
+         */
         final Collection<String> names;
         try {
             names = jobGraphStateHandleStore.getAllHandles();
@@ -281,6 +305,10 @@ public class DefaultJobGraphStore<R extends ResourceVersion<R>> implements JobGr
 
         final List<JobID> jobIds = new ArrayList<>(names.size());
 
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释：
+         */
         for (String name : names) {
             try {
                 jobIds.add(jobGraphStoreUtil.nameToJobID(name));
@@ -300,8 +328,11 @@ public class DefaultJobGraphStore<R extends ResourceVersion<R>> implements JobGr
             if (running) {
                 if (!addedJobGraphs.contains(jobId)) {
                     try {
-                        // This has been added by someone else. Or we were fast to remove it (false
-                        // positive).
+                        // This has been added by someone else. Or we were fast to remove it (false positive).
+                        /*************************************************
+                         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+                         *  注释：
+                         */
                         jobGraphListener.onAddedJobGraph(jobId);
                     } catch (Throwable t) {
                         LOG.error("Failed to notify job graph listener onAddedJobGraph event for {}", jobId, t);
@@ -318,6 +349,10 @@ public class DefaultJobGraphStore<R extends ResourceVersion<R>> implements JobGr
                 if (addedJobGraphs.contains(jobId)) {
                     try {
                         // Someone else removed one of our job graphs. Mean!
+                        /*************************************************
+                         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+                         *  注释：
+                         */
                         jobGraphListener.onRemovedJobGraph(jobId);
                     } catch (Throwable t) {
                         LOG.error("Failed to notify job graph listener onRemovedJobGraph event for {}", jobId, t);

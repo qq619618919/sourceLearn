@@ -83,8 +83,12 @@ public class JobEdge implements java.io.Serializable {
         if (source == null || target == null || distributionPattern == null) {
             throw new NullPointerException();
         }
+
+        // TODO_MA 马中华 注释： 输出
         this.target = target;
         this.distributionPattern = distributionPattern;
+
+        // TODO_MA 马中华 注释：  输入
         this.source = source;
         this.sourceId = source.getId();
     }

@@ -41,8 +41,7 @@ import static org.apache.flink.util.Preconditions.checkNotNull;
 
 /** A {@link ClusterClientFactory} for a YARN cluster. */
 @Internal
-public class YarnClusterClientFactory
-        extends AbstractContainerizedClusterClientFactory<ApplicationId> {
+public class YarnClusterClientFactory extends AbstractContainerizedClusterClientFactory<ApplicationId> {
 
     @Override
     public boolean isCompatibleWith(Configuration configuration) {
@@ -58,6 +57,10 @@ public class YarnClusterClientFactory
         final String configurationDirectory = configuration.get(DeploymentOptionsInternal.CONF_DIR);
         YarnLogConfigUtil.setLogConfigFileInConfig(configuration, configurationDirectory);
 
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释：
+         */
         return getClusterDescriptor(configuration);
     }
 
@@ -75,18 +78,32 @@ public class YarnClusterClientFactory
     }
 
     private YarnClusterDescriptor getClusterDescriptor(Configuration configuration) {
-        final YarnClient yarnClient = YarnClient.createYarnClient();
-        final YarnConfiguration yarnConfiguration =
-                Utils.getYarnAndHadoopConfiguration(configuration);
 
+        // TODO_MA 马中华 注释：
+        final YarnClient yarnClient = YarnClient.createYarnClient();
+
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释：
+         */
+        final YarnConfiguration yarnConfiguration = Utils.getYarnAndHadoopConfiguration(configuration);
+
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释：
+         */
         yarnClient.init(yarnConfiguration);
         yarnClient.start();
 
-        return new YarnClusterDescriptor(
-                configuration,
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释：
+         */
+        return new YarnClusterDescriptor(configuration,
                 yarnConfiguration,
                 yarnClient,
                 YarnClientYarnClusterInformationRetriever.create(yarnClient),
-                false);
+                false
+        );
     }
 }

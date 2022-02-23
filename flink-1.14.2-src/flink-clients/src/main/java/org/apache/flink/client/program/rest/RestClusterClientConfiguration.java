@@ -37,13 +37,11 @@ public final class RestClusterClientConfiguration {
 
     private final long retryDelay;
 
-    private RestClusterClientConfiguration(
-            final RestClientConfiguration endpointConfiguration,
-            final long awaitLeaderTimeout,
-            final int retryMaxAttempts,
-            final long retryDelay) {
-        checkArgument(
-                awaitLeaderTimeout >= 0, "awaitLeaderTimeout must be equal to or greater than 0");
+    private RestClusterClientConfiguration(final RestClientConfiguration endpointConfiguration,
+                                           final long awaitLeaderTimeout,
+                                           final int retryMaxAttempts,
+                                           final long retryDelay) {
+        checkArgument(awaitLeaderTimeout >= 0, "awaitLeaderTimeout must be equal to or greater than 0");
         checkArgument(retryMaxAttempts >= 0, "retryMaxAttempts must be equal to or greater than 0");
         checkArgument(retryDelay >= 0, "retryDelay must be equal to or greater than 0");
 
@@ -72,16 +70,24 @@ public final class RestClusterClientConfiguration {
         return retryDelay;
     }
 
-    public static RestClusterClientConfiguration fromConfiguration(Configuration config)
-            throws ConfigurationException {
-        RestClientConfiguration restClientConfiguration =
-                RestClientConfiguration.fromConfiguration(config);
+    public static RestClusterClientConfiguration fromConfiguration(Configuration config) throws ConfigurationException {
 
+        // TODO_MA 马中华 注释：
+        RestClientConfiguration restClientConfiguration = RestClientConfiguration.fromConfiguration(config);
+
+        // TODO_MA 马中华 注释： rest.await-leader-timeout = 30s
         final long awaitLeaderTimeout = config.getLong(RestOptions.AWAIT_LEADER_TIMEOUT);
+
+        // TODO_MA 马中华 注释： rest.retry.max-attempts = 20
         final int retryMaxAttempts = config.getInteger(RestOptions.RETRY_MAX_ATTEMPTS);
+
+        // TODO_MA 马中华 注释： rest.retry.delay = 3
         final long retryDelay = config.getLong(RestOptions.RETRY_DELAY);
 
-        return new RestClusterClientConfiguration(
-                restClientConfiguration, awaitLeaderTimeout, retryMaxAttempts, retryDelay);
+        return new RestClusterClientConfiguration(restClientConfiguration,
+                awaitLeaderTimeout,
+                retryMaxAttempts,
+                retryDelay
+        );
     }
 }

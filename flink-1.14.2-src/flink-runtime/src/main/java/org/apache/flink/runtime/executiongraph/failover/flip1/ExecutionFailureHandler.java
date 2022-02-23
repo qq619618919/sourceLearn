@@ -98,7 +98,8 @@ public class ExecutionFailureHandler {
      *
      * @return result of the failure handling
      */
-    public FailureHandlingResult getGlobalFailureHandlingResult(final Throwable cause, long timestamp) {
+    public FailureHandlingResult getGlobalFailureHandlingResult(final Throwable cause,
+                                                                long timestamp) {
         return handleFailure(null,
                 cause,
                 timestamp,
@@ -124,7 +125,12 @@ public class ExecutionFailureHandler {
             );
         }
 
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释：
+         */
         restartBackoffTimeStrategy.notifyFailure(cause);
+
         if (restartBackoffTimeStrategy.canRestart()) {
             numberOfRestarts++;
 

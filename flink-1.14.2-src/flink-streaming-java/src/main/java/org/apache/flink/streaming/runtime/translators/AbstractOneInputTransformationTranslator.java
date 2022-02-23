@@ -42,6 +42,10 @@ import static org.apache.flink.util.Preconditions.checkState;
  */
 abstract class AbstractOneInputTransformationTranslator<IN, OUT, OP extends Transformation<OUT>> extends SimpleTransformationTranslator<OUT, OP> {
 
+    /*************************************************
+     * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+     *  注释： 构造 StreamNode 和 StreamEdge
+     */
     protected Collection<Integer> translateInternal(final Transformation<OUT> transformation,
                                                     final StreamOperatorFactory<OUT> operatorFactory,
                                                     final TypeInformation<IN> inputType,
@@ -60,41 +64,37 @@ abstract class AbstractOneInputTransformationTranslator<IN, OUT, OP extends Tran
 
         /*************************************************
          * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-         *  注释： 根据一个 Operator 生成一个 StreamNode
+         *  注释： 第一件大事：
+         *  根据一个 Operator 生成一个 StreamNode
          */
-        streamGraph.addOperator(transformationId,
-                slotSharingGroup,
-                transformation.getCoLocationGroupKey(),
-                operatorFactory,
-                inputType,
-                transformation.getOutputType(),
-                transformation.getName()
-        );
+        streamGraph.addOperator(transformationId, slotSharingGroup, transformation.getCoLocationGroupKey(), operatorFactory,
+                inputType, transformation.getOutputType(), transformation.getName());
 
         if (stateKeySelector != null) {
             TypeSerializer<?> keySerializer = stateKeyType.createSerializer(executionConfig);
             streamGraph.setOneInputStateKey(transformationId, stateKeySelector, keySerializer);
         }
 
-        int parallelism = transformation.getParallelism()
-                != ExecutionConfig.PARALLELISM_DEFAULT ? transformation.getParallelism() : executionConfig.getParallelism();
+        int parallelism = transformation.getParallelism() != ExecutionConfig.PARALLELISM_DEFAULT ? transformation.getParallelism() : executionConfig.getParallelism();
         streamGraph.setParallelism(transformationId, parallelism);
         streamGraph.setMaxParallelism(transformationId, transformation.getMaxParallelism());
 
         final List<Transformation<?>> parentTransformations = transformation.getInputs();
         checkState(parentTransformations.size() == 1,
-                "Expected exactly one input transformation but found " + parentTransformations.size()
-        );
+                "Expected exactly one input transformation but found " + parentTransformations.size());
 
         /*************************************************
          * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-         *  注释： 根据输入，生成对应的和上游顶点的 边
+         *  注释： 第二件大事；
+         *  根据输入，生成对应的和上游顶点的 边
+         *  一般来说，就是一个输入： ds.xx1.xx3.xx4.xx5.xx6
+         *  join  union
          */
         for (Integer inputId : context.getStreamNodeIds(parentTransformations.get(0))) {
 
             /*************************************************
              * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-             *  注释：
+             *  注释： 生成边，并且维护关系。 维护和上游顶点的关系
              */
             streamGraph.addEdge(inputId, transformationId, 0);
         }

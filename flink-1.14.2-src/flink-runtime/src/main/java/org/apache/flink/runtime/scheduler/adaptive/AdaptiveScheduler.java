@@ -554,7 +554,8 @@ public class AdaptiveScheduler implements SchedulerNG, Created.Context, WaitingF
     }
 
     @Override
-    public CompletableFuture<String> triggerSavepoint(@Nullable String targetDirectory, boolean cancelJob) {
+    public CompletableFuture<String> triggerSavepoint(@Nullable String targetDirectory,
+                                                      boolean cancelJob) {
         return state
                 .tryCall(StateWithExecutionGraph.class,
                         stateWithExecutionGraph -> stateWithExecutionGraph.triggerSavepoint(targetDirectory, cancelJob),
@@ -606,7 +607,8 @@ public class AdaptiveScheduler implements SchedulerNG, Created.Context, WaitingF
     }
 
     @Override
-    public CompletableFuture<String> stopWithSavepoint(@Nullable String targetDirectory, boolean terminate) {
+    public CompletableFuture<String> stopWithSavepoint(@Nullable String targetDirectory,
+                                                       boolean terminate) {
         return state
                 .tryCall(Executing.class,
                         executing -> executing.stopWithSavepoint(targetDirectory, terminate),
@@ -683,7 +685,8 @@ public class AdaptiveScheduler implements SchedulerNG, Created.Context, WaitingF
     }
 
     @Override
-    public ArchivedExecutionGraph getArchivedExecutionGraph(JobStatus jobStatus, @Nullable Throwable cause) {
+    public ArchivedExecutionGraph getArchivedExecutionGraph(JobStatus jobStatus,
+                                                            @Nullable Throwable cause) {
         return ArchivedExecutionGraph.createFromInitializingJob(jobInformation.getJobID(),
                 jobInformation.getName(),
                 jobStatus,
@@ -859,10 +862,11 @@ public class AdaptiveScheduler implements SchedulerNG, Created.Context, WaitingF
             return FutureUtils.completedExceptionally(exception);
         }
 
-        return createExecutionGraphAndRestoreStateAsync(adjustedParallelismStore).thenApply(executionGraph -> CreatingExecutionGraph.ExecutionGraphWithVertexParallelism.create(
-                executionGraph,
-                vertexParallelism
-        ));
+        return createExecutionGraphAndRestoreStateAsync(adjustedParallelismStore).thenApply(
+                executionGraph -> CreatingExecutionGraph.ExecutionGraphWithVertexParallelism.create(
+                        executionGraph,
+                        vertexParallelism
+                ));
     }
 
     @Override
@@ -885,7 +889,8 @@ public class AdaptiveScheduler implements SchedulerNG, Created.Context, WaitingF
     }
 
     @Nonnull
-    private ExecutionGraph assignSlotsToExecutionGraph(ExecutionGraph executionGraph, ReservedSlots reservedSlots) {
+    private ExecutionGraph assignSlotsToExecutionGraph(ExecutionGraph executionGraph,
+                                                       ReservedSlots reservedSlots) {
         for (ExecutionVertex executionVertex : executionGraph.getAllExecutionVertices()) {
             final LogicalSlot assignedSlot = reservedSlots.getSlotFor(executionVertex.getID());
             final CompletableFuture<Void> registrationFuture = executionVertex
@@ -1016,7 +1021,8 @@ public class AdaptiveScheduler implements SchedulerNG, Created.Context, WaitingF
     }
 
     @Override
-    public void runIfState(State expectedState, Runnable action) {
+    public void runIfState(State expectedState,
+                           Runnable action) {
         if (isState(expectedState)) {
             try {
                 action.run();
@@ -1032,7 +1038,9 @@ public class AdaptiveScheduler implements SchedulerNG, Created.Context, WaitingF
     }
 
     @Override
-    public ScheduledFuture<?> runIfState(State expectedState, Runnable action, Duration delay) {
+    public ScheduledFuture<?> runIfState(State expectedState,
+                                         Runnable action,
+                                         Duration delay) {
         return componentMainThreadExecutor.schedule(() -> runIfState(expectedState, action),
                 delay.toMillis(),
                 TimeUnit.MILLISECONDS

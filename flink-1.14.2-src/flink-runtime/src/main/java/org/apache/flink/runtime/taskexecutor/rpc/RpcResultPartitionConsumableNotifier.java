@@ -35,39 +35,38 @@ import java.util.concurrent.Executor;
 
 public class RpcResultPartitionConsumableNotifier implements ResultPartitionConsumableNotifier {
 
-    private static final Logger LOG =
-            LoggerFactory.getLogger(RpcResultPartitionConsumableNotifier.class);
+    private static final Logger LOG = LoggerFactory.getLogger(RpcResultPartitionConsumableNotifier.class);
 
     private final JobMasterGateway jobMasterGateway;
     private final Executor executor;
     private final Time timeout;
 
-    public RpcResultPartitionConsumableNotifier(
-            JobMasterGateway jobMasterGateway, Executor executor, Time timeout) {
+    public RpcResultPartitionConsumableNotifier(JobMasterGateway jobMasterGateway, Executor executor, Time timeout) {
         this.jobMasterGateway = Preconditions.checkNotNull(jobMasterGateway);
         this.executor = Preconditions.checkNotNull(executor);
         this.timeout = Preconditions.checkNotNull(timeout);
     }
 
     @Override
-    public void notifyPartitionConsumable(
-            JobID jobId, ResultPartitionID partitionId, final TaskActions taskActions) {
-        CompletableFuture<Acknowledge> acknowledgeFuture =
-                jobMasterGateway.notifyPartitionDataAvailable(partitionId, timeout);
+    public void notifyPartitionConsumable(JobID jobId, ResultPartitionID partitionId, final TaskActions taskActions) {
 
-        acknowledgeFuture.whenCompleteAsync(
-                (Acknowledge ack, Throwable throwable) -> {
-                    if (throwable != null) {
-                        LOG.error(
-                                "Could not notify partition data available to JobManager.",
-                                throwable);
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释：
+         */
+        CompletableFuture<Acknowledge> acknowledgeFuture = jobMasterGateway.notifyPartitionDataAvailable(partitionId,
+                timeout
+        );
 
-                        taskActions.failExternally(
-                                new RuntimeException(
-                                        "Could not notify partition data available to JobManager.",
-                                        throwable));
-                    }
-                },
-                executor);
+        acknowledgeFuture.whenCompleteAsync((Acknowledge ack, Throwable throwable) -> {
+            if (throwable != null) {
+                LOG.error("Could not notify partition data available to JobManager.", throwable);
+
+                taskActions.failExternally(new RuntimeException(
+                        "Could not notify partition data available to JobManager.",
+                        throwable
+                ));
+            }
+        }, executor);
     }
 }

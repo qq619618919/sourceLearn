@@ -45,14 +45,14 @@ import java.util.stream.Collectors;
  *
  * @param <T> The type of the record that can be read with this record reader.
  */
-abstract class AbstractRecordReader<T extends IOReadableWritable> extends AbstractReader
-        implements ReaderBase {
+abstract class AbstractRecordReader<T extends IOReadableWritable> extends AbstractReader implements ReaderBase {
 
     private final Map<InputChannelInfo, RecordDeserializer<T>> recordDeserializers;
 
     private final Map<RecordDeserializer<T>, Boolean> partialData = new IdentityHashMap<>();
 
-    @Nullable private RecordDeserializer<T> currentRecordDeserializer;
+    @Nullable
+    private RecordDeserializer<T> currentRecordDeserializer;
 
     private boolean finishedStateReading;
 
@@ -66,26 +66,28 @@ abstract class AbstractRecordReader<T extends IOReadableWritable> extends Abstra
      *
      * @param inputGate The input gate to read from.
      * @param tmpDirectories The temp directories. USed for spilling if the reader concurrently
-     *     reconstructs multiple large records.
+     *         reconstructs multiple large records.
      */
     @SuppressWarnings("unchecked")
     protected AbstractRecordReader(InputGate inputGate, String[] tmpDirectories) {
         super(inputGate);
 
         // Initialize one deserializer per input channel
-        recordDeserializers =
-                inputGate.getChannelInfos().stream()
-                        .collect(
-                                Collectors.toMap(
-                                        Function.identity(),
-                                        channelInfo ->
-                                                new SpillingAdaptiveSpanningRecordDeserializer<>(
-                                                        tmpDirectories)));
+        recordDeserializers = inputGate
+                .getChannelInfos()
+                .stream()
+                .collect(Collectors.toMap(Function.identity(),
+                        channelInfo -> new SpillingAdaptiveSpanningRecordDeserializer<>(tmpDirectories)
+                ));
         for (RecordDeserializer<T> serializer : recordDeserializers.values()) {
             partialData.put(serializer, Boolean.FALSE);
         }
     }
 
+    /*************************************************
+     * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+     *  注释：
+     */
     protected boolean getNextRecord(T target) throws IOException, InterruptedException {
         // The action of partition request was removed from InputGate#setup since FLINK-16536, and
         // this is the only
@@ -101,6 +103,10 @@ abstract class AbstractRecordReader<T extends IOReadableWritable> extends Abstra
         if (!requestedPartitions) {
             CompletableFuture<Void> stateConsumedFuture = inputGate.getStateConsumedFuture();
             while (!stateConsumedFuture.isDone()) {
+                /*************************************************
+                 * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+                 *  注释：
+                 */
                 Optional<BufferOrEvent> polled = inputGate.pollNext();
                 Preconditions.checkState(!polled.isPresent());
             }
@@ -127,8 +133,11 @@ abstract class AbstractRecordReader<T extends IOReadableWritable> extends Abstra
                 }
             }
 
-            final BufferOrEvent bufferOrEvent =
-                    inputGate.getNext().orElseThrow(IllegalStateException::new);
+            /*************************************************
+             * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+             *  注释：
+             */
+            final BufferOrEvent bufferOrEvent = inputGate.getNext().orElseThrow(IllegalStateException::new);
 
             if (bufferOrEvent.isBuffer()) {
                 currentRecordDeserializer = recordDeserializers.get(bufferOrEvent.getChannelInfo());
@@ -139,9 +148,7 @@ abstract class AbstractRecordReader<T extends IOReadableWritable> extends Abstra
                 // records, not in the middle of a fragment
                 if (partialData.get(recordDeserializers.get(bufferOrEvent.getChannelInfo()))) {
                     throw new IOException(
-                            "Received an event in channel "
-                                    + bufferOrEvent.getChannelInfo()
-                                    + " while still having "
+                            "Received an event in channel " + bufferOrEvent.getChannelInfo() + " while still having "
                                     + "data from a record. This indicates broken serialization logic. "
                                     + "If you are using custom serialization code (Writable or Value types), check their "
                                     + "serialization routines. In the case of Kryo, check the respective Kryo serializer.");

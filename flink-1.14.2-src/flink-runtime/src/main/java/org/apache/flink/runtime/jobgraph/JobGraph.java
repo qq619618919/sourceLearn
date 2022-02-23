@@ -70,8 +70,7 @@ public class JobGraph implements Serializable {
     // --- job and configuration ---
 
     /** List of task vertices included in this job graph. */
-    private final Map<JobVertexID, JobVertex> taskVertices =
-            new LinkedHashMap<JobVertexID, JobVertex>();
+    private final Map<JobVertexID, JobVertex> taskVertices = new LinkedHashMap<JobVertexID, JobVertex>();
 
     /** The job configuration attached to this job. */
     private final Configuration jobConfiguration = new Configuration();
@@ -107,8 +106,7 @@ public class JobGraph implements Serializable {
     private final List<Path> userJars = new ArrayList<Path>();
 
     /** Set of custom files required to run this job. */
-    private final Map<String, DistributedCache.DistributedCacheEntry> userArtifacts =
-            new HashMap<>();
+    private final Map<String, DistributedCache.DistributedCacheEntry> userArtifacts = new HashMap<>();
 
     /** Set of blob keys identifying the JAR files required to run this job. */
     private final List<PermanentBlobKey> userJarBlobKeys = new ArrayList<>();
@@ -249,6 +247,7 @@ public class JobGraph implements Serializable {
      * serialized copy.
      *
      * @param executionConfig The ExecutionConfig to be serialized.
+     *
      * @throws IOException Thrown if the serialization of the ExecutionConfig fails
      */
     public void setExecutionConfig(ExecutionConfig executionConfig) throws IOException {
@@ -257,10 +256,9 @@ public class JobGraph implements Serializable {
     }
 
     void setSerializedExecutionConfig(SerializedValue<ExecutionConfig> serializedExecutionConfig) {
-        this.serializedExecutionConfig =
-                checkNotNull(
-                        serializedExecutionConfig,
-                        "The serialized ExecutionConfig must not be null.");
+        this.serializedExecutionConfig = checkNotNull(serializedExecutionConfig,
+                "The serialized ExecutionConfig must not be null."
+        );
     }
 
     /**
@@ -275,8 +273,7 @@ public class JobGraph implements Serializable {
         // if we had a prior association, restore and throw an exception
         if (previous != null) {
             taskVertices.put(id, previous);
-            throw new IllegalArgumentException(
-                    "The JobGraph already contains a vertex with that id.");
+            throw new IllegalArgumentException("The JobGraph already contains a vertex with that id.");
         }
     }
 
@@ -309,10 +306,10 @@ public class JobGraph implements Serializable {
     }
 
     public Set<SlotSharingGroup> getSlotSharingGroups() {
-        final Set<SlotSharingGroup> slotSharingGroups =
-                IterableUtils.toStream(getVertices())
-                        .map(JobVertex::getSlotSharingGroup)
-                        .collect(Collectors.toSet());
+        final Set<SlotSharingGroup> slotSharingGroups = IterableUtils
+                .toStream(getVertices())
+                .map(JobVertex::getSlotSharingGroup)
+                .collect(Collectors.toSet());
         return Collections.unmodifiableSet(slotSharingGroups);
     }
 
@@ -322,11 +319,11 @@ public class JobGraph implements Serializable {
      * @return The associated {@code CoLocationGroup} instances.
      */
     public Set<CoLocationGroup> getCoLocationGroups() {
-        final Set<CoLocationGroup> coLocationGroups =
-                IterableUtils.toStream(getVertices())
-                        .map(JobVertex::getCoLocationGroup)
-                        .filter(Objects::nonNull)
-                        .collect(Collectors.toSet());
+        final Set<CoLocationGroup> coLocationGroups = IterableUtils
+                .toStream(getVertices())
+                .map(JobVertex::getCoLocationGroup)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
         return Collections.unmodifiableSet(coLocationGroups);
     }
 
@@ -361,8 +358,7 @@ public class JobGraph implements Serializable {
             return false;
         }
 
-        long checkpointInterval =
-                snapshotSettings.getCheckpointCoordinatorConfiguration().getCheckpointInterval();
+        long checkpointInterval = snapshotSettings.getCheckpointCoordinatorConfiguration().getCheckpointInterval();
         return checkpointInterval > 0 && checkpointInterval < Long.MAX_VALUE;
     }
 
@@ -370,8 +366,9 @@ public class JobGraph implements Serializable {
      * Searches for a vertex with a matching ID and returns it.
      *
      * @param id the ID of the vertex to search for
+     *
      * @return the vertex with the matching ID or <code>null</code> if no vertex with such ID could
-     *     be found
+     *         be found
      */
     public JobVertex findVertexByID(JobVertexID id) {
         return this.taskVertices.get(id);
@@ -407,8 +404,7 @@ public class JobGraph implements Serializable {
     //  Topological Graph Access
     // --------------------------------------------------------------------------------------------
 
-    public List<JobVertex> getVerticesSortedTopologicallyFromSources()
-            throws InvalidProgramException {
+    public List<JobVertex> getVerticesSortedTopologicallyFromSources() throws InvalidProgramException {
         // early out on empty lists
         if (this.taskVertices.isEmpty()) {
             return Collections.emptyList();
@@ -449,8 +445,7 @@ public class JobGraph implements Serializable {
         return sorted;
     }
 
-    private void addNodesThatHaveNoNewPredecessors(
-            JobVertex start, List<JobVertex> target, Set<JobVertex> remaining) {
+    private void addNodesThatHaveNoNewPredecessors(JobVertex start, List<JobVertex> target, Set<JobVertex> remaining) {
 
         // forward traverse over all produced data sets and all their consumers
         for (IntermediateDataSet dataSet : start.getProducedDataSets()) {
@@ -510,7 +505,8 @@ public class JobGraph implements Serializable {
      * Adds the given jar files to the {@link JobGraph} via {@link JobGraph#addJar}.
      *
      * @param jarFilesToAttach a list of the {@link URL URLs} of the jar files to attach to the
-     *     jobgraph.
+     *         jobgraph.
+     *
      * @throws RuntimeException if a jar URL is not valid.
      */
     public void addJars(final List<URL> jarFilesToAttach) {
@@ -536,7 +532,7 @@ public class JobGraph implements Serializable {
      * Adds the path of a custom file required to run the job on a task manager.
      *
      * @param name a name under which this artifact will be accessible through {@link
-     *     DistributedCache}
+     *         DistributedCache}
      * @param file path of a custom file required to run the job on a task manager
      */
     public void addUserArtifact(String name, DistributedCache.DistributedCacheEntry file) {
@@ -594,37 +590,32 @@ public class JobGraph implements Serializable {
         return "JobGraph(jobId: " + jobID + ")";
     }
 
-    public void setUserArtifactBlobKey(String entryName, PermanentBlobKey blobKey)
-            throws IOException {
+    public void setUserArtifactBlobKey(String entryName, PermanentBlobKey blobKey) throws IOException {
         byte[] serializedBlobKey;
         serializedBlobKey = InstantiationUtil.serializeObject(blobKey);
 
-        userArtifacts.computeIfPresent(
-                entryName,
-                (key, originalEntry) ->
-                        new DistributedCache.DistributedCacheEntry(
-                                originalEntry.filePath,
-                                originalEntry.isExecutable,
-                                serializedBlobKey,
-                                originalEntry.isZipped));
+        userArtifacts.computeIfPresent(entryName,
+                (key, originalEntry) -> new DistributedCache.DistributedCacheEntry(originalEntry.filePath,
+                        originalEntry.isExecutable,
+                        serializedBlobKey,
+                        originalEntry.isZipped
+                )
+        );
     }
 
     public void setUserArtifactRemotePath(String entryName, String remotePath) {
-        userArtifacts.computeIfPresent(
-                entryName,
-                (key, originalEntry) ->
-                        new DistributedCache.DistributedCacheEntry(
-                                remotePath,
-                                originalEntry.isExecutable,
-                                null,
-                                originalEntry.isZipped));
+        userArtifacts.computeIfPresent(entryName,
+                (key, originalEntry) -> new DistributedCache.DistributedCacheEntry(remotePath,
+                        originalEntry.isExecutable,
+                        null,
+                        originalEntry.isZipped
+                )
+        );
     }
 
     public void writeUserArtifactEntriesToConfiguration() {
-        for (Map.Entry<String, DistributedCache.DistributedCacheEntry> userArtifact :
-                userArtifacts.entrySet()) {
-            DistributedCache.writeFileInfoToConfig(
-                    userArtifact.getKey(), userArtifact.getValue(), jobConfiguration);
+        for (Map.Entry<String, DistributedCache.DistributedCacheEntry> userArtifact : userArtifacts.entrySet()) {
+            DistributedCache.writeFileInfoToConfig(userArtifact.getKey(), userArtifact.getValue(), jobConfiguration);
         }
     }
 }

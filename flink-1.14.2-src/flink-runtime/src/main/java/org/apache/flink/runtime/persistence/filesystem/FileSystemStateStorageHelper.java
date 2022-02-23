@@ -37,8 +37,7 @@ import java.io.Serializable;
  *
  * @param <T> The type of the data that can be stored by this storage helper.
  */
-public class FileSystemStateStorageHelper<T extends Serializable>
-        implements RetrievableStateStorageHelper<T> {
+public class FileSystemStateStorageHelper<T extends Serializable> implements RetrievableStateStorageHelper<T> {
 
     private final Path rootPath;
 
@@ -46,7 +45,8 @@ public class FileSystemStateStorageHelper<T extends Serializable>
 
     private final FileSystem fs;
 
-    public FileSystemStateStorageHelper(Path rootPath, String prefix) throws IOException {
+    public FileSystemStateStorageHelper(Path rootPath,
+                                        String prefix) throws IOException {
         this.rootPath = Preconditions.checkNotNull(rootPath, "Root path");
         this.prefix = Preconditions.checkNotNull(prefix, "Prefix");
 
@@ -57,18 +57,28 @@ public class FileSystemStateStorageHelper<T extends Serializable>
     public RetrievableStateHandle<T> store(T state) throws Exception {
         Exception latestException = null;
 
+        // TODO_MA 马中华 注释： 重试机制
         for (int attempt = 0; attempt < 10; attempt++) {
             Path filePath = getNewFilePath();
 
-            try (FSDataOutputStream outStream =
-                    fs.create(filePath, FileSystem.WriteMode.NO_OVERWRITE)) {
+            /*************************************************
+             * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+             *  注释： 完成 JobGraph 到 FileSystem 的写入
+             */
+            try (FSDataOutputStream outStream = fs.create(filePath, FileSystem.WriteMode.NO_OVERWRITE)) {
+
+                // TODO_MA 马中华 注释： 完成写入
                 InstantiationUtil.serializeObject(outStream, state);
+
+                // TODO_MA 马中华 注释： 生成一个 StateHandle
                 return new RetrievableStreamStateHandle<T>(filePath, outStream.getPos());
+
             } catch (Exception e) {
                 latestException = e;
             }
         }
 
+        // TODO_MA 马中华 注释： 如果 10次 重试机会都用完了，则抛错
         throw new Exception("Could not open output stream for state backend", latestException);
     }
 

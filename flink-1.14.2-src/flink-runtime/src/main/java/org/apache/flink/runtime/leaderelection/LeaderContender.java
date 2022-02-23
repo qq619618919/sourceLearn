@@ -31,6 +31,7 @@ public interface LeaderContender {
     /**
      * Callback method which is called by the {@link LeaderElectionService} upon selecting this
      * instance as the new leader. The method is called with the new leader session ID.
+     * // TODO_MA 马中华 注释： 当 当前 LeaderContender 竞选成功的时候，则回调 grantLeadership
      *
      * @param leaderSessionID New leader session ID
      */

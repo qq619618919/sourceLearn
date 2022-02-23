@@ -57,14 +57,16 @@ public final class RocksDBResourceContainer implements AutoCloseable {
     private final PredefinedOptions predefinedOptions;
 
     /** The options factory to create the RocksDB options. */
-    @Nullable private final RocksDBOptionsFactory optionsFactory;
+    @Nullable
+    private final RocksDBOptionsFactory optionsFactory;
 
     /**
      * The shared resource among RocksDB instances. This resource is not part of the
      * 'handlesToClose', because the handles to close are closed quietly, whereas for this one, we
      * want exceptions to be reported.
      */
-    @Nullable private final OpaqueMemoryResource<RocksDBSharedResources> sharedResources;
+    @Nullable
+    private final OpaqueMemoryResource<RocksDBSharedResources> sharedResources;
 
     /** The handles to be closed when the container is closed. */
     private final ArrayList<AutoCloseable> handlesToClose;
@@ -73,15 +75,14 @@ public final class RocksDBResourceContainer implements AutoCloseable {
         this(PredefinedOptions.DEFAULT, null, null);
     }
 
-    public RocksDBResourceContainer(
-            PredefinedOptions predefinedOptions, @Nullable RocksDBOptionsFactory optionsFactory) {
+    public RocksDBResourceContainer(PredefinedOptions predefinedOptions,
+                                    @Nullable RocksDBOptionsFactory optionsFactory) {
         this(predefinedOptions, optionsFactory, null);
     }
 
-    public RocksDBResourceContainer(
-            PredefinedOptions predefinedOptions,
-            @Nullable RocksDBOptionsFactory optionsFactory,
-            @Nullable OpaqueMemoryResource<RocksDBSharedResources> sharedResources) {
+    public RocksDBResourceContainer(PredefinedOptions predefinedOptions,
+                                    @Nullable RocksDBOptionsFactory optionsFactory,
+                                    @Nullable OpaqueMemoryResource<RocksDBSharedResources> sharedResources) {
 
         this.predefinedOptions = checkNotNull(predefinedOptions);
         this.optionsFactory = optionsFactory;
@@ -115,7 +116,7 @@ public final class RocksDBResourceContainer implements AutoCloseable {
      * Gets write buffer manager capacity.
      *
      * @return the capacity of the write buffer manager, or null if write buffer manager is not
-     *     enabled.
+     *         enabled.
      */
     public Long getWriteBufferManagerCapacity() {
         if (sharedResources == null) {
@@ -146,13 +147,12 @@ public final class RocksDBResourceContainer implements AutoCloseable {
             if (tableFormatConfig == null) {
                 blockBasedTableConfig = new BlockBasedTableConfig();
             } else {
-                Preconditions.checkArgument(
-                        tableFormatConfig instanceof BlockBasedTableConfig,
-                        "We currently only support BlockBasedTableConfig When bounding total memory.");
+                Preconditions.checkArgument(tableFormatConfig instanceof BlockBasedTableConfig,
+                        "We currently only support BlockBasedTableConfig When bounding total memory."
+                );
                 blockBasedTableConfig = (BlockBasedTableConfig) tableFormatConfig;
             }
-            if (rocksResources.isUsingPartitionedIndexFilters()
-                    && overwriteFilterIfExist(blockBasedTableConfig)) {
+            if (rocksResources.isUsingPartitionedIndexFilters() && overwriteFilterIfExist(blockBasedTableConfig)) {
                 blockBasedTableConfig.setIndexType(IndexType.kTwoLevelIndexSearch);
                 blockBasedTableConfig.setPartitionFilters(true);
                 blockBasedTableConfig.setPinTopLevelIndexAndFilter(true);
@@ -194,11 +194,9 @@ public final class RocksDBResourceContainer implements AutoCloseable {
         return opt;
     }
 
-    RocksDBNativeMetricOptions getMemoryWatcherOptions(
-            RocksDBNativeMetricOptions defaultMetricOptions) {
-        return optionsFactory == null
-                ? defaultMetricOptions
-                : optionsFactory.createNativeMetricsOptions(defaultMetricOptions);
+    RocksDBNativeMetricOptions getMemoryWatcherOptions(RocksDBNativeMetricOptions defaultMetricOptions) {
+        return optionsFactory == null ? defaultMetricOptions : optionsFactory.createNativeMetricsOptions(
+                defaultMetricOptions);
     }
 
     PredefinedOptions getPredefinedOptions() {
@@ -237,8 +235,7 @@ public final class RocksDBResourceContainer implements AutoCloseable {
             // TODO Can get filter's config in the future RocksDB version, and build new filter use
             // existing config.
             BloomFilter newFilter = new BloomFilter(10, false);
-            LOG.info(
-                    "Existing filter has been overwritten to full filters since partitioned index filters is enabled.");
+            LOG.info("Existing filter has been overwritten to full filters since partitioned index filters is enabled.");
             blockBasedTableConfig.setFilter(newFilter);
             handlesToClose.add(newFilter);
         }
@@ -246,8 +243,7 @@ public final class RocksDBResourceContainer implements AutoCloseable {
     }
 
     @VisibleForTesting
-    static Filter getFilterFromBlockBasedTableConfig(BlockBasedTableConfig blockBasedTableConfig)
-            throws NoSuchFieldException, IllegalAccessException {
+    static Filter getFilterFromBlockBasedTableConfig(BlockBasedTableConfig blockBasedTableConfig) throws NoSuchFieldException, IllegalAccessException {
         Field filterField = blockBasedTableConfig.getClass().getDeclaredField("filterPolicy");
         filterField.setAccessible(true);
         Object filter = filterField.get(blockBasedTableConfig);

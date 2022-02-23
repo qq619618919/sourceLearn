@@ -35,9 +35,7 @@ import java.util.stream.Collectors;
 /**
  * Utility for tracking partitions and issuing release calls to task executors and shuffle masters.
  */
-public class TaskExecutorPartitionTrackerImpl
-        extends AbstractPartitionTracker<JobID, TaskExecutorPartitionInfo>
-        implements TaskExecutorPartitionTracker {
+public class TaskExecutorPartitionTrackerImpl extends AbstractPartitionTracker<JobID, TaskExecutorPartitionInfo> implements TaskExecutorPartitionTracker {
 
     private final Map<IntermediateDataSetID, DataSetEntry> clusterPartitions = new HashMap<>();
     private final ShuffleEnvironment<?, ?> shuffleEnvironment;
@@ -47,17 +45,19 @@ public class TaskExecutorPartitionTrackerImpl
     }
 
     @Override
-    public void startTrackingPartition(
-            JobID producingJobId, TaskExecutorPartitionInfo partitionInfo) {
+    public void startTrackingPartition(JobID producingJobId, TaskExecutorPartitionInfo partitionInfo) {
         Preconditions.checkNotNull(producingJobId);
         Preconditions.checkNotNull(partitionInfo);
 
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释：
+         */
         startTrackingPartition(producingJobId, partitionInfo.getResultPartitionId(), partitionInfo);
     }
 
     @Override
-    public void stopTrackingAndReleaseJobPartitions(
-            Collection<ResultPartitionID> partitionsToRelease) {
+    public void stopTrackingAndReleaseJobPartitions(Collection<ResultPartitionID> partitionsToRelease) {
         if (partitionsToRelease.isEmpty()) {
             return;
         }
@@ -68,10 +68,9 @@ public class TaskExecutorPartitionTrackerImpl
 
     @Override
     public void stopTrackingAndReleaseJobPartitionsFor(JobID producingJobId) {
-        Collection<ResultPartitionID> partitionsForJob =
-                CollectionUtil.project(
-                        stopTrackingPartitionsFor(producingJobId),
-                        PartitionTrackerEntry::getResultPartitionId);
+        Collection<ResultPartitionID> partitionsForJob = CollectionUtil.project(stopTrackingPartitionsFor(producingJobId),
+                PartitionTrackerEntry::getResultPartitionId
+        );
         shuffleEnvironment.releasePartitionsLocally(partitionsForJob);
     }
 
@@ -81,23 +80,20 @@ public class TaskExecutorPartitionTrackerImpl
             return;
         }
 
-        final Collection<PartitionTrackerEntry<JobID, TaskExecutorPartitionInfo>>
-                partitionTrackerEntries = stopTrackingPartitions(partitionsToPromote);
+        final Collection<PartitionTrackerEntry<JobID, TaskExecutorPartitionInfo>> partitionTrackerEntries = stopTrackingPartitions(
+                partitionsToPromote);
 
-        for (PartitionTrackerEntry<JobID, TaskExecutorPartitionInfo> partitionTrackerEntry :
-                partitionTrackerEntries) {
+        for (PartitionTrackerEntry<JobID, TaskExecutorPartitionInfo> partitionTrackerEntry : partitionTrackerEntries) {
             final TaskExecutorPartitionInfo dataSetMetaInfo = partitionTrackerEntry.getMetaInfo();
-            final DataSetEntry dataSetEntry =
-                    clusterPartitions.computeIfAbsent(
-                            dataSetMetaInfo.getIntermediateDataSetId(),
-                            ignored -> new DataSetEntry(dataSetMetaInfo.getNumberOfPartitions()));
+            final DataSetEntry dataSetEntry = clusterPartitions.computeIfAbsent(dataSetMetaInfo.getIntermediateDataSetId(),
+                    ignored -> new DataSetEntry(dataSetMetaInfo.getNumberOfPartitions())
+            );
             dataSetEntry.addPartition(partitionTrackerEntry.getResultPartitionId());
         }
     }
 
     @Override
-    public void stopTrackingAndReleaseClusterPartitions(
-            Collection<IntermediateDataSetID> dataSetsToRelease) {
+    public void stopTrackingAndReleaseClusterPartitions(Collection<IntermediateDataSetID> dataSetsToRelease) {
         for (IntermediateDataSetID dataSetID : dataSetsToRelease) {
             final DataSetEntry dataSetEntry = clusterPartitions.remove(dataSetID);
             final Set<ResultPartitionID> partitionIds = dataSetEntry.getPartitionIds();
@@ -107,7 +103,9 @@ public class TaskExecutorPartitionTrackerImpl
 
     @Override
     public void stopTrackingAndReleaseAllClusterPartitions() {
-        clusterPartitions.values().stream()
+        clusterPartitions
+                .values()
+                .stream()
                 .map(DataSetEntry::getPartitionIds)
                 .forEach(shuffleEnvironment::releasePartitionsLocally);
         clusterPartitions.clear();
@@ -115,15 +113,14 @@ public class TaskExecutorPartitionTrackerImpl
 
     @Override
     public ClusterPartitionReport createClusterPartitionReport() {
-        List<ClusterPartitionReport.ClusterPartitionReportEntry> reportEntries =
-                clusterPartitions.entrySet().stream()
-                        .map(
-                                entry ->
-                                        new ClusterPartitionReport.ClusterPartitionReportEntry(
-                                                entry.getKey(),
-                                                entry.getValue().getPartitionIds(),
-                                                entry.getValue().getTotalNumberOfPartitions()))
-                        .collect(Collectors.toList());
+        List<ClusterPartitionReport.ClusterPartitionReportEntry> reportEntries = clusterPartitions
+                .entrySet()
+                .stream()
+                .map(entry -> new ClusterPartitionReport.ClusterPartitionReportEntry(entry.getKey(),
+                        entry.getValue().getPartitionIds(),
+                        entry.getValue().getTotalNumberOfPartitions()
+                ))
+                .collect(Collectors.toList());
 
         return new ClusterPartitionReport(reportEntries);
     }

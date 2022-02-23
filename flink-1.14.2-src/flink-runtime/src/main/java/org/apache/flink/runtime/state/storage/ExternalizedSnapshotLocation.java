@@ -40,10 +40,12 @@ class ExternalizedSnapshotLocation implements Serializable {
     private static final long serialVersionUID = 1L;
 
     /** The path where checkpoints will be stored, or null, if none has been configured. */
-    @Nullable private Path baseCheckpointPath;
+    @Nullable
+    private Path baseCheckpointPath;
 
     /** The path where savepoints will be stored, or null, if none has been configured. */
-    @Nullable private Path baseSavepointPath;
+    @Nullable
+    private Path baseSavepointPath;
 
     @Nullable
     Path getBaseCheckpointPath() {
@@ -55,16 +57,19 @@ class ExternalizedSnapshotLocation implements Serializable {
         return baseSavepointPath;
     }
 
-    private ExternalizedSnapshotLocation() {}
+    private ExternalizedSnapshotLocation() {
+    }
 
     static Builder newBuilder() {
         return new Builder();
     }
 
     static class Builder {
-        @Nullable Path baseCheckpointPath;
+        @Nullable
+        Path baseCheckpointPath;
 
-        @Nullable Path baseSavepointPath;
+        @Nullable
+        Path baseSavepointPath;
 
         ReadableConfig config = new Configuration();
 
@@ -85,18 +90,14 @@ class ExternalizedSnapshotLocation implements Serializable {
 
         ExternalizedSnapshotLocation build() {
             ExternalizedSnapshotLocation location = new ExternalizedSnapshotLocation();
-            location.baseCheckpointPath =
-                    validatePath(
-                            parameterOrConfigured(
-                                    baseCheckpointPath,
-                                    config,
-                                    CheckpointingOptions.CHECKPOINTS_DIRECTORY));
-            location.baseSavepointPath =
-                    validatePath(
-                            parameterOrConfigured(
-                                    baseSavepointPath,
-                                    config,
-                                    CheckpointingOptions.SAVEPOINT_DIRECTORY));
+            location.baseCheckpointPath = validatePath(parameterOrConfigured(baseCheckpointPath,
+                    config,
+                    CheckpointingOptions.CHECKPOINTS_DIRECTORY
+            ));
+            location.baseSavepointPath = validatePath(parameterOrConfigured(baseSavepointPath,
+                    config,
+                    CheckpointingOptions.SAVEPOINT_DIRECTORY
+            ));
             return location;
         }
     }
@@ -105,7 +106,9 @@ class ExternalizedSnapshotLocation implements Serializable {
      * Checks the validity of the path's scheme and path.
      *
      * @param path The path to check.
+     *
      * @return The URI as a Path.
+     *
      * @throws IllegalArgumentException Thrown, if the URI misses scheme or path.
      */
     private static Path validatePath(Path path) {
@@ -113,45 +116,33 @@ class ExternalizedSnapshotLocation implements Serializable {
             return null;
         }
 
-        Optional.ofNullable(path.toUri().getScheme())
-                .orElseThrow(
-                        () ->
-                                new IllegalArgumentException(
-                                        "The scheme (hdfs://, file://, etc) is null. "
-                                                + "Please specify the file system scheme explicitly in the URI."));
+        Optional
+                .ofNullable(path.toUri().getScheme())
+                .orElseThrow(() -> new IllegalArgumentException("The scheme (hdfs://, file://, etc) is null. "
+                        + "Please specify the file system scheme explicitly in the URI."));
 
-        Optional.ofNullable(path.getPath())
-                .orElseThrow(
-                        () ->
-                                new IllegalArgumentException(
-                                        "The path to store the checkpoint data in is null. "
-                                                + "Please specify a directory path for the checkpoint data."));
+        Optional
+                .ofNullable(path.getPath())
+                .orElseThrow(() -> new IllegalArgumentException("The path to store the checkpoint data in is null. "
+                        + "Please specify a directory path for the checkpoint data."));
 
-        Optional.ofNullable(path.getParent())
-                .orElseThrow(
-                        () ->
-                                new IllegalArgumentException(
-                                        "Cannot use the root directory for checkpoints."));
+        Optional
+                .ofNullable(path.getParent())
+                .orElseThrow(() -> new IllegalArgumentException("Cannot use the root directory for checkpoints."));
 
         return path;
     }
 
     @Nullable
-    private static Path parameterOrConfigured(
-            @Nullable Path path, ReadableConfig config, ConfigOption<String> option) {
+    private static Path parameterOrConfigured(@Nullable Path path, ReadableConfig config, ConfigOption<String> option) {
 
-        return Optional.ofNullable(path)
-                .orElseGet(
-                        () -> {
-                            try {
-                                return config.getOptional(option).map(Path::new).orElse(null);
-                            } catch (IllegalArgumentException e) {
-                                throw new IllegalConfigurationException(
-                                        "Cannot parse value for "
-                                                + option.key()
-                                                + " . Not a valid path.",
-                                        e);
-                            }
-                        });
+        return Optional.ofNullable(path).orElseGet(() -> {
+            try {
+                return config.getOptional(option).map(Path::new).orElse(null);
+            } catch (IllegalArgumentException e) {
+                throw new IllegalConfigurationException(
+                        "Cannot parse value for " + option.key() + " . Not a valid path.", e);
+            }
+        });
     }
 }

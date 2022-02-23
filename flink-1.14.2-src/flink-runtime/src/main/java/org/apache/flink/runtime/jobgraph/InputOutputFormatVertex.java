@@ -46,9 +46,9 @@ public class InputOutputFormatVertex extends JobVertex {
         super(name);
     }
 
-    public InputOutputFormatVertex(
-            String name, JobVertexID id, List<OperatorIDPair> operatorIDPairs) {
-
+    public InputOutputFormatVertex(String name,
+                                   JobVertexID id,
+                                   List<OperatorIDPair> operatorIDPairs) {
         super(name, id, operatorIDPairs);
     }
 
@@ -62,14 +62,11 @@ public class InputOutputFormatVertex extends JobVertex {
             Thread.currentThread().setContextClassLoader(loader);
 
             // configure the input format and setup input splits
-            Map<OperatorID, UserCodeWrapper<? extends InputFormat<?, ?>>> inputFormats =
-                    formatContainer.getInputFormats();
+            Map<OperatorID, UserCodeWrapper<? extends InputFormat<?, ?>>> inputFormats = formatContainer.getInputFormats();
             if (inputFormats.size() > 1) {
-                throw new UnsupportedOperationException(
-                        "Multiple input formats are not supported in a job vertex.");
+                throw new UnsupportedOperationException("Multiple input formats are not supported in a job vertex.");
             }
-            for (Map.Entry<OperatorID, UserCodeWrapper<? extends InputFormat<?, ?>>> entry :
-                    inputFormats.entrySet()) {
+            for (Map.Entry<OperatorID, UserCodeWrapper<? extends InputFormat<?, ?>>> entry : inputFormats.entrySet()) {
                 final InputFormat<?, ?> inputFormat;
 
                 try {
@@ -77,10 +74,7 @@ public class InputOutputFormatVertex extends JobVertex {
                     inputFormat.configure(formatContainer.getParameters(entry.getKey()));
                 } catch (Throwable t) {
                     throw new Exception(
-                            "Configuring the input format ("
-                                    + getFormatDescription(entry.getKey())
-                                    + ") failed: "
-                                    + t.getMessage(),
+                            "Configuring the input format (" + getFormatDescription(entry.getKey()) + ") failed: " + t.getMessage(),
                             t);
                 }
 
@@ -88,22 +82,16 @@ public class InputOutputFormatVertex extends JobVertex {
             }
 
             // configure output formats and invoke initializeGlobal()
-            Map<OperatorID, UserCodeWrapper<? extends OutputFormat<?>>> outputFormats =
-                    formatContainer.getOutputFormats();
-            for (Map.Entry<OperatorID, UserCodeWrapper<? extends OutputFormat<?>>> entry :
-                    outputFormats.entrySet()) {
+            Map<OperatorID, UserCodeWrapper<? extends OutputFormat<?>>> outputFormats = formatContainer.getOutputFormats();
+            for (Map.Entry<OperatorID, UserCodeWrapper<? extends OutputFormat<?>>> entry : outputFormats.entrySet()) {
                 final OutputFormat<?> outputFormat;
 
                 try {
                     outputFormat = entry.getValue().getUserCodeObject();
                     outputFormat.configure(formatContainer.getParameters(entry.getKey()));
                 } catch (Throwable t) {
-                    throw new Exception(
-                            "Configuring the output format ("
-                                    + getFormatDescription(entry.getKey())
-                                    + ") failed: "
-                                    + t.getMessage(),
-                            t);
+                    throw new Exception("Configuring the output format (" + getFormatDescription(
+                            entry.getKey()) + ") failed: " + t.getMessage(), t);
                 }
 
                 if (outputFormat instanceof InitializeOnMaster) {
@@ -126,22 +114,16 @@ public class InputOutputFormatVertex extends JobVertex {
             Thread.currentThread().setContextClassLoader(loader);
 
             // configure output formats and invoke finalizeGlobal()
-            Map<OperatorID, UserCodeWrapper<? extends OutputFormat<?>>> outputFormats =
-                    formatContainer.getOutputFormats();
-            for (Map.Entry<OperatorID, UserCodeWrapper<? extends OutputFormat<?>>> entry :
-                    outputFormats.entrySet()) {
+            Map<OperatorID, UserCodeWrapper<? extends OutputFormat<?>>> outputFormats = formatContainer.getOutputFormats();
+            for (Map.Entry<OperatorID, UserCodeWrapper<? extends OutputFormat<?>>> entry : outputFormats.entrySet()) {
                 final OutputFormat<?> outputFormat;
 
                 try {
                     outputFormat = entry.getValue().getUserCodeObject();
                     outputFormat.configure(formatContainer.getParameters(entry.getKey()));
                 } catch (Throwable t) {
-                    throw new Exception(
-                            "Configuring the output format ("
-                                    + getFormatDescription(entry.getKey())
-                                    + ") failed: "
-                                    + t.getMessage(),
-                            t);
+                    throw new Exception("Configuring the output format (" + getFormatDescription(
+                            entry.getKey()) + ") failed: " + t.getMessage(), t);
                 }
 
                 if (outputFormat instanceof FinalizeOnMaster) {
@@ -158,19 +140,16 @@ public class InputOutputFormatVertex extends JobVertex {
         return formatDescriptions.get(operatorID);
     }
 
-    public void setFormatDescription(OperatorID operatorID, String formatDescription) {
+    public void setFormatDescription(OperatorID operatorID,
+                                     String formatDescription) {
         formatDescriptions.put(checkNotNull(operatorID), formatDescription);
     }
 
-    private InputOutputFormatContainer initInputOutputformatContainer(ClassLoader classLoader)
-            throws Exception {
+    private InputOutputFormatContainer initInputOutputformatContainer(ClassLoader classLoader) throws Exception {
         try {
             return new InputOutputFormatContainer(new TaskConfig(getConfiguration()), classLoader);
         } catch (Throwable t) {
-            throw new Exception(
-                    "Loading the input/output formats failed: "
-                            + String.join(",", formatDescriptions.values()),
-                    t);
+            throw new Exception("Loading the input/output formats failed: " + String.join(",", formatDescriptions.values()), t);
         }
     }
 }

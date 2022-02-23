@@ -61,6 +61,11 @@ public class RemoteRecoveredInputChannel extends RecoveredInputChannel {
 
     @Override
     protected InputChannel toInputChannelInternal() throws IOException {
+
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释：
+         */
         RemoteInputChannel remoteInputChannel = new RemoteInputChannel(inputGate,
                 getChannelIndex(),
                 partitionId,
@@ -73,6 +78,11 @@ public class RemoteRecoveredInputChannel extends RecoveredInputChannel {
                 numBuffersIn,
                 channelStateWriter
         );
+
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释：
+         */
         remoteInputChannel.setup();
         return remoteInputChannel;
     }

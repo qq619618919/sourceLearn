@@ -780,6 +780,11 @@ public abstract class FlinkKafkaConsumerBase<T> extends RichParallelSourceFuncti
         //     instead of being built from `subscribedPartitionsToStartOffsets`
         //   - 'notifyCheckpointComplete' will start to do work (i.e. commit offsets to
         //     Kafka through the fetcher, if configured to do so)
+
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释： 创建 KafkaFetcher 从 Kafka 拉取数据执行消费
+         */
         this.kafkaFetcher = createFetcher(sourceContext,
                 subscribedPartitionsToStartOffsets,
                 watermarkStrategy,
@@ -800,6 +805,10 @@ public abstract class FlinkKafkaConsumerBase<T> extends RichParallelSourceFuncti
         //  2) Old state - partition discovery is disabled and only the main fetcher loop is
         // executed
         if (discoveryIntervalMillis == PARTITION_DISCOVERY_DISABLED) {
+            /*************************************************
+             * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+             *  注释： 跑起来
+             */
             kafkaFetcher.runFetchLoop();
         } else {
             runWithPartitionDiscovery();

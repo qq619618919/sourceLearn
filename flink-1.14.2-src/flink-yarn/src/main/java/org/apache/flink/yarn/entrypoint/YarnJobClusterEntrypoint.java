@@ -56,7 +56,10 @@ public class YarnJobClusterEntrypoint extends JobClusterEntrypoint {
          * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
          *  注释：
          */
-        return DefaultDispatcherResourceManagerComponentFactory.createJobComponentFactory(YarnResourceManagerFactory.getInstance(),
+        return DefaultDispatcherResourceManagerComponentFactory.createJobComponentFactory(
+
+                // TODO_MA 马中华 注释： YarnResourceManagerFactory
+                YarnResourceManagerFactory.getInstance(),
 
                 /*************************************************
                  * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
@@ -73,12 +76,17 @@ public class YarnJobClusterEntrypoint extends JobClusterEntrypoint {
     //  for a single Flink job.
     // ------------------------------------------------------------------------
 
+    /*************************************************
+     * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+     *  注释： 入口
+     */
     public static void main(String[] args) {
         // startup checks and logging
         EnvironmentInformation.logEnvironmentInfo(LOG, YarnJobClusterEntrypoint.class.getSimpleName(), args);
         SignalHandler.register(LOG);
         JvmShutdownSafeguard.installAsShutdownHook(LOG);
 
+        // TODO_MA 马中华 注释： 获取系统环境变量
         Map<String, String> env = System.getenv();
 
         final String workingDirectory = env.get(ApplicationConstants.Environment.PWD.key());
@@ -88,6 +96,10 @@ public class YarnJobClusterEntrypoint extends JobClusterEntrypoint {
         );
 
         try {
+            /*************************************************
+             * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+             *  注释：
+             */
             YarnEntrypointUtils.logYarnEnvironmentInformation(env, LOG);
         } catch (IOException e) {
             LOG.warn("Could not log YARN environment information.", e);
@@ -97,6 +109,11 @@ public class YarnJobClusterEntrypoint extends JobClusterEntrypoint {
                 new DynamicParametersConfigurationParserFactory(),
                 YarnJobClusterEntrypoint.class
         );
+
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释：
+         */
         final Configuration configuration = YarnEntrypointUtils.loadConfiguration(workingDirectory,
                 dynamicParameters,
                 env

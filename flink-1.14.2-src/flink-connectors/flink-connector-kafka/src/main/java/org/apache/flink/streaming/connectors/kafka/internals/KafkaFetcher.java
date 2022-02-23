@@ -75,45 +75,51 @@ public class KafkaFetcher<T> extends AbstractFetcher<T, TopicPartition> {
 
     // ------------------------------------------------------------------------
 
-    public KafkaFetcher(
-            SourceFunction.SourceContext<T> sourceContext,
-            Map<KafkaTopicPartition, Long> assignedPartitionsWithInitialOffsets,
-            SerializedValue<WatermarkStrategy<T>> watermarkStrategy,
-            ProcessingTimeService processingTimeProvider,
-            long autoWatermarkInterval,
-            ClassLoader userCodeClassLoader,
-            String taskNameWithSubtasks,
-            KafkaDeserializationSchema<T> deserializer,
-            Properties kafkaProperties,
-            long pollTimeout,
-            MetricGroup subtaskMetricGroup,
-            MetricGroup consumerMetricGroup,
-            boolean useMetrics)
-            throws Exception {
-        super(
-                sourceContext,
+    public KafkaFetcher(SourceFunction.SourceContext<T> sourceContext,
+                        Map<KafkaTopicPartition, Long> assignedPartitionsWithInitialOffsets,
+                        SerializedValue<WatermarkStrategy<T>> watermarkStrategy,
+                        ProcessingTimeService processingTimeProvider,
+                        long autoWatermarkInterval,
+                        ClassLoader userCodeClassLoader,
+                        String taskNameWithSubtasks,
+                        KafkaDeserializationSchema<T> deserializer,
+                        Properties kafkaProperties,
+                        long pollTimeout,
+                        MetricGroup subtaskMetricGroup,
+                        MetricGroup consumerMetricGroup,
+                        boolean useMetrics) throws Exception {
+        super(sourceContext,
                 assignedPartitionsWithInitialOffsets,
                 watermarkStrategy,
                 processingTimeProvider,
                 autoWatermarkInterval,
                 userCodeClassLoader,
                 consumerMetricGroup,
-                useMetrics);
+                useMetrics
+        );
 
         this.deserializer = deserializer;
         this.handover = new Handover();
 
-        this.consumerThread =
-                new KafkaConsumerThread(
-                        LOG,
-                        handover,
-                        kafkaProperties,
-                        unassignedPartitionsQueue,
-                        getFetcherName() + " for " + taskNameWithSubtasks,
-                        pollTimeout,
-                        useMetrics,
-                        consumerMetricGroup,
-                        subtaskMetricGroup);
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释： 消费线程
+         */
+        this.consumerThread = new KafkaConsumerThread(LOG,
+                handover,
+                kafkaProperties,
+                unassignedPartitionsQueue,
+                getFetcherName() + " for " + taskNameWithSubtasks,
+                pollTimeout,
+                useMetrics,
+                consumerMetricGroup,
+                subtaskMetricGroup
+        );
+
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释： 维护一个数据队列
+         */
         this.kafkaCollector = new KafkaCollector();
     }
 
@@ -125,20 +131,36 @@ public class KafkaFetcher<T> extends AbstractFetcher<T, TopicPartition> {
     public void runFetchLoop() throws Exception {
         try {
             // kick off the actual Kafka consumer
+            /*************************************************
+             * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+             *  注释： 消费 kafka 的线程启动
+             */
             consumerThread.start();
 
+            // TODO_MA 马中华 注释： 不停的拉取到数据执行消费
             while (running) {
                 // this blocks until we get the next records
                 // it automatically re-throws exceptions encountered in the consumer thread
+
+                /*************************************************
+                 * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+                 *  注释： 获取拉取到的数据
+                 */
                 final ConsumerRecords<byte[], byte[]> records = handover.pollNext();
 
                 // get the records for each topic partition
-                for (KafkaTopicPartitionState<T, TopicPartition> partition :
-                        subscribedPartitionStates()) {
+                for (KafkaTopicPartitionState<T, TopicPartition> partition : subscribedPartitionStates()) {
 
-                    List<ConsumerRecord<byte[], byte[]>> partitionRecords =
-                            records.records(partition.getKafkaPartitionHandle());
+                    /*************************************************
+                     * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+                     *  注释： 获取到一堆数据
+                     */
+                    List<ConsumerRecord<byte[], byte[]>> partitionRecords = records.records(partition.getKafkaPartitionHandle());
 
+                    /*************************************************
+                     * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+                     *  注释： 执行消费
+                     */
                     partitionConsumerRecordsHandler(partitionRecords, partition);
                 }
             }
@@ -170,18 +192,18 @@ public class KafkaFetcher<T> extends AbstractFetcher<T, TopicPartition> {
         return "Kafka Fetcher";
     }
 
-    protected void partitionConsumerRecordsHandler(
-            List<ConsumerRecord<byte[], byte[]>> partitionRecords,
-            KafkaTopicPartitionState<T, TopicPartition> partition)
-            throws Exception {
+    protected void partitionConsumerRecordsHandler(List<ConsumerRecord<byte[], byte[]>> partitionRecords,
+                                                   KafkaTopicPartitionState<T, TopicPartition> partition) throws Exception {
 
         for (ConsumerRecord<byte[], byte[]> record : partitionRecords) {
             deserializer.deserialize(record, kafkaCollector);
 
-            // emit the actual records. this also updates offset state atomically and emits
-            // watermarks
-            emitRecordsWithTimestamps(
-                    kafkaCollector.getRecords(), partition, record.offset(), record.timestamp());
+            // emit the actual records. this also updates offset state atomically and emits watermarks
+            /*************************************************
+             * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+             *  注释：
+             */
+            emitRecordsWithTimestamps(kafkaCollector.getRecords(), partition, record.offset(), record.timestamp());
 
             if (kafkaCollector.isEndOfStreamSignalled()) {
                 // end of stream signaled
@@ -201,9 +223,8 @@ public class KafkaFetcher<T> extends AbstractFetcher<T, TopicPartition> {
     }
 
     @Override
-    protected void doCommitInternalOffsetsToKafka(
-            Map<KafkaTopicPartition, Long> offsets, @Nonnull KafkaCommitCallback commitCallback)
-            throws Exception {
+    protected void doCommitInternalOffsetsToKafka(Map<KafkaTopicPartition, Long> offsets,
+                                                  @Nonnull KafkaCommitCallback commitCallback) throws Exception {
 
         @SuppressWarnings("unchecked")
         List<KafkaTopicPartitionState<T, TopicPartition>> partitions = subscribedPartitionStates();
@@ -220,8 +241,7 @@ public class KafkaFetcher<T> extends AbstractFetcher<T, TopicPartition> {
                 // This does not affect Flink's checkpoints/saved state.
                 long offsetToCommit = lastProcessedOffset + 1;
 
-                offsetsToCommit.put(
-                        partition.getKafkaPartitionHandle(), new OffsetAndMetadata(offsetToCommit));
+                offsetsToCommit.put(partition.getKafkaPartitionHandle(), new OffsetAndMetadata(offsetToCommit));
                 partition.setCommittedOffset(offsetToCommit);
             }
         }
@@ -232,6 +252,8 @@ public class KafkaFetcher<T> extends AbstractFetcher<T, TopicPartition> {
     }
 
     private class KafkaCollector implements Collector<T> {
+
+        // TODO_MA 马中华 注释： 数据队列
         private final Queue<T> records = new ArrayDeque<>();
 
         private boolean endOfStreamSignalled = false;
@@ -255,6 +277,7 @@ public class KafkaFetcher<T> extends AbstractFetcher<T, TopicPartition> {
         }
 
         @Override
-        public void close() {}
+        public void close() {
+        }
     }
 }

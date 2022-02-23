@@ -66,22 +66,24 @@ public class TaskExecutorToResourceManagerConnection extends RegisteredRpcConnec
 
     @Override
     protected RetryingRegistration<ResourceManagerId, ResourceManagerGateway, TaskExecutorRegistrationSuccess, TaskExecutorRegistrationRejection> generateRegistration() {
-        return new TaskExecutorToResourceManagerConnection.ResourceManagerRegistration(log,
-                rpcService,
-                getTargetAddress(),
-                getTargetLeaderId(),
-                retryingRegistrationConfiguration,
-                taskExecutorRegistration
-        );
+
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释：
+         */
+        return new TaskExecutorToResourceManagerConnection.ResourceManagerRegistration(log, rpcService, getTargetAddress(),
+                getTargetLeaderId(), retryingRegistrationConfiguration, taskExecutorRegistration);
     }
 
     @Override
     protected void onRegistrationSuccess(TaskExecutorRegistrationSuccess success) {
-        log.info("Successful registration at resource manager {} under registration id {}.",
-                getTargetAddress(),
-                success.getRegistrationId()
-        );
+        log.info("Successful registration at resource manager {} under registration id {}.", getTargetAddress(),
+                success.getRegistrationId());
 
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释： 回调
+         */
         registrationListener.onRegistrationSuccess(this, success);
     }
 
@@ -112,14 +114,8 @@ public class TaskExecutorToResourceManagerConnection extends RegisteredRpcConnec
                                     RetryingRegistrationConfiguration retryingRegistrationConfiguration,
                                     TaskExecutorRegistration taskExecutorRegistration) {
 
-            super(log,
-                    rpcService,
-                    "ResourceManager",
-                    ResourceManagerGateway.class,
-                    targetAddress,
-                    resourceManagerId,
-                    retryingRegistrationConfiguration
-            );
+            super(log, rpcService, "ResourceManager", ResourceManagerGateway.class, targetAddress, resourceManagerId,
+                    retryingRegistrationConfiguration);
             this.taskExecutorRegistration = taskExecutorRegistration;
         }
 
@@ -132,7 +128,7 @@ public class TaskExecutorToResourceManagerConnection extends RegisteredRpcConnec
 
             /*************************************************
              * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-             *  注释：
+             *  注释：TaskExecutor 向 resourceManager 注册
              */
             return resourceManager.registerTaskExecutor(taskExecutorRegistration, timeout);
         }

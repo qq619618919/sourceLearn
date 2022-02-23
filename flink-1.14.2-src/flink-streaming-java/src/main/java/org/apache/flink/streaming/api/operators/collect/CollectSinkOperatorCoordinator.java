@@ -51,8 +51,7 @@ import java.util.concurrent.Executors;
  * <p>This coordinator only forwards requests and responses from clients and sinks and it does not
  * store any results in itself.
  */
-public class CollectSinkOperatorCoordinator
-        implements OperatorCoordinator, CoordinationRequestHandler {
+public class CollectSinkOperatorCoordinator implements OperatorCoordinator, CoordinationRequestHandler {
 
     private static final Logger LOG = LoggerFactory.getLogger(CollectSinkOperatorCoordinator.class);
 
@@ -71,10 +70,8 @@ public class CollectSinkOperatorCoordinator
 
     @Override
     public void start() throws Exception {
-        this.executorService =
-                Executors.newSingleThreadExecutor(
-                        new ExecutorThreadFactory(
-                                "collect-sink-operator-coordinator-executor-thread-pool"));
+        this.executorService = Executors.newSingleThreadExecutor(new ExecutorThreadFactory(
+                "collect-sink-operator-coordinator-executor-thread-pool"));
     }
 
     @Override
@@ -85,19 +82,18 @@ public class CollectSinkOperatorCoordinator
 
     @Override
     public void handleEventFromOperator(int subtask, OperatorEvent event) throws Exception {
-        Preconditions.checkArgument(
-                event instanceof CollectSinkAddressEvent,
-                "Operator event must be a CollectSinkAddressEvent");
+        Preconditions.checkArgument(event instanceof CollectSinkAddressEvent,
+                "Operator event must be a CollectSinkAddressEvent"
+        );
         address = ((CollectSinkAddressEvent) event).getAddress();
         LOG.info("Received sink socket server address: " + address);
     }
 
     @Override
-    public CompletableFuture<CoordinationResponse> handleCoordinationRequest(
-            CoordinationRequest request) {
-        Preconditions.checkArgument(
-                request instanceof CollectCoordinationRequest,
-                "Coordination request must be a CollectCoordinationRequest");
+    public CompletableFuture<CoordinationResponse> handleCoordinationRequest(CoordinationRequest request) {
+        Preconditions.checkArgument(request instanceof CollectCoordinationRequest,
+                "Coordination request must be a CollectCoordinationRequest"
+        );
 
         CollectCoordinationRequest collectRequest = (CollectCoordinationRequest) request;
         CompletableFuture<CoordinationResponse> responseFuture = new CompletableFuture<>();
@@ -111,10 +107,9 @@ public class CollectSinkOperatorCoordinator
         return responseFuture;
     }
 
-    private void handleRequestImpl(
-            CollectCoordinationRequest request,
-            CompletableFuture<CoordinationResponse> responseFuture,
-            InetSocketAddress sinkAddress) {
+    private void handleRequestImpl(CollectCoordinationRequest request,
+                                   CompletableFuture<CoordinationResponse> responseFuture,
+                                   InetSocketAddress sinkAddress) {
         if (sinkAddress == null) {
             closeConnection();
             completeWithEmptyResponse(request, responseFuture);
@@ -159,16 +154,14 @@ public class CollectSinkOperatorCoordinator
         }
     }
 
-    private void completeWithEmptyResponse(
-            CollectCoordinationRequest request, CompletableFuture<CoordinationResponse> future) {
-        future.complete(
-                new CollectCoordinationResponse(
-                        request.getVersion(),
-                        // this lastCheckpointedOffset is OK
-                        // because client will only expose results to the users when the
-                        // checkpointed offset increases
-                        -1,
-                        Collections.emptyList()));
+    private void completeWithEmptyResponse(CollectCoordinationRequest request,
+                                           CompletableFuture<CoordinationResponse> future) {
+        future.complete(new CollectCoordinationResponse(request.getVersion(),
+                // this lastCheckpointedOffset is OK
+                // because client will only expose results to the users when the
+                // checkpointed offset increases
+                -1, Collections.emptyList()
+        ));
     }
 
     private void closeConnection() {
@@ -199,8 +192,7 @@ public class CollectSinkOperatorCoordinator
     }
 
     @Override
-    public void checkpointCoordinator(long checkpointId, CompletableFuture<byte[]> result)
-            throws Exception {
+    public void checkpointCoordinator(long checkpointId, CompletableFuture<byte[]> result) throws Exception {
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         ObjectOutputStream oos = new ObjectOutputStream(baos);
         oos.writeObject(address);
@@ -209,11 +201,11 @@ public class CollectSinkOperatorCoordinator
     }
 
     @Override
-    public void notifyCheckpointComplete(long checkpointId) {}
+    public void notifyCheckpointComplete(long checkpointId) {
+    }
 
     @Override
-    public void resetToCheckpoint(long checkpointId, @Nullable byte[] checkpointData)
-            throws Exception {
+    public void resetToCheckpoint(long checkpointId, @Nullable byte[] checkpointData) throws Exception {
         if (checkpointData == null) {
             // restore before any checkpoint completed
             closeConnection();

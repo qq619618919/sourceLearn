@@ -22,17 +22,17 @@ import org.apache.flink.configuration.Configuration;
 import org.apache.flink.runtime.rpc.FatalErrorHandler;
 
 /** Default factory for creating client high availability services. */
-public class DefaultClientHighAvailabilityServicesFactory
-        implements ClientHighAvailabilityServicesFactory {
+public class DefaultClientHighAvailabilityServicesFactory implements ClientHighAvailabilityServicesFactory {
 
-    public static final DefaultClientHighAvailabilityServicesFactory INSTANCE =
-            new DefaultClientHighAvailabilityServicesFactory();
+    public static final DefaultClientHighAvailabilityServicesFactory INSTANCE = new DefaultClientHighAvailabilityServicesFactory();
 
     @Override
-    public ClientHighAvailabilityServices create(
-            Configuration configuration, FatalErrorHandler fatalErrorHandler) throws Exception {
-
-        return HighAvailabilityServicesUtils.createClientHAService(
-                configuration, fatalErrorHandler);
+    public ClientHighAvailabilityServices create(Configuration configuration,
+                                                 FatalErrorHandler fatalErrorHandler) throws Exception {
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释： ZooKeeperClientHAServices
+         */
+        return HighAvailabilityServicesUtils.createClientHAService(configuration, fatalErrorHandler);
     }
 }

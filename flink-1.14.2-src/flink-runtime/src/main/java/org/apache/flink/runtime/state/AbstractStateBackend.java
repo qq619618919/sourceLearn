@@ -45,8 +45,7 @@ public abstract class AbstractStateBackend implements StateBackend, java.io.Seri
 
     private static final long serialVersionUID = 4620415814639230247L;
 
-    public static StreamCompressionDecorator getCompressionDecorator(
-            ExecutionConfig executionConfig) {
+    public static StreamCompressionDecorator getCompressionDecorator(ExecutionConfig executionConfig) {
         if (executionConfig != null && executionConfig.isUseSnapshotCompression()) {
             return SnappyStreamCompressionDecorator.INSTANCE;
         } else {
@@ -54,33 +53,28 @@ public abstract class AbstractStateBackend implements StateBackend, java.io.Seri
         }
     }
 
-    protected LatencyTrackingStateConfig.Builder latencyTrackingConfigBuilder =
-            LatencyTrackingStateConfig.newBuilder();
+    protected LatencyTrackingStateConfig.Builder latencyTrackingConfigBuilder = LatencyTrackingStateConfig.newBuilder();
 
     // ------------------------------------------------------------------------
     //  State Backend - State-Holding Backends
     // ------------------------------------------------------------------------
 
     @Override
-    public abstract <K> AbstractKeyedStateBackend<K> createKeyedStateBackend(
-            Environment env,
-            JobID jobID,
-            String operatorIdentifier,
-            TypeSerializer<K> keySerializer,
-            int numberOfKeyGroups,
-            KeyGroupRange keyGroupRange,
-            TaskKvStateRegistry kvStateRegistry,
-            TtlTimeProvider ttlTimeProvider,
-            MetricGroup metricGroup,
-            @Nonnull Collection<KeyedStateHandle> stateHandles,
-            CloseableRegistry cancelStreamRegistry)
-            throws IOException;
+    public abstract <K> AbstractKeyedStateBackend<K> createKeyedStateBackend(Environment env,
+                                                                             JobID jobID,
+                                                                             String operatorIdentifier,
+                                                                             TypeSerializer<K> keySerializer,
+                                                                             int numberOfKeyGroups,
+                                                                             KeyGroupRange keyGroupRange,
+                                                                             TaskKvStateRegistry kvStateRegistry,
+                                                                             TtlTimeProvider ttlTimeProvider,
+                                                                             MetricGroup metricGroup,
+                                                                             @Nonnull Collection<KeyedStateHandle> stateHandles,
+                                                                             CloseableRegistry cancelStreamRegistry) throws IOException;
 
     @Override
-    public abstract OperatorStateBackend createOperatorStateBackend(
-            Environment env,
-            String operatorIdentifier,
-            @Nonnull Collection<OperatorStateHandle> stateHandles,
-            CloseableRegistry cancelStreamRegistry)
-            throws Exception;
+    public abstract OperatorStateBackend createOperatorStateBackend(Environment env,
+                                                                    String operatorIdentifier,
+                                                                    @Nonnull Collection<OperatorStateHandle> stateHandles,
+                                                                    CloseableRegistry cancelStreamRegistry) throws Exception;
 }

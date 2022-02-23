@@ -56,6 +56,11 @@ public class ZooKeeperCheckpointRecoveryFactory implements CheckpointRecoveryFac
 
     @Override
     public CheckpointIDCounter createCheckpointIDCounter(JobID jobID) throws Exception {
+
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释：
+         */
         return ZooKeeperUtils.createCheckpointIDCounter(ZooKeeperUtils.useNamespaceAndEnsurePath(client,
                 ZooKeeperUtils.getPathForJob(jobID)
         ));

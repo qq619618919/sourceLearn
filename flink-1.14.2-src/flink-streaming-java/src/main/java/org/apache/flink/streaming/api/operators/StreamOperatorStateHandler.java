@@ -101,6 +101,7 @@ public class StreamOperatorStateHandler {
     }
 
     public void initializeOperatorState(CheckpointedStreamOperator streamOperator) throws Exception {
+
         CloseableIterable<KeyGroupStatePartitionStreamProvider> keyedStateInputs = context.rawKeyedStateInputs();
         CloseableIterable<StatePartitionStreamProvider> operatorStateInputs = context.rawOperatorStateInputs();
 
@@ -116,7 +117,12 @@ public class StreamOperatorStateHandler {
                     operatorStateInputs
             ); // access to operator state stream
 
+            /*************************************************
+             * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+             *  注释：
+             */
             streamOperator.initializeState(initializationContext);
+
         } finally {
             closeFromRegistry(operatorStateInputs, closeableRegistry);
             closeFromRegistry(keyedStateInputs, closeableRegistry);
@@ -159,6 +165,10 @@ public class StreamOperatorStateHandler {
 
         OperatorSnapshotFutures snapshotInProgress = new OperatorSnapshotFutures();
 
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释： 上下文对象
+         */
         StateSnapshotContextSynchronousImpl snapshotContext = new StateSnapshotContextSynchronousImpl(checkpointId,
                 timestamp,
                 factory,
@@ -222,16 +232,13 @@ public class StreamOperatorStateHandler {
             snapshotInProgress.setKeyedStateRawFuture(snapshotContext.getKeyedStateStreamFuture());
             snapshotInProgress.setOperatorStateRawFuture(snapshotContext.getOperatorStateStreamFuture());
 
-            /*************************************************
-             * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-             *  注释：
-             */
             if (null != operatorStateBackend) {
-                snapshotInProgress.setOperatorStateManagedFuture(operatorStateBackend.snapshot(checkpointId,
-                        timestamp,
-                        factory,
-                        checkpointOptions
-                ));
+                snapshotInProgress.setOperatorStateManagedFuture(
+                        /*************************************************
+                         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+                         *  注释：
+                         */
+                        operatorStateBackend.snapshot(checkpointId, timestamp, factory, checkpointOptions));
             }
 
             /*************************************************
@@ -242,11 +249,13 @@ public class StreamOperatorStateHandler {
 
                 // TODO_MA 马中华 注释： savepoint
                 if (checkpointOptions.getCheckpointType().isSavepoint()) {
+
+                    // TODO_MA 马中华 注释：
                     SnapshotStrategyRunner<KeyedStateHandle, ? extends FullSnapshotResources<?>> snapshotRunner = prepareSavepoint(
                             keyedStateBackend,
                             closeableRegistry
                     );
-
+                    // TODO_MA 马中华 注释：
                     snapshotInProgress.setKeyedStateManagedFuture(snapshotRunner.snapshot(checkpointId,
                             timestamp,
                             factory,
@@ -290,10 +299,20 @@ public class StreamOperatorStateHandler {
     public static SnapshotStrategyRunner<KeyedStateHandle, ? extends FullSnapshotResources<?>> prepareSavepoint(
             CheckpointableKeyedStateBackend<?> keyedStateBackend,
             CloseableRegistry closeableRegistry) throws Exception {
+
+        // TODO_MA 马中华 注释：
         SavepointResources<?> savepointResources = keyedStateBackend.savepoint();
 
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释：
+         */
         SavepointSnapshotStrategy<?> savepointSnapshotStrategy = new SavepointSnapshotStrategy<>(savepointResources.getSnapshotResources());
 
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释：
+         */
         return new SnapshotStrategyRunner<>("Asynchronous full Savepoint",
                 savepointSnapshotStrategy,
                 closeableRegistry,
@@ -386,6 +405,7 @@ public class StreamOperatorStateHandler {
 
     /** Custom state handling hooks to be invoked by {@link StreamOperatorStateHandler}. */
     public interface CheckpointedStreamOperator {
+
         void initializeState(StateInitializationContext context) throws Exception;
 
         void snapshotState(StateSnapshotContext context) throws Exception;

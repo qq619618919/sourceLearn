@@ -53,7 +53,6 @@ public class ResourceBudgetManager {
         if (!availableBudget.allFieldsNoLessThan(reservation)) {
             return false;
         }
-
         availableBudget = availableBudget.subtract(reservation);
         return true;
     }
@@ -64,13 +63,11 @@ public class ResourceBudgetManager {
         if (!totalBudget.allFieldsNoLessThan(newAvailableBudget)) {
             return false;
         }
-
         availableBudget = newAvailableBudget;
         return true;
     }
 
-    private static void checkResourceProfileNotNullOrUnknown(
-            final ResourceProfile resourceProfile) {
+    private static void checkResourceProfileNotNullOrUnknown(final ResourceProfile resourceProfile) {
         Preconditions.checkNotNull(resourceProfile);
         Preconditions.checkArgument(!resourceProfile.equals(ResourceProfile.UNKNOWN));
     }

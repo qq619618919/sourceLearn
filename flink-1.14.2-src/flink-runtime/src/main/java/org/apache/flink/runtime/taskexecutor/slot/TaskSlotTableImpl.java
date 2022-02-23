@@ -84,6 +84,10 @@ public class TaskSlotTableImpl<T extends TaskSlotPayload> implements TaskSlotTab
     private final Map<AllocationID, TaskSlot<T>> allocatedSlots;
 
     /** Mapping from execution attempt id to task and task slot. */
+    /*************************************************
+     * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+     *  注释： 用来维护这个 TaskManager 之上的所有 Task 运行的相关信息的管理
+     */
     private final Map<ExecutionAttemptID, TaskSlotMapping<T>> taskSlotMappings;
 
     /** Mapping from job id to allocated slots for a job. */
@@ -106,8 +110,7 @@ public class TaskSlotTableImpl<T extends TaskSlotPayload> implements TaskSlotTab
 
     /** {@link ComponentMainThreadExecutor} to schedule internal calls to the main thread. */
     private ComponentMainThreadExecutor mainThreadExecutor = new DummyComponentMainThreadExecutor(
-            "TaskSlotTableImpl is not initialized with proper main thread executor, "
-                    + "call to TaskSlotTableImpl#start is required");
+            "TaskSlotTableImpl is not initialized with proper main thread executor, " + "call to TaskSlotTableImpl#start is required");
 
     /** {@link Executor} for background actions, e.g. verify all managed memory released. */
     private final Executor memoryVerificationExecutor;
@@ -145,17 +148,16 @@ public class TaskSlotTableImpl<T extends TaskSlotPayload> implements TaskSlotTab
     }
 
     @Override
-    public void start(SlotActions initialSlotActions, ComponentMainThreadExecutor mainThreadExecutor) {
-        Preconditions.checkState(state == State.CREATED,
-                "The %s has to be just created before starting",
-                TaskSlotTableImpl.class.getSimpleName()
-        );
+    public void start(SlotActions initialSlotActions,
+                      ComponentMainThreadExecutor mainThreadExecutor) {
+        Preconditions.checkState(state == State.CREATED, "The %s has to be just created before starting",
+                TaskSlotTableImpl.class.getSimpleName());
         this.slotActions = Preconditions.checkNotNull(initialSlotActions);
         this.mainThreadExecutor = Preconditions.checkNotNull(mainThreadExecutor);
 
         /*************************************************
          * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-         *  注释：
+         *  注释： 监听响应，回调 notifyTimeout 方法
          */
         timerService.start(this);
 
@@ -170,15 +172,12 @@ public class TaskSlotTableImpl<T extends TaskSlotPayload> implements TaskSlotTab
         } else if (state == State.RUNNING) {
             state = State.CLOSING;
             final FlinkException cause = new FlinkException("Closing task slot table");
-            CompletableFuture<Void> cleanupFuture = FutureUtils
-                    .waitForAll(new ArrayList<>(allocatedSlots.values())
-                            .stream()
-                            .map(slot -> freeSlotInternal(slot, cause))
-                            .collect(Collectors.toList()))
-                    .thenRunAsync(() -> {
-                        state = State.CLOSED;
-                        timerService.stop();
-                    }, mainThreadExecutor);
+            CompletableFuture<Void> cleanupFuture = FutureUtils.waitForAll(
+                    new ArrayList<>(allocatedSlots.values()).stream().map(slot -> freeSlotInternal(slot, cause))
+                            .collect(Collectors.toList())).thenRunAsync(() -> {
+                state = State.CLOSED;
+                timerService.stop();
+            }, mainThreadExecutor);
             FutureUtils.forward(cleanupFuture, closingFuture);
         }
         return closingFuture;
@@ -233,11 +232,7 @@ public class TaskSlotTableImpl<T extends TaskSlotPayload> implements TaskSlotTab
             if (taskSlots.containsKey(i)) {
                 TaskSlot<T> taskSlot = taskSlots.get(i);
 
-                slotStatus = new SlotStatus(slotId,
-                        taskSlot.getResourceProfile(),
-                        taskSlot.getJobId(),
-                        taskSlot.getAllocationId()
-                );
+                slotStatus = new SlotStatus(slotId, taskSlot.getResourceProfile(), taskSlot.getJobId(), taskSlot.getAllocationId());
             } else {
                 slotStatus = new SlotStatus(slotId, defaultSlotResourceProfile, null, null);
             }
@@ -247,11 +242,8 @@ public class TaskSlotTableImpl<T extends TaskSlotPayload> implements TaskSlotTab
 
         for (TaskSlot<T> taskSlot : allocatedSlots.values()) {
             if (isDynamicIndex(taskSlot.getIndex())) {
-                SlotStatus slotStatus = new SlotStatus(new SlotID(resourceId, taskSlot.getIndex()),
-                        taskSlot.getResourceProfile(),
-                        taskSlot.getJobId(),
-                        taskSlot.getAllocationId()
-                );
+                SlotStatus slotStatus = new SlotStatus(new SlotID(resourceId, taskSlot.getIndex()), taskSlot.getResourceProfile(),
+                        taskSlot.getJobId(), taskSlot.getAllocationId());
                 slotStatuses.add(slotStatus);
             }
         }
@@ -267,7 +259,10 @@ public class TaskSlotTableImpl<T extends TaskSlotPayload> implements TaskSlotTab
 
     @VisibleForTesting
     @Override
-    public boolean allocateSlot(int index, JobID jobId, AllocationID allocationId, Time slotTimeout) {
+    public boolean allocateSlot(int index,
+                                JobID jobId,
+                                AllocationID allocationId,
+                                Time slotTimeout) {
         return allocateSlot(index, jobId, allocationId, defaultSlotResourceProfile, slotTimeout);
     }
 
@@ -284,47 +279,48 @@ public class TaskSlotTableImpl<T extends TaskSlotPayload> implements TaskSlotTab
         // The negative requestIndex indicate that the SlotManger allocate a dynamic slot, we
         // transfer the index to an increasing number not less than the numberSlots.
         int index = requestedIndex < 0 ? nextDynamicSlotIndex() : requestedIndex;
-        ResourceProfile effectiveResourceProfile = resourceProfile.equals(ResourceProfile.UNKNOWN) ? defaultSlotResourceProfile : resourceProfile;
+        ResourceProfile effectiveResourceProfile = resourceProfile.equals(
+                ResourceProfile.UNKNOWN) ? defaultSlotResourceProfile : resourceProfile;
 
         TaskSlot<T> taskSlot = allocatedSlots.get(allocationId);
+
         if (taskSlot != null) {
             return isDuplicatedSlot(taskSlot, jobId, effectiveResourceProfile, index);
         } else if (isIndexAlreadyTaken(index)) {
-            LOG.info("The slot with index {} is already assigned to another allocation with id {}.",
-                    index,
-                    taskSlots.get(index).getAllocationId()
-            );
+            LOG.info("The slot with index {} is already assigned to another allocation with id {}.", index,
+                    taskSlots.get(index).getAllocationId());
             return false;
         }
 
         if (!budgetManager.reserve(effectiveResourceProfile)) {
-            LOG.info("Cannot allocate the requested resources. Trying to allocate {}, "
-                            + "while the currently remaining available resources are {}, total is {}.",
-                    effectiveResourceProfile,
-                    budgetManager.getAvailableBudget(),
-                    budgetManager.getTotalBudget()
-            );
+            LOG.info(
+                    "Cannot allocate the requested resources. Trying to allocate {}, " + "while the currently remaining available resources are {}, total is {}.",
+                    effectiveResourceProfile, budgetManager.getAvailableBudget(), budgetManager.getTotalBudget());
             return false;
         }
 
-        taskSlot = new TaskSlot<>(index,
-                effectiveResourceProfile,
-                memoryPageSize,
-                jobId,
-                allocationId,
-                memoryVerificationExecutor
-        );
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释： 内部构建了一个 MemoryManager 用来管理这个 TaskSlot 的内存
+         */
+        taskSlot = new TaskSlot<>(index, effectiveResourceProfile, memoryPageSize, jobId, allocationId, memoryVerificationExecutor);
+
+        // TODO_MA 马中华 注释： kv 登记， index 就是该 slot 在该从节点的 slot 编号，这个 slot 编号是固定不变的
+        // TODO_MA 马中华 注释： 假设有4个slot: 0 , 1,2,3
         taskSlots.put(index, taskSlot);
 
         // update the allocation id to task slot map
+        // TODO_MA 马中华 注释： 已分配
         allocatedSlots.put(allocationId, taskSlot);
 
         // register a timeout for this slot since it's in state allocated
+        // TODO_MA 马中华 注释： 注册一个超时任务
         timerService.registerTimeout(allocationId, slotTimeout.getSize(), slotTimeout.getUnit());
 
         // add this slot to the set of job slots
         Set<AllocationID> slots = slotsPerJob.get(jobId);
 
+        // TODO_MA 马中华 注释： 申请该 sllot 的job 在该 从节点申请到的所有的 slot 的集合
         if (slots == null) {
             slots = new HashSet<>(4);
             slotsPerJob.put(jobId, slots);
@@ -335,17 +331,15 @@ public class TaskSlotTableImpl<T extends TaskSlotPayload> implements TaskSlotTab
         return true;
     }
 
-    private boolean isDuplicatedSlot(TaskSlot taskSlot, JobID jobId, ResourceProfile resourceProfile, int index) {
+    private boolean isDuplicatedSlot(TaskSlot taskSlot,
+                                     JobID jobId,
+                                     ResourceProfile resourceProfile,
+                                     int index) {
         LOG.info(
                 "Slot with allocationId {} already exist, with resource profile {}, job id {} and index {}. The required index is {}.",
-                taskSlot.getAllocationId(),
-                taskSlot.getResourceProfile(),
-                taskSlot.getJobId(),
-                taskSlot.getIndex(),
-                index
-        );
-        return taskSlot.getJobId().equals(jobId) && taskSlot.getResourceProfile().equals(resourceProfile) && (
-                isDynamicIndex(index) || taskSlot.getIndex() == index
+                taskSlot.getAllocationId(), taskSlot.getResourceProfile(), taskSlot.getJobId(), taskSlot.getIndex(), index);
+        return taskSlot.getJobId().equals(jobId) && taskSlot.getResourceProfile().equals(resourceProfile) && (isDynamicIndex(
+                index) || taskSlot.getIndex() == index
         );
     }
 
@@ -371,10 +365,19 @@ public class TaskSlotTableImpl<T extends TaskSlotPayload> implements TaskSlotTab
     }
 
     private boolean markExistingSlotActive(TaskSlot<T> taskSlot) {
+
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释： 将 TaskSlot 标记为 Active
+         */
         if (taskSlot.markActive()) {
             // unregister a potential timeout
             LOG.info("Activate slot {}.", taskSlot.getAllocationId());
 
+            /*************************************************
+             * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+             *  注释： 取消注册超时的定时任务
+             */
             timerService.unregisterTimeout(taskSlot.getAllocationId());
 
             return true;
@@ -384,7 +387,8 @@ public class TaskSlotTableImpl<T extends TaskSlotPayload> implements TaskSlotTab
     }
 
     @Override
-    public boolean markSlotInactive(AllocationID allocationId, Time slotTimeout) throws SlotNotFoundException {
+    public boolean markSlotInactive(AllocationID allocationId,
+                                    Time slotTimeout) throws SlotNotFoundException {
         checkStarted();
 
         TaskSlot<T> taskSlot = getTaskSlot(allocationId);
@@ -404,19 +408,25 @@ public class TaskSlotTableImpl<T extends TaskSlotPayload> implements TaskSlotTab
     }
 
     @Override
-    public int freeSlot(AllocationID allocationId, Throwable cause) throws SlotNotFoundException {
+    public int freeSlot(AllocationID allocationId,
+                        Throwable cause) throws SlotNotFoundException {
         checkStarted();
 
         TaskSlot<T> taskSlot = getTaskSlot(allocationId);
 
         if (taskSlot != null) {
+            /*************************************************
+             * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+             *  注释：
+             */
             return freeSlotInternal(taskSlot, cause).isDone() ? taskSlot.getIndex() : -1;
         } else {
             throw new SlotNotFoundException(allocationId);
         }
     }
 
-    private CompletableFuture<Void> freeSlotInternal(TaskSlot<T> taskSlot, Throwable cause) {
+    private CompletableFuture<Void> freeSlotInternal(TaskSlot<T> taskSlot,
+                                                     Throwable cause) {
         AllocationID allocationId = taskSlot.getAllocationId();
 
         if (LOG.isDebugEnabled()) {
@@ -426,6 +436,11 @@ public class TaskSlotTableImpl<T extends TaskSlotPayload> implements TaskSlotTab
         }
 
         if (taskSlot.isEmpty()) {
+
+            /*************************************************
+             * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+             *  注释：
+             */
             // remove the allocation id to task slot mapping
             allocatedSlots.remove(allocationId);
 
@@ -436,8 +451,8 @@ public class TaskSlotTableImpl<T extends TaskSlotPayload> implements TaskSlotTab
             Set<AllocationID> slots = slotsPerJob.get(jobId);
 
             if (slots == null) {
-                throw new IllegalStateException("There are no more slots allocated for the job " + jobId
-                        + ". This indicates a programming bug.");
+                throw new IllegalStateException(
+                        "There are no more slots allocated for the job " + jobId + ". This indicates a programming bug.");
             }
 
             slots.remove(allocationId);
@@ -447,20 +462,33 @@ public class TaskSlotTableImpl<T extends TaskSlotPayload> implements TaskSlotTab
             }
 
             taskSlots.remove(taskSlot.getIndex());
+
+            /*************************************************
+             * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+             *  注释：
+             */
             budgetManager.release(taskSlot.getResourceProfile());
         }
+
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释：
+         */
         return taskSlot.closeAsync(cause);
     }
 
     @Override
-    public boolean isValidTimeout(AllocationID allocationId, UUID ticket) {
+    public boolean isValidTimeout(AllocationID allocationId,
+                                  UUID ticket) {
         checkStarted();
 
         return state == State.RUNNING && timerService.isValid(allocationId, ticket);
     }
 
     @Override
-    public boolean isAllocated(int index, JobID jobId, AllocationID allocationId) {
+    public boolean isAllocated(int index,
+                               JobID jobId,
+                               AllocationID allocationId) {
         TaskSlot<T> taskSlot = taskSlots.get(index);
         if (taskSlot != null) {
             return taskSlot.isAllocated(jobId, allocationId);
@@ -470,9 +498,13 @@ public class TaskSlotTableImpl<T extends TaskSlotPayload> implements TaskSlotTab
     }
 
     @Override
-    public boolean tryMarkSlotActive(JobID jobId, AllocationID allocationId) {
+    public boolean tryMarkSlotActive(JobID jobId,
+                                     AllocationID allocationId) {
+
+        // TODO_MA 马中华 注释： 获取 allocationId 获取 TaskSlot
         TaskSlot<T> taskSlot = getTaskSlot(allocationId);
 
+        // TODO_MA 马中华 注释： 是否已经登记（之前：在 JobMaster 申请slot 的时候，如果 TaskExecutor 提供某个 slot 给这个 JobMaster，则会登记这个slot）
         if (taskSlot != null && taskSlot.isAllocated(jobId, allocationId)) {
 
             /*************************************************
@@ -521,12 +553,26 @@ public class TaskSlotTableImpl<T extends TaskSlotPayload> implements TaskSlotTab
         checkRunning();
         Preconditions.checkNotNull(task);
 
+        // TODO_MA 马中华 注释： 根据 AllocationId 获取到 TaskSlot
         TaskSlot<T> taskSlot = getTaskSlot(task.getAllocationId());
 
         if (taskSlot != null) {
+
+            // TODO_MA 马中华 注释： 首先判断是否是 active
             if (taskSlot.isActive(task.getJobID(), task.getAllocationId())) {
+
+                /*************************************************
+                 * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+                 *  注释： 完成 slot 和 task 的映射
+                 *  1、taskSlot.add(task) 绑定,  slot共享
+                 *  2、taskSlotMappings.put(k,v)
+                 */
                 if (taskSlot.add(task)) {
+
+                    // TODO_MA 马中华 注释： 完成登记注册
                     taskSlotMappings.put(task.getExecutionId(), new TaskSlotMapping<>(task, taskSlot));
+                    // TODO_MA 马中华 注释： task 跟任务有关的信息 都能拿到， Task --> Job
+                    // TODO_MA 马中华 注释： 跟资源 taskSlot 有关的都能拿到， taskSlot  --> TaskExecutor
 
                     return true;
                 } else {
@@ -589,7 +635,14 @@ public class TaskSlotTableImpl<T extends TaskSlotPayload> implements TaskSlotTab
 
     @Override
     public MemoryManager getTaskMemoryManager(AllocationID allocationID) throws SlotNotFoundException {
+
+        // TODO_MA 马中华 注释：
         TaskSlot<T> taskSlot = getTaskSlot(allocationID);
+
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释：
+         */
         if (taskSlot != null) {
             return taskSlot.getMemoryManager();
         } else {
@@ -602,10 +655,16 @@ public class TaskSlotTableImpl<T extends TaskSlotPayload> implements TaskSlotTab
     // ---------------------------------------------------------------------
 
     @Override
-    public void notifyTimeout(AllocationID key, UUID ticket) {
+    public void notifyTimeout(AllocationID key,
+                              UUID ticket) {
         checkStarted();
 
         if (slotActions != null) {
+            /*************************************************
+             * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+             *  注释： 申请走了的slot超时了： 在规定的时间内并没有使用
+             *  超时处理： 回收： freeSlot()
+             */
             slotActions.timeoutSlot(key, ticket);
         }
     }
@@ -626,17 +685,12 @@ public class TaskSlotTableImpl<T extends TaskSlotPayload> implements TaskSlotTab
     }
 
     private void checkRunning() {
-        Preconditions.checkState(state == State.RUNNING,
-                "The %s has to be running.",
-                TaskSlotTableImpl.class.getSimpleName()
-        );
+        Preconditions.checkState(state == State.RUNNING, "The %s has to be running.", TaskSlotTableImpl.class.getSimpleName());
     }
 
     private void checkStarted() {
-        Preconditions.checkState(state != State.CREATED,
-                "The %s has to be started (not created).",
-                TaskSlotTableImpl.class.getSimpleName()
-        );
+        Preconditions.checkState(state != State.CREATED, "The %s has to be started (not created).",
+                TaskSlotTableImpl.class.getSimpleName());
     }
 
     // ---------------------------------------------------------------------
@@ -645,7 +699,11 @@ public class TaskSlotTableImpl<T extends TaskSlotPayload> implements TaskSlotTab
 
     /** Mapping class between a {@link TaskSlotPayload} and a {@link TaskSlot}. */
     private static final class TaskSlotMapping<T extends TaskSlotPayload> {
+
+        // TODO_MA 马中华 注释： Task
         private final T task;
+
+        // TODO_MA 马中华 注释： TaskSlot
         private final TaskSlot<T> taskSlot;
 
         private TaskSlotMapping(T task, TaskSlot<T> taskSlot) {
@@ -673,18 +731,16 @@ public class TaskSlotTableImpl<T extends TaskSlotPayload> implements TaskSlotTab
         private TaskSlot<T> currentSlot;
 
         private TaskSlotIterator(TaskSlotState state) {
-            this(slotsPerJob.values().stream().flatMap(Collection::stream).collect(Collectors.toSet()).iterator(),
-                    state
-            );
+            this(slotsPerJob.values().stream().flatMap(Collection::stream).collect(Collectors.toSet()).iterator(), state);
         }
 
-        private TaskSlotIterator(JobID jobId, TaskSlotState state) {
-            this(slotsPerJob.get(jobId) == null ? Collections.emptyIterator() : slotsPerJob.get(jobId).iterator(),
-                    state
-            );
+        private TaskSlotIterator(JobID jobId,
+                                 TaskSlotState state) {
+            this(slotsPerJob.get(jobId) == null ? Collections.emptyIterator() : slotsPerJob.get(jobId).iterator(), state);
         }
 
-        private TaskSlotIterator(Iterator<AllocationID> allocationIDIterator, TaskSlotState state) {
+        private TaskSlotIterator(Iterator<AllocationID> allocationIDIterator,
+                                 TaskSlotState state) {
             this.allSlots = Preconditions.checkNotNull(allocationIDIterator);
             this.state = Preconditions.checkNotNull(state);
             this.currentSlot = null;

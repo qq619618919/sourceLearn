@@ -94,7 +94,8 @@ public interface SlotPool extends AllocatedSlotActions, AutoCloseable {
      *
      * @return true iff a given registered resource id was removed
      */
-    boolean releaseTaskManager(final ResourceID resourceId, final Exception cause);
+    boolean releaseTaskManager(final ResourceID resourceId,
+                               final Exception cause);
 
     /**
      * Offers multiple slots to the {@link SlotPool}. The slot offerings can be individually

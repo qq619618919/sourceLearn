@@ -69,7 +69,8 @@ public final class TaskDeploymentDescriptor implements Serializable {
         public SerializedValue<T> serializedValue;
 
         @SuppressWarnings("unused")
-        public NonOffloaded() {}
+        public NonOffloaded() {
+        }
 
         public NonOffloaded(SerializedValue<T> serializedValue) {
             this.serializedValue = Preconditions.checkNotNull(serializedValue);
@@ -89,7 +90,8 @@ public final class TaskDeploymentDescriptor implements Serializable {
         public PermanentBlobKey serializedValueKey;
 
         @SuppressWarnings("unused")
-        public Offloaded() {}
+        public Offloaded() {
+        }
 
         public Offloaded(PermanentBlobKey serializedValueKey) {
             this.serializedValueKey = Preconditions.checkNotNull(serializedValueKey);
@@ -129,19 +131,19 @@ public final class TaskDeploymentDescriptor implements Serializable {
     private final List<InputGateDeploymentDescriptor> inputGates;
 
     /** Information to restore the task. This can be null if there is no state to restore. */
-    @Nullable private final JobManagerTaskRestore taskRestore;
+    @Nullable
+    private final JobManagerTaskRestore taskRestore;
 
-    public TaskDeploymentDescriptor(
-            JobID jobId,
-            MaybeOffloaded<JobInformation> serializedJobInformation,
-            MaybeOffloaded<TaskInformation> serializedTaskInformation,
-            ExecutionAttemptID executionAttemptId,
-            AllocationID allocationId,
-            int subtaskIndex,
-            int attemptNumber,
-            @Nullable JobManagerTaskRestore taskRestore,
-            List<ResultPartitionDeploymentDescriptor> resultPartitionDeploymentDescriptors,
-            List<InputGateDeploymentDescriptor> inputGateDeploymentDescriptors) {
+    public TaskDeploymentDescriptor(JobID jobId,
+                                    MaybeOffloaded<JobInformation> serializedJobInformation,
+                                    MaybeOffloaded<TaskInformation> serializedTaskInformation,
+                                    ExecutionAttemptID executionAttemptId,
+                                    AllocationID allocationId,
+                                    int subtaskIndex,
+                                    int attemptNumber,
+                                    @Nullable JobManagerTaskRestore taskRestore,
+                                    List<ResultPartitionDeploymentDescriptor> resultPartitionDeploymentDescriptors,
+                                    List<InputGateDeploymentDescriptor> inputGateDeploymentDescriptors) {
 
         this.jobId = Preconditions.checkNotNull(jobId);
 
@@ -167,17 +169,16 @@ public final class TaskDeploymentDescriptor implements Serializable {
      * Return the sub task's serialized job information.
      *
      * @return serialized job information (may throw {@link IllegalStateException} if {@link
-     *     #loadBigData(PermanentBlobService)} is not called beforehand).
+     *         #loadBigData(PermanentBlobService)} is not called beforehand).
+     *
      * @throws IllegalStateException If job information is offloaded to BLOB store.
      */
     public SerializedValue<JobInformation> getSerializedJobInformation() {
         if (serializedJobInformation instanceof NonOffloaded) {
-            NonOffloaded<JobInformation> jobInformation =
-                    (NonOffloaded<JobInformation>) serializedJobInformation;
+            NonOffloaded<JobInformation> jobInformation = (NonOffloaded<JobInformation>) serializedJobInformation;
             return jobInformation.serializedValue;
         } else {
-            throw new IllegalStateException(
-                    "Trying to work with offloaded serialized job information.");
+            throw new IllegalStateException("Trying to work with offloaded serialized job information.");
         }
     }
 
@@ -185,17 +186,16 @@ public final class TaskDeploymentDescriptor implements Serializable {
      * Return the sub task's serialized task information.
      *
      * @return serialized task information (may throw {@link IllegalStateException} if {@link
-     *     #loadBigData(PermanentBlobService)} is not called beforehand)).
+     *         #loadBigData(PermanentBlobService)} is not called beforehand)).
+     *
      * @throws IllegalStateException If job information is offloaded to BLOB store.
      */
     public SerializedValue<TaskInformation> getSerializedTaskInformation() {
         if (serializedTaskInformation instanceof NonOffloaded) {
-            NonOffloaded<TaskInformation> taskInformation =
-                    (NonOffloaded<TaskInformation>) serializedTaskInformation;
+            NonOffloaded<TaskInformation> taskInformation = (NonOffloaded<TaskInformation>) serializedTaskInformation;
             return taskInformation.serializedValue;
         } else {
-            throw new IllegalStateException(
-                    "Trying to work with offloaded serialized job information.");
+            throw new IllegalStateException("Trying to work with offloaded serialized job information.");
         }
     }
 
@@ -247,46 +247,56 @@ public final class TaskDeploymentDescriptor implements Serializable {
      * Loads externalized data from the BLOB store back to the object.
      *
      * @param blobService the blob store to use (may be <tt>null</tt> if {@link
-     *     #serializedJobInformation} and {@link #serializedTaskInformation} are non-<tt>null</tt>)
+     *         #serializedJobInformation} and {@link #serializedTaskInformation} are non-<tt>null</tt>)
+     *
      * @throws IOException during errors retrieving or reading the BLOBs
      * @throws ClassNotFoundException Class of a serialized object cannot be found.
      */
-    public void loadBigData(@Nullable PermanentBlobService blobService)
-            throws IOException, ClassNotFoundException {
+    public void loadBigData(@Nullable PermanentBlobService blobService) throws IOException, ClassNotFoundException {
 
         // re-integrate offloaded job info from blob
         // here, if this fails, we need to throw the exception as there is no backup path anymore
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释： 从 BlobServer 获取 JobInformation 信息的 BlobKey
+         */
         if (serializedJobInformation instanceof Offloaded) {
-            PermanentBlobKey jobInfoKey =
-                    ((Offloaded<JobInformation>) serializedJobInformation).serializedValueKey;
+            PermanentBlobKey jobInfoKey = ((Offloaded<JobInformation>) serializedJobInformation).serializedValueKey;
 
             Preconditions.checkNotNull(blobService);
 
+            // TODO_MA 马中华 注释： 下载 jobInfoKey 对应的文件
             final File dataFile = blobService.getFile(jobId, jobInfoKey);
             // NOTE: Do not delete the job info BLOB since it may be needed again during recovery.
             //       (it is deleted automatically on the BLOB server and cache when the job
             //       enters a terminal state)
-            SerializedValue<JobInformation> serializedValue =
-                    SerializedValue.fromBytes(FileUtils.readAllBytes(dataFile.toPath()));
+            SerializedValue<JobInformation> serializedValue = SerializedValue.fromBytes(FileUtils.readAllBytes(dataFile.toPath()));
             serializedJobInformation = new NonOffloaded<>(serializedValue);
         }
 
         // re-integrate offloaded task info from blob
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释： 从 BlobServer 获取 TaskInformation 信息的 BlobKey
+         */
         if (serializedTaskInformation instanceof Offloaded) {
-            PermanentBlobKey taskInfoKey =
-                    ((Offloaded<TaskInformation>) serializedTaskInformation).serializedValueKey;
+            PermanentBlobKey taskInfoKey = ((Offloaded<TaskInformation>) serializedTaskInformation).serializedValueKey;
 
             Preconditions.checkNotNull(blobService);
 
+            // TODO_MA 马中华 注释： 从 BlobServer 下载 taskInfoKey 对应的文件
             final File dataFile = blobService.getFile(jobId, taskInfoKey);
             // NOTE: Do not delete the task info BLOB since it may be needed again during recovery.
             //       (it is deleted automatically on the BLOB server and cache when the job
             //       enters a terminal state)
-            SerializedValue<TaskInformation> serializedValue =
-                    SerializedValue.fromBytes(FileUtils.readAllBytes(dataFile.toPath()));
+            SerializedValue<TaskInformation> serializedValue = SerializedValue.fromBytes(FileUtils.readAllBytes(dataFile.toPath()));
             serializedTaskInformation = new NonOffloaded<>(serializedValue);
         }
 
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释：
+         */
         for (InputGateDeploymentDescriptor inputGate : inputGates) {
             inputGate.loadBigData(blobService, jobId);
         }
@@ -298,13 +308,13 @@ public final class TaskDeploymentDescriptor implements Serializable {
 
     @Override
     public String toString() {
-        return String.format(
-                "TaskDeploymentDescriptor [execution id: %s, attempt: %d, "
+        return String.format("TaskDeploymentDescriptor [execution id: %s, attempt: %d, "
                         + "produced partitions: %s, input gates: %s]",
                 executionId,
                 attemptNumber,
                 collectionToString(producedPartitions),
-                collectionToString(inputGates));
+                collectionToString(inputGates)
+        );
     }
 
     private static String collectionToString(Iterable<?> collection) {

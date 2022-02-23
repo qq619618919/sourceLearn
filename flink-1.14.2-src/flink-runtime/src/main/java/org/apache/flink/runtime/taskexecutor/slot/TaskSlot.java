@@ -90,13 +90,12 @@ public class TaskSlot<T extends TaskSlotPayload> implements AutoCloseableAsync {
     /** {@link Executor} for background actions, e.g. verify all managed memory released. */
     private final Executor asyncExecutor;
 
-    public TaskSlot(
-            final int index,
-            final ResourceProfile resourceProfile,
-            final int memoryPageSize,
-            final JobID jobId,
-            final AllocationID allocationId,
-            final Executor asyncExecutor) {
+    public TaskSlot(final int index,
+                    final ResourceProfile resourceProfile,
+                    final int memoryPageSize,
+                    final JobID jobId,
+                    final AllocationID allocationId,
+                    final Executor asyncExecutor) {
 
         this.index = index;
         this.resourceProfile = Preconditions.checkNotNull(resourceProfile);
@@ -108,6 +107,10 @@ public class TaskSlot<T extends TaskSlotPayload> implements AutoCloseableAsync {
         this.jobId = jobId;
         this.allocationId = allocationId;
 
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释：
+         */
         this.memoryManager = createMemoryManager(resourceProfile, memoryPageSize);
 
         this.closingFuture = new CompletableFuture<>();
@@ -145,18 +148,16 @@ public class TaskSlot<T extends TaskSlotPayload> implements AutoCloseableAsync {
         Preconditions.checkNotNull(activeJobId);
         Preconditions.checkNotNull(activeAllocationId);
 
-        return TaskSlotState.ACTIVE == state
-                && activeJobId.equals(jobId)
-                && activeAllocationId.equals(allocationId);
+        return TaskSlotState.ACTIVE == state && activeJobId.equals(jobId) && activeAllocationId.equals(allocationId);
     }
 
     public boolean isAllocated(JobID jobIdToCheck, AllocationID allocationIDToCheck) {
         Preconditions.checkNotNull(jobIdToCheck);
         Preconditions.checkNotNull(allocationIDToCheck);
 
-        return jobIdToCheck.equals(jobId)
-                && allocationIDToCheck.equals(allocationId)
-                && (TaskSlotState.ACTIVE == state || TaskSlotState.ALLOCATED == state);
+        return jobIdToCheck.equals(jobId) && allocationIDToCheck.equals(allocationId) && (TaskSlotState.ACTIVE == state
+                || TaskSlotState.ALLOCATED == state
+        );
     }
 
     public boolean isReleasing() {
@@ -190,21 +191,20 @@ public class TaskSlot<T extends TaskSlotPayload> implements AutoCloseableAsync {
      * id for which the task slot has been allocated, an {@link IllegalArgumentException} is thrown.
      *
      * @param task to be added to the task slot
-     * @throws IllegalStateException if the task slot is not in state active
+     *
      * @return true if the task was added to the task slot; otherwise false
+     *
+     * @throws IllegalStateException if the task slot is not in state active
      */
     public boolean add(T task) {
         // Check that this slot has been assigned to the job sending this task
-        Preconditions.checkArgument(
-                task.getJobID().equals(jobId),
-                "The task's job id does not match the "
-                        + "job id for which the slot has been allocated.");
-        Preconditions.checkArgument(
-                task.getAllocationId().equals(allocationId),
-                "The task's allocation "
-                        + "id does not match the allocation id for which the slot has been allocated.");
-        Preconditions.checkState(
-                TaskSlotState.ACTIVE == state, "The task slot is not in state active.");
+        Preconditions.checkArgument(task.getJobID().equals(jobId),
+                "The task's job id does not match the " + "job id for which the slot has been allocated."
+        );
+        Preconditions.checkArgument(task.getAllocationId().equals(allocationId),
+                "The task's allocation " + "id does not match the allocation id for which the slot has been allocated."
+        );
+        Preconditions.checkState(TaskSlotState.ACTIVE == state, "The task slot is not in state active.");
 
         T oldTask = tasks.put(task.getExecutionId(), task);
 
@@ -220,6 +220,7 @@ public class TaskSlot<T extends TaskSlotPayload> implements AutoCloseableAsync {
      * Remove the task identified by the given execution attempt id.
      *
      * @param executionAttemptId identifying the task to be removed
+     *
      * @return The removed task if there was any; otherwise null.
      */
     public T remove(ExecutionAttemptID executionAttemptId) {
@@ -240,6 +241,8 @@ public class TaskSlot<T extends TaskSlotPayload> implements AutoCloseableAsync {
      */
     public boolean markActive() {
         if (TaskSlotState.ALLOCATED == state || TaskSlotState.ACTIVE == state) {
+
+            // TODO_MA 马中华 注释： 标记为 Active
             state = TaskSlotState.ACTIVE;
 
             return true;
@@ -270,9 +273,9 @@ public class TaskSlot<T extends TaskSlotPayload> implements AutoCloseableAsync {
      * @return The sot offer which this task slot can provide
      */
     public SlotOffer generateSlotOffer() {
-        Preconditions.checkState(
-                TaskSlotState.ACTIVE == state || TaskSlotState.ALLOCATED == state,
-                "The task slot is not in state active or allocated.");
+        Preconditions.checkState(TaskSlotState.ACTIVE == state || TaskSlotState.ALLOCATED == state,
+                "The task slot is not in state active or allocated."
+        );
         Preconditions.checkState(allocationId != null, "The task slot are not allocated");
 
         return new SlotOffer(allocationId, index, resourceProfile);
@@ -280,17 +283,10 @@ public class TaskSlot<T extends TaskSlotPayload> implements AutoCloseableAsync {
 
     @Override
     public String toString() {
-        return "TaskSlot(index:"
-                + index
-                + ", state:"
-                + state
-                + ", resource profile: "
-                + resourceProfile
-                + ", allocationId: "
-                + (allocationId != null ? allocationId.toString() : "none")
-                + ", jobId: "
-                + (jobId != null ? jobId.toString() : "none")
-                + ')';
+        return "TaskSlot(index:" + index + ", state:" + state + ", resource profile: " + resourceProfile
+                + ", allocationId: " + (allocationId != null ? allocationId.toString() : "none") + ", jobId: " + (
+                jobId != null ? jobId.toString() : "none"
+        ) + ')';
     }
 
     @Override
@@ -307,6 +303,7 @@ public class TaskSlot<T extends TaskSlotPayload> implements AutoCloseableAsync {
      * the slot.
      *
      * @param cause cause of closing
+     *
      * @return future of all running task if any being done and slot cleaned up.
      */
     CompletableFuture<Void> closeAsync(Throwable cause) {
@@ -318,12 +315,13 @@ public class TaskSlot<T extends TaskSlotPayload> implements AutoCloseableAsync {
                 tasks.values().forEach(task -> task.failExternally(cause));
             }
 
-            final CompletableFuture<Void> shutdownFuture =
-                    FutureUtils.waitForAll(
-                                    tasks.values().stream()
-                                            .map(TaskSlotPayload::getTerminationFuture)
-                                            .collect(Collectors.toList()))
-                            .thenRun(memoryManager::shutdown);
+            final CompletableFuture<Void> shutdownFuture = FutureUtils
+                    .waitForAll(tasks
+                            .values()
+                            .stream()
+                            .map(TaskSlotPayload::getTerminationFuture)
+                            .collect(Collectors.toList()))
+                    .thenRun(memoryManager::shutdown);
             verifyAllManagedMemoryIsReleasedAfter(shutdownFuture);
             FutureUtils.forward(shutdownFuture, closingFuture);
         }
@@ -331,21 +329,21 @@ public class TaskSlot<T extends TaskSlotPayload> implements AutoCloseableAsync {
     }
 
     private void verifyAllManagedMemoryIsReleasedAfter(CompletableFuture<Void> after) {
-        after.thenRunAsync(
-                () -> {
-                    if (!memoryManager.verifyEmpty()) {
-                        LOG.warn(
-                                "Not all slot managed memory is freed at {}. This usually indicates memory leak. "
-                                        + "However, when running an old JVM version it can also be caused by slow garbage collection. "
-                                        + "Try to upgrade to Java 8u72 or higher if running on an old Java version.",
-                                this);
-                    }
-                },
-                asyncExecutor);
+        after.thenRunAsync(() -> {
+            if (!memoryManager.verifyEmpty()) {
+                LOG.warn("Not all slot managed memory is freed at {}. This usually indicates memory leak. "
+                        + "However, when running an old JVM version it can also be caused by slow garbage collection. "
+                        + "Try to upgrade to Java 8u72 or higher if running on an old Java version.", this);
+            }
+        }, asyncExecutor);
     }
 
-    private static MemoryManager createMemoryManager(
-            ResourceProfile resourceProfile, int pageSize) {
+    private static MemoryManager createMemoryManager(ResourceProfile resourceProfile, int pageSize) {
+
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释：
+         */
         return MemoryManager.create(resourceProfile.getManagedMemory().getBytes(), pageSize);
     }
 }

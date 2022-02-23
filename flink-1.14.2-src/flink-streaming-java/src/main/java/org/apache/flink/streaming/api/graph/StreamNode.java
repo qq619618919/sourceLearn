@@ -93,6 +93,7 @@ public class StreamNode {
      */
     private List<StreamEdge> outEdges = new ArrayList<StreamEdge>();
 
+    // TODO_MA 马中华 注释： 启动类
     private final Class<? extends TaskInvokable> jobVertexClass;
 
     // TODO_MA 马中华 注释： 负责输入的组件

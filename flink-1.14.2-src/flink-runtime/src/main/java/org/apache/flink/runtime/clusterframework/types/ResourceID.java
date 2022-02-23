@@ -25,6 +25,13 @@ import org.apache.flink.util.StringUtils;
 import java.io.Serializable;
 
 /** Class for Resource Ids identifying Flink's distributed components. */
+/*************************************************
+ * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+ *  注释： Flink 内部每一个重要的工作组件，都有一个 ResourceID
+ *  1、 ResourceManager
+ *  2、 JobMaster
+ *  3、 TaskExecutor
+ */
 public final class ResourceID implements ResourceIDRetrievable, Serializable {
 
     private static final long serialVersionUID = 42L;

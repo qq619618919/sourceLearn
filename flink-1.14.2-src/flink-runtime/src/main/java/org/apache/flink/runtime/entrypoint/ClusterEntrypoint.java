@@ -88,6 +88,7 @@ import java.io.IOException;
 import java.lang.reflect.UndeclaredThrowableException;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.TreeMap;
 import java.util.UUID;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CompletableFuture;
@@ -105,6 +106,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * Base class for the Flink cluster entry points.
  *
  * <p>Specialization of this class can be used for the session mode and the per-job mode
+ * // TODO_MA 马中华 注释： 中间件开发， 引擎开发,
+ * // TODO_MA 马中华 注释： 定制功能实现流程，写接口，写常用的实现
  */
 public abstract class ClusterEntrypoint implements AutoCloseableAsync, FatalErrorHandler {
 
@@ -173,7 +176,7 @@ public abstract class ClusterEntrypoint implements AutoCloseableAsync, FatalErro
 
         /*************************************************
          * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-         *  注释：
+         *  注释： 注册了一个钩子： 用来做 优雅关闭的！
          */
         shutDownHook = ShutdownHookUtil.addShutdownHook(() -> this.closeAsync().join(),
                 getClass().getSimpleName(),
@@ -185,6 +188,10 @@ public abstract class ClusterEntrypoint implements AutoCloseableAsync, FatalErro
         return terminationFuture;
     }
 
+    /*************************************************
+     * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+     *  注释： A + B + C 的组合：  不管是那种组合，启动方法，都是这个
+     */
     public void startCluster() throws ClusterEntrypointException {
         LOG.info("Starting {}.", getClass().getSimpleName());
 
@@ -244,12 +251,36 @@ public abstract class ClusterEntrypoint implements AutoCloseableAsync, FatalErro
         return SecurityUtils.getInstalledContext();
     }
 
+    /*************************************************
+     * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+     *  注释： 通用的套路， 分为 3 个步骤：
+     *  -
+     *  1、初始化主节点中要用到的一大堆各种基础服务： initializeServices
+     *      blobservice
+     *      rpcservice
+     *      haservice
+     *      leaderElectionService
+     *      leaderRetrivalService
+     *      heartbeatService
+     *      .....
+     *  2、创建包含 创建三大组件 的工厂实例 的一个组件工厂（XXXXComponentFactory）：
+     *      一个 大工厂 A 里面，包含了三个小工厂， A1, A2, A3
+     *      new A(A1, A2, A3);
+     *      ResourceManagerFactory
+     *      WebMonitorEndpointFactory
+     *      DispatcherFactory
+     *  3、通过这三个小工厂，来创建 主节点中的这三大组件：
+     *      A1 = ResourceManagerFactory = ResourceManager
+     *      A2 = WebMonitorEndpointFactory = WebMonitorEndpoint
+     *      A3 = DispatcherFactory = Dispatcher
+     *      并且启动！
+     */
     private void runCluster(Configuration configuration, PluginManager pluginManager) throws Exception {
         synchronized (lock) {
 
             /*************************************************
              * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-             *  注释：
+             *  注释： 1、 一堆服务 = 公共服务， 有很多工作组件会用到的
              */
             initializeServices(configuration, pluginManager);
 
@@ -259,10 +290,15 @@ public abstract class ClusterEntrypoint implements AutoCloseableAsync, FatalErro
 
             /*************************************************
              * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-             *  注释： 三大组件工厂， 以 Standalone SessionCluster 模式举例
+             *  注释： 第二件事：
+             *  三大组件工厂， 以 Standalone SessionCluster 模式举例
              *  1、DefaultDispatcherRunnerFactory
              *  2、StandaloneResourceManagerFactory
              *  3、SessionRestEndpointFactory
+             *  -
+             *  flink on yarn :
+             *  flink standalone：
+             *  里面的功能实现几乎一致： 申请资源的时候。 Dispatcher
              */
             final DispatcherResourceManagerComponentFactory dispatcherResourceManagerComponentFactory = createDispatcherResourceManagerComponentFactory(
                     configuration);
@@ -270,9 +306,17 @@ public abstract class ClusterEntrypoint implements AutoCloseableAsync, FatalErro
             /*************************************************
              * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
              *  注释： 基于上述的三大组件工厂，创建对应的三个工作组件
-             *  1、
-             *  2、
-             *  3、
+             *  1、 ResourceManager
+             *  2、 Dispatcher
+             *  3、 WebMointorEndpoint
+             *  并且启动： 整体的代码结构：
+             *  1、先创建 WebMointorEndpoint
+             *  2、然后启动
+             *  3、再创建 ResourceManager
+             *  4、再创建 Dispatcher
+             *      先创建
+             *      再启动
+             *  5、启动 ResourceManager
              */
             clusterComponent = dispatcherResourceManagerComponentFactory.create(configuration,
                     ioExecutor,
@@ -305,6 +349,10 @@ public abstract class ClusterEntrypoint implements AutoCloseableAsync, FatalErro
         }
     }
 
+    /*************************************************
+     * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+     *  注释： 初始化各种基础服务
+     */
     protected void initializeServices(Configuration configuration, PluginManager pluginManager) throws Exception {
 
         LOG.info("Initializing cluster services.");
@@ -314,7 +362,7 @@ public abstract class ClusterEntrypoint implements AutoCloseableAsync, FatalErro
 
             /*************************************************
              * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-             *  注释： 一对服务 = 公共服务，很多工作组件都会用到
+             *  注释： 1
              */
             commonRpcService = RpcUtils.createRemoteRpcService(rpcSystem,
                     configuration,
@@ -326,7 +374,7 @@ public abstract class ClusterEntrypoint implements AutoCloseableAsync, FatalErro
 
             /*************************************************
              * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-             *  注释：
+             *  注释： 2
              */
             JMXService.startInstance(configuration.getString(JMXServerOptions.JMX_SERVER_PORT));
 
@@ -336,7 +384,7 @@ public abstract class ClusterEntrypoint implements AutoCloseableAsync, FatalErro
 
             /*************************************************
              * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-             *  注释：
+             *  注释： 3
              */
             ioExecutor = Executors.newFixedThreadPool(ClusterEntrypointUtils.getPoolSize(configuration),
                     new ExecutorThreadFactory("cluster-io")
@@ -344,33 +392,37 @@ public abstract class ClusterEntrypoint implements AutoCloseableAsync, FatalErro
 
             /*************************************************
              * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-             *  注释：
+             *  注释： 4
              */
             haServices = createHaServices(configuration, ioExecutor, rpcSystem);
 
             /*************************************************
              * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-             *  注释：
+             *  注释： 5
              */
             blobServer = new BlobServer(configuration, haServices.createBlobStore());
             blobServer.start();
 
             /*************************************************
              * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-             *  注释：
+             *  注释： 6 心跳服务的初始化
+             *  其实里面就干了两件事：初始化两个参数：
+             *  1、心跳间隔时间：10s
+             *  2、心跳超时时间：50s
              */
             heartbeatServices = createHeartbeatServices(configuration);
 
+            /*************************************************
+             * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+             *  注释： 性能监控的 7
+             */
             metricRegistry = createMetricRegistry(configuration, pluginManager, rpcSystem);
-
             final RpcService metricQueryServiceRpcService = MetricUtils.startRemoteMetricsRpcService(configuration,
                     commonRpcService.getAddress(),
                     rpcSystem
             );
             metricRegistry.startQueryService(metricQueryServiceRpcService, null);
-
             final String hostname = RpcUtils.getHostname(commonRpcService);
-
             processMetricGroup = MetricUtils.instantiateProcessMetricGroup(metricRegistry,
                     hostname,
                     ConfigurationUtils.getSystemResourceMetricsProbingInterval(configuration)
@@ -378,7 +430,7 @@ public abstract class ClusterEntrypoint implements AutoCloseableAsync, FatalErro
 
             /*************************************************
              * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-             *  注释：
+             *  注释： 8
              */
             executionGraphInfoStore = createSerializableExecutionGraphStore(configuration,
                     commonRpcService.getScheduledExecutor()
@@ -525,6 +577,10 @@ public abstract class ClusterEntrypoint implements AutoCloseableAsync, FatalErro
         ClusterEntryPointExceptionUtils.tryEnrichClusterEntryPointError(exception);
         LOG.error("Fatal error occurred in the cluster entrypoint.", exception);
 
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释： JVM 退出
+         */
         FlinkSecurityManager.forceProcessExit(RUNTIME_FAILURE_RETURN_CODE);
     }
 
@@ -684,6 +740,7 @@ public abstract class ClusterEntrypoint implements AutoCloseableAsync, FatalErro
             /*************************************************
              * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
              *  注释：
+             *  clusterEntrypoint = StandaloneSessionClusterEntrypoint
              */
             clusterEntrypoint.startCluster();
         } catch (ClusterEntrypointException e) {

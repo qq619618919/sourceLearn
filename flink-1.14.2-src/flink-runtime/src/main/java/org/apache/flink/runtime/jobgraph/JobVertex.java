@@ -90,6 +90,7 @@ public class JobVertex implements java.io.Serializable {
     private final ArrayList<SerializedValue<OperatorCoordinator.Provider>> operatorCoordinators = new ArrayList<>();
 
     /** Number of subtasks to split this task into at runtime. */
+    // TODO_MA 马中华 注释：  并行度
     private int parallelism = ExecutionConfig.PARALLELISM_DEFAULT;
 
     /** Maximum number of subtasks to split this task into a runtime. */
@@ -105,6 +106,7 @@ public class JobVertex implements java.io.Serializable {
     private Configuration configuration;
 
     /** The class of the invokable. */
+    // TODO_MA 马中华 注释： 启动类
     private String invokableClassName;
 
     /** Indicates of this job vertex is stoppable or not. */
@@ -167,7 +169,8 @@ public class JobVertex implements java.io.Serializable {
      * @param name The name of the new job vertex.
      * @param id The id of the job vertex.
      */
-    public JobVertex(String name, JobVertexID id) {
+    public JobVertex(String name,
+                     JobVertexID id) {
         this.name = name == null ? DEFAULT_NAME : name;
         this.id = id == null ? new JobVertexID() : id;
         OperatorIDPair operatorIDPair = OperatorIDPair.generatedIDOnly(OperatorID.fromJobVertexID(this.id));
@@ -181,7 +184,9 @@ public class JobVertex implements java.io.Serializable {
      * @param primaryId The id of the job vertex.
      * @param operatorIDPairs The operator ID pairs of the job vertex.
      */
-    public JobVertex(String name, JobVertexID primaryId, List<OperatorIDPair> operatorIDPairs) {
+    public JobVertex(String name,
+                     JobVertexID primaryId,
+                     List<OperatorIDPair> operatorIDPairs) {
         this.name = name == null ? DEFAULT_NAME : name;
         this.id = primaryId == null ? new JobVertexID() : primaryId;
         this.operatorIDs = Collections.unmodifiableList(operatorIDPairs);
@@ -353,7 +358,8 @@ public class JobVertex implements java.io.Serializable {
      * @param minResources The minimum resource for the task.
      * @param preferredResources The preferred resource for the task.
      */
-    public void setResources(ResourceSpec minResources, ResourceSpec preferredResources) {
+    public void setResources(ResourceSpec minResources,
+                             ResourceSpec preferredResources) {
         this.minResources = checkNotNull(minResources);
         this.preferredResources = checkNotNull(preferredResources);
     }
@@ -478,29 +484,66 @@ public class JobVertex implements java.io.Serializable {
         return createAndAddResultDataSet(new IntermediateDataSetID(), partitionType);
     }
 
-    public IntermediateDataSet createAndAddResultDataSet(IntermediateDataSetID id, ResultPartitionType partitionType) {
+    public IntermediateDataSet createAndAddResultDataSet(IntermediateDataSetID id,
+                                                         ResultPartitionType partitionType) {
 
         IntermediateDataSet result = new IntermediateDataSet(id, partitionType, this);
         this.results.add(result);
         return result;
     }
 
-    public JobEdge connectDataSetAsInput(IntermediateDataSet dataSet, DistributionPattern distPattern) {
+    public JobEdge connectDataSetAsInput(IntermediateDataSet dataSet,
+                                         DistributionPattern distPattern) {
         JobEdge edge = new JobEdge(dataSet, this, distPattern);
         this.inputs.add(edge);
         dataSet.addConsumer(edge);
         return edge;
     }
 
+    /*************************************************
+     * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+     *  注释：  做了两件重要的事情：
+     *  1、创建 IntermediateDataSet 和 JobEdge
+     *  2、维护 JobVertex IntermediateDataSet JobEdge 三者的关系
+     *      1、对于 jobEdge 来说： source = IntermediateDataSet,  target = JobVertex
+     *      2、JobEdge 是 JobVertex 的输入， IntermediateDataSet 是 JobVertex 的输出
+     *      JobEdge 是 IntermediateDataSet 的消费者
+     *      JobVertex 是 IntermediateDataSet 的生产者
+     */
     public JobEdge connectNewDataSetAsInput(JobVertex input,
                                             DistributionPattern distPattern,
                                             ResultPartitionType partitionType) {
 
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释： 创建 IntermediateDataSet
+         */
         IntermediateDataSet dataSet = input.createAndAddResultDataSet(partitionType);
 
+        // TODO_MA 马中华 注释： 到此为止： JobVertex 和 IntermediateDataSet
+
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释： 创建 JobEdge
+         *  1、创建 JobEdge
+         *  2、设置 JobEdge 的输入输出： source = IntermediateDataSet,  target = JobVertex
+         *  -
+         *  第一个参数： dataSet
+         *  第二个参数： jobvertext
+         */
         JobEdge edge = new JobEdge(dataSet, this, distPattern);
+
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释： 到此为止，三个对象已经有了。
+         */
+
+        // TODO_MA 马中华 注释： 给 JobVertex 设置输入 JobEdge
         this.inputs.add(edge);
+
+        // TODO_MA 马中华 注释： 给 IntermediateDataSet 设置消费者 JobEdge
         dataSet.addConsumer(edge);
+
         return edge;
     }
 

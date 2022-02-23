@@ -69,7 +69,7 @@ public class NettyShuffleServiceFactory implements ShuffleServiceFactory<NettySh
     public NettyShuffleEnvironment createShuffleEnvironment(ShuffleEnvironmentContext shuffleEnvironmentContext) {
         checkNotNull(shuffleEnvironmentContext);
 
-        // TODO_MA 马中华 注释：
+        // TODO_MA 马中华 注释： 获取到 Shuffle 环境中，各种重要的变量
         NettyShuffleEnvironmentConfiguration networkConfig = NettyShuffleEnvironmentConfiguration.fromConfiguration(
                 shuffleEnvironmentContext.getConfiguration(),
                 shuffleEnvironmentContext.getNetworkMemorySize(),
@@ -78,7 +78,7 @@ public class NettyShuffleServiceFactory implements ShuffleServiceFactory<NettySh
         );
         /*************************************************
          * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-         *  注释：
+         *  注释： NettyShuffleEnvironment
          */
         return createNettyShuffleEnvironment(networkConfig,
                 shuffleEnvironmentContext.getTaskExecutorResourceId(),
@@ -125,14 +125,13 @@ public class NettyShuffleServiceFactory implements ShuffleServiceFactory<NettySh
 
         /*************************************************
          * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-         *  注释：
+         *  注释： 用于根据配置临时目录创建删除文件通道的管理器。
          */
         FileChannelManager fileChannelManager = new FileChannelManagerImpl(config.getTempDirs(), DIR_NAME_PREFIX);
         if (LOG.isInfoEnabled()) {
             LOG.info("Created a new {} for storing result partitions of BLOCKING shuffles. Used directories:\n\t{}",
                     FileChannelManager.class.getSimpleName(),
-                    Arrays
-                            .stream(fileChannelManager.getPaths())
+                    Arrays.stream(fileChannelManager.getPaths())
                             .map(File::getAbsolutePath)
                             .collect(Collectors.joining("\n\t"))
             );
@@ -140,7 +139,8 @@ public class NettyShuffleServiceFactory implements ShuffleServiceFactory<NettySh
 
         /*************************************************
          * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-         *  注释：
+         *  注释： 创建 NettyConnectionManager
+         *  管理上下游 Task 之间的 NettyClient 和 NettyServer 之间的链接
          */
         ConnectionManager connectionManager = nettyConfig != null ? new NettyConnectionManager(resultPartitionManager,
                 taskEventPublisher,
@@ -149,7 +149,7 @@ public class NettyShuffleServiceFactory implements ShuffleServiceFactory<NettySh
 
         /*************************************************
          * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-         *  注释：
+         *  注释： 将指定 网络内存 做池化管理的一个 工作组件，内存片段叫做： MemorySegment
          */
         NetworkBufferPool networkBufferPool = new NetworkBufferPool(config.numNetworkBuffers(),
                 config.networkBufferSize(),
@@ -159,14 +159,9 @@ public class NettyShuffleServiceFactory implements ShuffleServiceFactory<NettySh
         // we create a separated buffer pool here for batch shuffle instead of reusing the network
         // buffer pool directly to avoid potential side effects of memory contention, for example,
         // dead lock or "insufficient network buffer" error
-        /*************************************************
-         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-         *  注释：
-         */
         BatchShuffleReadBufferPool batchShuffleReadBufferPool = new BatchShuffleReadBufferPool(config.batchShuffleReadMemoryBytes(),
                 config.networkBufferSize()
         );
-
         // we create a separated IO executor pool here for batch shuffle instead of reusing the
         // TaskManager IO executor pool directly to avoid the potential side effects of execution
         // contention, for example, too long IO or waiting time leading to starvation or timeout
@@ -178,7 +173,7 @@ public class NettyShuffleServiceFactory implements ShuffleServiceFactory<NettySh
 
         /*************************************************
          * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-         *  注释：
+         *  注释： ResultPartition 的 Factory
          */
         ResultPartitionFactory resultPartitionFactory = new ResultPartitionFactory(resultPartitionManager,
                 fileChannelManager,
@@ -199,7 +194,7 @@ public class NettyShuffleServiceFactory implements ShuffleServiceFactory<NettySh
 
         /*************************************************
          * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-         *  注释：
+         *  注释： InputGate 的 Factory
          */
         SingleInputGateFactory singleInputGateFactory = new SingleInputGateFactory(taskExecutorResourceId,
                 config,
@@ -211,7 +206,7 @@ public class NettyShuffleServiceFactory implements ShuffleServiceFactory<NettySh
 
         /*************************************************
          * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-         *  注释：
+         *  注释： 环境对象
          */
         return new NettyShuffleEnvironment(taskExecutorResourceId,
                 config,

@@ -62,10 +62,12 @@ class DefaultDeclareResourceRequirementServiceConnectionManager extends Abstract
             if (isConnected()) {
                 currentResourceRequirements = resourceRequirements;
 
-                triggerResourceRequirementsSubmission(Duration.ofMillis(1L),
-                        Duration.ofMillis(10000L),
-                        currentResourceRequirements
-                );
+                /*************************************************
+                 * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+                 *  注释：
+                 */
+                triggerResourceRequirementsSubmission(Duration.ofMillis(1L), Duration.ofMillis(10000L),
+                        currentResourceRequirements);
             }
         }
     }
@@ -75,17 +77,26 @@ class DefaultDeclareResourceRequirementServiceConnectionManager extends Abstract
                                                        Duration maxSleepOnError,
                                                        ResourceRequirements resourceRequirementsToSend) {
 
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释：
+         */
         FutureUtils.retryWithDelay(() -> sendResourceRequirements(resourceRequirementsToSend),
+
+                // TODO_MA 马中华 注释：
                 new ExponentialBackoffRetryStrategy(Integer.MAX_VALUE, sleepOnError, maxSleepOnError),
-                throwable -> !(throwable instanceof CancellationException),
-                scheduledExecutor
-        );
+                throwable -> !(throwable instanceof CancellationException), scheduledExecutor);
     }
 
     private CompletableFuture<Acknowledge> sendResourceRequirements(ResourceRequirements resourceRequirementsToSend) {
         synchronized (lock) {
             if (isConnected()) {
                 if (resourceRequirementsToSend == currentResourceRequirements) {
+
+                    /*************************************************
+                     * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+                     *  注释：
+                     */
                     return service.declareResourceRequirements(resourceRequirementsToSend);
                 } else {
                     LOG.debug("Newer resource requirements found. Stop sending old requirements.");

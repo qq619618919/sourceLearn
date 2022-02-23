@@ -92,11 +92,13 @@ public class DefaultLeaderRetrievalService implements LeaderRetrievalService, Le
         );
 
         synchronized (lock) {
+
+            // TODO_MA 马中华 注释： 存储 Listener
             leaderListener = listener;
 
             /*************************************************
              * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-             *  注释：
+             *  注释： 创建一个 ZooKeeperLeaderRetrievalDriver 用来启动监听
              */
             leaderRetrievalDriver = leaderRetrievalDriverFactory.createLeaderRetrievalDriver(this,
                     new LeaderRetrievalFatalErrorHandler()
@@ -130,8 +132,10 @@ public class DefaultLeaderRetrievalService implements LeaderRetrievalService, Le
     @Override
     @GuardedBy("lock")
     public void notifyLeaderAddress(LeaderInformation leaderInformation) {
+
         final UUID newLeaderSessionID = leaderInformation.getLeaderSessionID();
         final String newLeaderAddress = leaderInformation.getLeaderAddress();
+
         synchronized (lock) {
             if (running) {
                 if (!Objects.equals(newLeaderAddress, lastLeaderAddress) || !Objects.equals(newLeaderSessionID,
@@ -156,6 +160,7 @@ public class DefaultLeaderRetrievalService implements LeaderRetrievalService, Le
                      * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
                      *  注释： leaderListener 到底是谁呢？
                      *  谁启动 DefaultLeaderRetrivalService 的 start(leaderListener) 谁就会传递一个 leaderListener 过来
+                     *  leaderListener = ResourceManagerLeaderListender
                      */
                     leaderListener.notifyLeaderAddress(newLeaderAddress, newLeaderSessionID);
                 }

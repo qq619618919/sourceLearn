@@ -57,6 +57,10 @@ final class ChannelStateWriteRequestDispatcherImpl implements ChannelStateWriteR
     public void dispatch(ChannelStateWriteRequest request) throws Exception {
         LOG.trace("process {}", request);
         try {
+            /*************************************************
+             * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+             *  注释：
+             */
             dispatchInternal(request);
         } catch (Exception e) {
             try {
@@ -71,6 +75,11 @@ final class ChannelStateWriteRequestDispatcherImpl implements ChannelStateWriteR
     private void dispatchInternal(ChannelStateWriteRequest request) throws Exception {
         if (request instanceof CheckpointStartRequest) {
             checkState(!writers.containsKey(request.getCheckpointId()), "writer not found for request " + request);
+
+            /*************************************************
+             * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+             *  注释： ChannelStateCheckpointWriter
+             */
             writers.put(request.getCheckpointId(), buildWriter((CheckpointStartRequest) request));
         } else if (request instanceof CheckpointInProgressRequest) {
             ChannelStateCheckpointWriter writer = writers.get(request.getCheckpointId());
@@ -86,6 +95,8 @@ final class ChannelStateWriteRequestDispatcherImpl implements ChannelStateWriteR
     }
 
     private ChannelStateCheckpointWriter buildWriter(CheckpointStartRequest request) throws Exception {
+
+        // TODO_MA 马中华 注释： ChannelStateCheckpointWriter
         return new ChannelStateCheckpointWriter(taskName,
                 subtaskIndex,
                 request,

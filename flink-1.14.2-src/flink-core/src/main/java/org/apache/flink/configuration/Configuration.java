@@ -780,6 +780,11 @@ public class Configuration extends ExecutionConfig.GlobalJobParameters
             if (canBePrefixMap) {
                 removePrefixMap(this.confData, key);
             }
+
+            /*************************************************
+             * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+             *  注释： confData 一定是一个 map
+             */
             this.confData.put(key, value);
         }
     }

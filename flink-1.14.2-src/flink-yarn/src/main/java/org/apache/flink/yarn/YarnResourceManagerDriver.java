@@ -117,6 +117,8 @@ public class YarnResourceManagerDriver extends AbstractResourceManagerDriver<Yar
                                      YarnResourceManagerDriverConfiguration configuration,
                                      YarnResourceManagerClientFactory yarnResourceManagerClientFactory,
                                      YarnNodeManagerClientFactory yarnNodeManagerClientFactory) {
+
+        // TODO_MA 马中华 注释： 加载配置
         super(flinkConfig, GlobalConfiguration.loadConfiguration(configuration.getCurrentDir()));
 
         this.yarnConfig = Utils.getYarnAndHadoopConfiguration(flinkConfig);
@@ -149,19 +151,59 @@ public class YarnResourceManagerDriver extends AbstractResourceManagerDriver<Yar
     //  ResourceManagerDriver
     // ------------------------------------------------------------------------
 
+    /*************************************************
+     * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+     *  注释： YARN 中提供了一个客户端组件： AMRMClientAsyncImpl， 其实内部包含了一个 YarnClient
+     *  1、 初始化和启动
+     *  2、 registerApplicationMaster() 启动 ApplicationMaster
+     *  3、 getContainersFromPreviousAttempts() 需要这个 YarnContainerEventHandler
+     *  -
+     *  首先需要构造一个客户端，然后初始化和启动
+     *  注册 AppliationMaster 同时也申请 Container
+     *  然后用来启动 JObManager 和 TaskManager
+     *  -
+     *  从 YARN 中申请到了 Contianer 用来启动 fLINK sesssion 集群：
+     *  1、一个 Contianer 用来启动 JObManager
+     *  2、一堆其他 Contianer 用来 TaskManager
+     */
     @Override
     protected void initializeInternal() throws Exception {
+
+        // TODO_MA 马中华 注释： Container 相关的 EventHandler
+        // TODO_MA 马中华 注释：
         final YarnContainerEventHandler yarnContainerEventHandler = new YarnContainerEventHandler();
         try {
+
+            /*************************************************
+             * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+             *  注释： 创建链接 YARN 的 RM 的客户端
+             *  AMRMClientAsyncImpl 的创建，初始化 和 启动
+             *  AMRMClientAsyncImpl = Service
+             */
             resourceManagerClient = yarnResourceManagerClientFactory.createResourceManagerClient(
                     yarnHeartbeatIntervalMillis,
                     yarnContainerEventHandler
             );
-            resourceManagerClient.init(yarnConfig);
-            resourceManagerClient.start();
+            resourceManagerClient.init(yarnConfig);     // TODO_MA 马中华 注释： serviceInit()
+            resourceManagerClient.start();              // TODO_MA 马中华 注释： serviceStart()
 
+            /*************************************************
+             * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+             *  注释： 注册 ApplicationMaster，其实也包含 Container 申请在里面
+             *  发送 RPC 请求给 YARN 的 RM
+             */
             final RegisterApplicationMasterResponse registerApplicationMasterResponse = registerApplicationMaster();
+
+            /*************************************************
+             * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+             *  注释： 处理 Container 申请的响应，然后如果申请到了 Container 则用来启动从节点 TaskManagaer
+             */
             getContainersFromPreviousAttempts(registerApplicationMasterResponse);
+
+            /*************************************************
+             * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+             *  注释：
+             */
             taskExecutorProcessSpecContainerResourcePriorityAdapter = new TaskExecutorProcessSpecContainerResourcePriorityAdapter(
                     registerApplicationMasterResponse.getMaximumResourceCapability(),
                     ExternalResourceUtils.getExternalResourceConfigurationKeys(flinkConfig,
@@ -304,6 +346,11 @@ public class YarnResourceManagerDriver extends AbstractResourceManagerDriver<Yar
         ).iterator();
 
         int numAccepted = 0;
+
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释： 遍历 每个申请到 Container
+         */
         while (containerIterator.hasNext() && pendingContainerRequestIterator.hasNext()) {
             final Container container = containerIterator.next();
             final AMRMClient.ContainerRequest pendingRequest = pendingContainerRequestIterator.next();
@@ -316,6 +363,10 @@ public class YarnResourceManagerDriver extends AbstractResourceManagerDriver<Yar
                 requestResourceFutures.remove(taskExecutorProcessSpec);
             }
 
+            /*************************************************
+             * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+             *  注释： 去启动 TaskExecutor 在 Container 里面
+             */
             startTaskExecutorInContainerAsync(container, taskExecutorProcessSpec, resourceId, requestResourceFuture);
             removeContainerRequest(pendingRequest);
 
@@ -363,7 +414,13 @@ public class YarnResourceManagerDriver extends AbstractResourceManagerDriver<Yar
 
         FutureUtils.assertNoException(containerLaunchContextFuture.handleAsync((context, exception) -> {
             if (exception == null) {
+
+                /*************************************************
+                 * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+                 *  注释：
+                 */
                 nodeManagerClient.startContainerAsync(container, context);
+
                 requestResourceFuture.complete(new YarnWorkerNode(container, resourceId));
             } else {
                 requestResourceFuture.completeExceptionally(exception);
@@ -463,12 +520,20 @@ public class YarnResourceManagerDriver extends AbstractResourceManagerDriver<Yar
             restPort = -1;
         }
 
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释：
+         */
         return resourceManagerClient.registerApplicationMaster(rpcAddress, restPort, webInterfaceUrl);
     }
 
     private void getContainersFromPreviousAttempts(final RegisterApplicationMasterResponse registerApplicationMasterResponse) {
+
+        // TODO_MA 马中华 注释：
         final List<Container> containersFromPreviousAttempts = registerApplicationMasterResponseReflector.getContainersFromPreviousAttempts(
                 registerApplicationMasterResponse);
+
+        // TODO_MA 马中华 注释： 结果容器
         final List<YarnWorkerNode> recoveredWorkers = new ArrayList<>();
 
         log.info("Recovered {} containers from previous attempts ({}).",
@@ -476,6 +541,10 @@ public class YarnResourceManagerDriver extends AbstractResourceManagerDriver<Yar
                 containersFromPreviousAttempts
         );
 
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释：
+         */
         for (Container container : containersFromPreviousAttempts) {
             final YarnWorkerNode worker = new YarnWorkerNode(container, getContainerResourceId(container));
             recoveredWorkers.add(worker);
@@ -539,6 +608,10 @@ public class YarnResourceManagerDriver extends AbstractResourceManagerDriver<Yar
     //  Event handlers
     // ------------------------------------------------------------------------
 
+    /*************************************************
+     * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+     *  注释：
+     */
     class YarnContainerEventHandler implements AMRMClientAsync.CallbackHandler, NMClientAsync.CallbackHandler {
 
         @Override

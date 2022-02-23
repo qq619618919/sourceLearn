@@ -34,17 +34,16 @@ import java.util.List;
 import static org.apache.flink.util.Preconditions.checkState;
 
 /** A {@link MultipleInputStreamOperatorBase} to handle batch operators. */
-public class BatchMultipleInputStreamOperator extends MultipleInputStreamOperatorBase
-        implements BoundedMultiInput, InputSelectable {
+public class BatchMultipleInputStreamOperator extends MultipleInputStreamOperatorBase implements BoundedMultiInput, InputSelectable {
+
     private static final long serialVersionUID = 1L;
 
     private final InputSelectionHandler inputSelectionHandler;
 
-    public BatchMultipleInputStreamOperator(
-            StreamOperatorParameters<RowData> parameters,
-            List<InputSpec> inputSpecs,
-            List<TableOperatorWrapper<?>> headWrapper,
-            TableOperatorWrapper<?> tailWrapper) {
+    public BatchMultipleInputStreamOperator(StreamOperatorParameters<RowData> parameters,
+                                            List<InputSpec> inputSpecs,
+                                            List<TableOperatorWrapper<?>> headWrapper,
+                                            TableOperatorWrapper<?> tailWrapper) {
         super(parameters, inputSpecs, headWrapper, tailWrapper);
         inputSelectionHandler = new InputSelectionHandler(inputSpecs);
     }
@@ -61,24 +60,18 @@ public class BatchMultipleInputStreamOperator extends MultipleInputStreamOperato
         return inputSelectionHandler.getInputSelection();
     }
 
-    protected StreamConfig createStreamConfig(
-            StreamOperatorParameters<RowData> multipleInputOperatorParameters,
-            TableOperatorWrapper<?> wrapper) {
-        StreamConfig streamConfig =
-                super.createStreamConfig(multipleInputOperatorParameters, wrapper);
+    protected StreamConfig createStreamConfig(StreamOperatorParameters<RowData> multipleInputOperatorParameters,
+                                              TableOperatorWrapper<?> wrapper) {
+        StreamConfig streamConfig = super.createStreamConfig(multipleInputOperatorParameters, wrapper);
         checkState(wrapper.getManagedMemoryFraction() >= 0);
-        Configuration taskManagerConfig =
-                getRuntimeContext().getTaskManagerRuntimeInfo().getConfiguration();
-        double managedMemoryFraction =
-                multipleInputOperatorParameters
-                                .getStreamConfig()
-                                .getManagedMemoryFractionOperatorUseCaseOfSlot(
-                                        ManagedMemoryUseCase.OPERATOR,
-                                        taskManagerConfig,
-                                        getRuntimeContext().getUserCodeClassLoader())
-                        * wrapper.getManagedMemoryFraction();
-        streamConfig.setManagedMemoryFractionOperatorOfUseCase(
-                ManagedMemoryUseCase.OPERATOR, managedMemoryFraction);
+        Configuration taskManagerConfig = getRuntimeContext().getTaskManagerRuntimeInfo().getConfiguration();
+        double managedMemoryFraction = multipleInputOperatorParameters
+                .getStreamConfig()
+                .getManagedMemoryFractionOperatorUseCaseOfSlot(ManagedMemoryUseCase.OPERATOR,
+                        taskManagerConfig,
+                        getRuntimeContext().getUserCodeClassLoader()
+                ) * wrapper.getManagedMemoryFraction();
+        streamConfig.setManagedMemoryFractionOperatorOfUseCase(ManagedMemoryUseCase.OPERATOR, managedMemoryFraction);
         return streamConfig;
     }
 }

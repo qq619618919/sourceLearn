@@ -36,6 +36,10 @@ import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nullable;
 
+/**
+ * 一个operaotChain 中的前一个 operator 输出数据到下一个 operator
+ * @param <T>
+ */
 class ChainingOutput<T> implements WatermarkGaugeExposingOutput<StreamRecord<T>> {
     private static final Logger LOG = LoggerFactory.getLogger(ChainingOutput.class);
 
@@ -76,7 +80,10 @@ class ChainingOutput<T> implements WatermarkGaugeExposingOutput<StreamRecord<T>>
             // we are not responsible for emitting to the main output.
             return;
         }
-
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释：
+         */
         pushToOperator(record);
     }
 
@@ -96,6 +103,11 @@ class ChainingOutput<T> implements WatermarkGaugeExposingOutput<StreamRecord<T>>
 
             numRecordsIn.inc();
             input.setKeyContextElement(castRecord);
+
+            /*************************************************
+             * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+             *  注释：
+             */
             input.processElement(castRecord);
         } catch (Exception e) {
             throw new ExceptionInChainedOperatorException(e);

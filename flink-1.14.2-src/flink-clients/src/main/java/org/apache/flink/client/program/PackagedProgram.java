@@ -148,6 +148,8 @@ public class PackagedProgram implements AutoCloseable {
         /*************************************************
          * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
          *  注释：
+         *  1、 flink run -c org.apache.FlinkDemo ==>  FlinkDemo = entryPointClassName
+         *  2、 getEntryPointClassNameFromJar 解析jar 包得到运行主类 FlinkDemo
          */
         this.mainClass = loadMainClass(
                 // if no entryPointClassName name was given, we try and look one up through the manifest
@@ -218,6 +220,7 @@ public class PackagedProgram implements AutoCloseable {
             /*************************************************
              * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
              *  注释： 这个 mainClass 就是 flink run -c 指定的 执行入口类
+             *  mainClass 是在 构造 PackageProgram 这个对象的时候，完成初始化的
              */
             callMainMethod(mainClass, args);
         } finally {
@@ -314,6 +317,10 @@ public class PackagedProgram implements AutoCloseable {
         return Modifier.isStatic(mainMethod.getModifiers()) && Modifier.isPublic(mainMethod.getModifiers());
     }
 
+    /*************************************************
+     * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+     *  注释： 通过反射调用了 mainClass 的 main() 方法
+     */
     private static void callMainMethod(Class<?> entryClass, String[] args) throws ProgramInvocationException {
         Method mainMethod;
         if (!Modifier.isPublic(entryClass.getModifiers())) {
@@ -346,7 +353,8 @@ public class PackagedProgram implements AutoCloseable {
 
         /*************************************************
          * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-         *  注释：
+         *  注释： 当这句代码执行完了，代码下一步去哪里了： 用户 Application 的 main()
+         *  如果是 wordCount
          */
         try {
             mainMethod.invoke(null, (Object) args);
@@ -372,6 +380,10 @@ public class PackagedProgram implements AutoCloseable {
         }
     }
 
+    /*************************************************
+     * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+     *  注释： 工具方法： 从一个jar包解析得到一个jar的运行主类。这个方法是可复用的
+     */
     private static String getEntryPointClassNameFromJar(URL jarFile) throws ProgramInvocationException {
         JarFile jar;
         Manifest manifest;

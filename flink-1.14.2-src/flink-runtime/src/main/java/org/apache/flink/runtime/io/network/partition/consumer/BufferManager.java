@@ -131,6 +131,7 @@ public class BufferManager implements BufferListener, BufferRecycler {
 
     /** Requests exclusive buffers from the provider. */
     void requestExclusiveBuffers(int numExclusiveBuffers) throws IOException {
+
         checkArgument(numExclusiveBuffers >= 0, "Num exclusive buffers must be non-negative.");
         if (numExclusiveBuffers == 0) {
             return;
@@ -138,7 +139,7 @@ public class BufferManager implements BufferListener, BufferRecycler {
 
         /*************************************************
          * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-         *  注释：
+         *  注释： 申请到一堆 MemorySegment
          */
         Collection<MemorySegment> segments = globalPool.requestMemorySegments(numExclusiveBuffers);
 
@@ -153,9 +154,12 @@ public class BufferManager implements BufferListener, BufferRecycler {
 
             /*************************************************
              * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-             *  注释：
+             *  注释： 遍历每个 MemorySegment
              */
             for (MemorySegment segment : segments) {
+
+                // TODO_MA 马中华 注释： 独家私有的 NetworkBuffer
+                // TODO_MA 马中华 注释： 一个 NetworkBuffer 就是对 MemorySegment 的封装
                 bufferQueue.addExclusiveBuffer(new NetworkBuffer(segment, this), numRequiredBuffers);
             }
         }

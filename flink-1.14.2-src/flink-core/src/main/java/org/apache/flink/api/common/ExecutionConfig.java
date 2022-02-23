@@ -1063,7 +1063,13 @@ public class ExecutionConfig implements Serializable, Archiveable<ArchivedExecut
                 .getOptional(TaskManagerOptions.TASK_CANCELLATION_TIMEOUT)
                 .ifPresent(this::setTaskCancellationTimeout);
         configuration.getOptional(ExecutionOptions.SNAPSHOT_COMPRESSION).ifPresent(this::setUseSnapshotCompression);
+
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释： 重启策略的 配置解析
+         */
         RestartStrategies.fromConfiguration(configuration).ifPresent(this::setRestartStrategy);
+
         configuration
                 .getOptional(PipelineOptions.KRYO_DEFAULT_SERIALIZERS)
                 .map(s -> parseKryoSerializersWithExceptionHandling(classLoader, s))

@@ -66,14 +66,13 @@ public abstract class NettyMessage {
     // constructor in order to work with the generic deserializer.
     // ------------------------------------------------------------------------
 
-    static final int FRAME_HEADER_LENGTH =
-            4 + 4 + 1; // frame length (4), magic number (4), msg ID (1)
+    static final int FRAME_HEADER_LENGTH = 4 + 4 + 1; // frame length (4), magic number (4), msg ID (1)
 
     static final int MAGIC_NUMBER = 0xBADC0FFE;
 
-    abstract void write(
-            ChannelOutboundInvoker out, ChannelPromise promise, ByteBufAllocator allocator)
-            throws IOException;
+    abstract void write(ChannelOutboundInvoker out,
+                        ChannelPromise promise,
+                        ByteBufAllocator allocator) throws IOException;
 
     // ------------------------------------------------------------------------
 
@@ -86,8 +85,9 @@ public abstract class NettyMessage {
      *
      * @param allocator byte buffer allocator to use
      * @param id {@link NettyMessage} subclass ID
+     *
      * @return a newly allocated direct buffer with header data written for {@link
-     *     NettyMessageEncoder}
+     *         NettyMessageEncoder}
      */
     private static ByteBuf allocateBuffer(ByteBufAllocator allocator, byte id) {
         return allocateBuffer(allocator, id, -1);
@@ -103,8 +103,9 @@ public abstract class NettyMessage {
      * @param allocator byte buffer allocator to use
      * @param id {@link NettyMessage} subclass ID
      * @param contentLength content length (or <tt>-1</tt> if unknown)
+     *
      * @return a newly allocated direct buffer with header data written for {@link
-     *     NettyMessageEncoder}
+     *         NettyMessageEncoder}
      */
     private static ByteBuf allocateBuffer(ByteBufAllocator allocator, byte id, int contentLength) {
         return allocateBuffer(allocator, id, 0, contentLength, true);
@@ -119,38 +120,34 @@ public abstract class NettyMessage {
      * @param allocator byte buffer allocator to use
      * @param id {@link NettyMessage} subclass ID
      * @param messageHeaderLength additional header length that should be part of the allocated
-     *     buffer and is written outside of this method
+     *         buffer and is written outside of this method
      * @param contentLength content length (or <tt>-1</tt> if unknown)
      * @param allocateForContent whether to make room for the actual content in the buffer
-     *     (<tt>true</tt>) or whether to only return a buffer with the header information
-     *     (<tt>false</tt>)
+     *         (<tt>true</tt>) or whether to only return a buffer with the header information
+     *         (<tt>false</tt>)
+     *
      * @return a newly allocated direct buffer with header data written for {@link
-     *     NettyMessageEncoder}
+     *         NettyMessageEncoder}
      */
-    private static ByteBuf allocateBuffer(
-            ByteBufAllocator allocator,
-            byte id,
-            int messageHeaderLength,
-            int contentLength,
-            boolean allocateForContent) {
+    private static ByteBuf allocateBuffer(ByteBufAllocator allocator,
+                                          byte id,
+                                          int messageHeaderLength,
+                                          int contentLength,
+                                          boolean allocateForContent) {
         checkArgument(contentLength <= Integer.MAX_VALUE - FRAME_HEADER_LENGTH);
 
         final ByteBuf buffer;
         if (!allocateForContent) {
             buffer = allocator.directBuffer(FRAME_HEADER_LENGTH + messageHeaderLength);
         } else if (contentLength != -1) {
-            buffer =
-                    allocator.directBuffer(
-                            FRAME_HEADER_LENGTH + messageHeaderLength + contentLength);
+            buffer = allocator.directBuffer(FRAME_HEADER_LENGTH + messageHeaderLength + contentLength);
         } else {
             // content length unknown -> start with the default initial size (rather than
             // FRAME_HEADER_LENGTH only):
             buffer = allocator.directBuffer();
         }
-        buffer.writeInt(
-                FRAME_HEADER_LENGTH
-                        + messageHeaderLength
-                        + contentLength); // may be updated later, e.g. if contentLength == -1
+        buffer.writeInt(FRAME_HEADER_LENGTH + messageHeaderLength
+                + contentLength); // may be updated later, e.g. if contentLength == -1
         buffer.writeInt(MAGIC_NUMBER);
         buffer.writeByte(id);
 
@@ -165,8 +162,7 @@ public abstract class NettyMessage {
     static class NettyMessageEncoder extends ChannelOutboundHandlerAdapter {
 
         @Override
-        public void write(ChannelHandlerContext ctx, Object msg, ChannelPromise promise)
-                throws IOException {
+        public void write(ChannelHandlerContext ctx, Object msg, ChannelPromise promise) throws IOException {
             if (msg instanceof NettyMessage) {
                 ((NettyMessage) msg).write(ctx, promise, ctx.alloc());
             } else {
@@ -207,8 +203,7 @@ public abstract class NettyMessage {
                 int magicNumber = msg.readInt();
 
                 if (magicNumber != MAGIC_NUMBER) {
-                    throw new IllegalStateException(
-                            "Network stream corrupted: received incorrect magic number.");
+                    throw new IllegalStateException("Network stream corrupted: received incorrect magic number.");
                 }
 
                 byte msgId = msg.readByte();
@@ -240,8 +235,7 @@ public abstract class NettyMessage {
                         decodedMsg = NewBufferSize.readFrom(msg);
                         break;
                     default:
-                        throw new ProtocolException(
-                                "Received unknown message from producer: " + msg);
+                        throw new ProtocolException("Received unknown message from producer: " + msg);
                 }
 
                 return decodedMsg;
@@ -264,11 +258,7 @@ public abstract class NettyMessage {
         // receiver ID (16), sequence number (4), backlog (4), dataType (1), isCompressed (1),
         // buffer size (4)
         static final int MESSAGE_HEADER_LENGTH =
-                InputChannelID.getByteBufLength()
-                        + Integer.BYTES
-                        + Integer.BYTES
-                        + Byte.BYTES
-                        + Byte.BYTES
+                InputChannelID.getByteBufLength() + Integer.BYTES + Integer.BYTES + Byte.BYTES + Byte.BYTES
                         + Integer.BYTES;
 
         final Buffer buffer;
@@ -285,14 +275,13 @@ public abstract class NettyMessage {
 
         final int bufferSize;
 
-        private BufferResponse(
-                @Nullable Buffer buffer,
-                Buffer.DataType dataType,
-                boolean isCompressed,
-                int sequenceNumber,
-                InputChannelID receiverId,
-                int backlog,
-                int bufferSize) {
+        private BufferResponse(@Nullable Buffer buffer,
+                               Buffer.DataType dataType,
+                               boolean isCompressed,
+                               int sequenceNumber,
+                               InputChannelID receiverId,
+                               int backlog,
+                               int bufferSize) {
             this.buffer = buffer;
             this.dataType = dataType;
             this.isCompressed = isCompressed;
@@ -304,9 +293,7 @@ public abstract class NettyMessage {
 
         BufferResponse(Buffer buffer, int sequenceNumber, InputChannelID receiverId, int backlog) {
             this.buffer = checkNotNull(buffer);
-            checkArgument(
-                    buffer.getDataType().ordinal() <= Byte.MAX_VALUE,
-                    "Too many data types defined!");
+            checkArgument(buffer.getDataType().ordinal() <= Byte.MAX_VALUE, "Too many data types defined!");
             checkArgument(backlog >= 0, "Must be non-negative.");
             this.dataType = buffer.getDataType();
             this.isCompressed = buffer.isCompressed();
@@ -336,8 +323,7 @@ public abstract class NettyMessage {
         // --------------------------------------------------------------------
 
         @Override
-        void write(ChannelOutboundInvoker out, ChannelPromise promise, ByteBufAllocator allocator)
-                throws IOException {
+        void write(ChannelOutboundInvoker out, ChannelPromise promise, ByteBufAllocator allocator) throws IOException {
             ByteBuf headerBuf = null;
             try {
                 // in order to forward the buffer to netty, it needs an allocator set
@@ -364,8 +350,7 @@ public abstract class NettyMessage {
                 composityBuf.addComponent(headerBuf);
                 composityBuf.addComponent(buffer.asByteBuf());
                 // update writer index since we have data written to the components:
-                composityBuf.writerIndex(
-                        headerBuf.writerIndex() + buffer.asByteBuf().writerIndex());
+                composityBuf.writerIndex(headerBuf.writerIndex() + buffer.asByteBuf().writerIndex());
                 return composityBuf;
             } catch (Throwable t) {
                 handleException(headerBuf, buffer, t);
@@ -375,8 +360,7 @@ public abstract class NettyMessage {
 
         private ByteBuf fillHeader(ByteBufAllocator allocator) {
             // only allocate header buffer - we will combine it with the data buffer below
-            ByteBuf headerBuf =
-                    allocateBuffer(allocator, ID, MESSAGE_HEADER_LENGTH, bufferSize, false);
+            ByteBuf headerBuf = allocateBuffer(allocator, ID, MESSAGE_HEADER_LENGTH, bufferSize, false);
 
             receiverId.writeTo(headerBuf);
             headerBuf.writeInt(sequenceNumber);
@@ -393,12 +377,12 @@ public abstract class NettyMessage {
          *
          * @param messageHeader the serialized message header.
          * @param bufferAllocator the allocator for network buffer.
+         *
          * @return a BufferResponse object with the header parsed and the data buffer to fill in
-         *     later. The data buffer will be null if the target channel has been released or the
-         *     buffer size is 0.
+         *         later. The data buffer will be null if the target channel has been released or the
+         *         buffer size is 0.
          */
-        static BufferResponse readFrom(
-                ByteBuf messageHeader, NetworkBufferAllocator bufferAllocator) {
+        static BufferResponse readFrom(ByteBuf messageHeader, NetworkBufferAllocator bufferAllocator) {
             InputChannelID receiverId = InputChannelID.fromByteBuf(messageHeader);
             int sequenceNumber = messageHeader.readInt();
             int backlog = messageHeader.readInt();
@@ -424,8 +408,7 @@ public abstract class NettyMessage {
                 dataBuffer.setCompressed(isCompressed);
             }
 
-            return new BufferResponse(
-                    dataBuffer, dataType, isCompressed, sequenceNumber, receiverId, backlog, size);
+            return new BufferResponse(dataBuffer, dataType, isCompressed, sequenceNumber, receiverId, backlog, size);
         }
     }
 
@@ -435,7 +418,8 @@ public abstract class NettyMessage {
 
         final Throwable cause;
 
-        @Nullable final InputChannelID receiverId;
+        @Nullable
+        final InputChannelID receiverId;
 
         ErrorResponse(Throwable cause) {
             this.cause = checkNotNull(cause);
@@ -452,8 +436,7 @@ public abstract class NettyMessage {
         }
 
         @Override
-        void write(ChannelOutboundInvoker out, ChannelPromise promise, ByteBufAllocator allocator)
-                throws IOException {
+        void write(ChannelOutboundInvoker out, ChannelPromise promise, ByteBufAllocator allocator) throws IOException {
             final ByteBuf result = allocateBuffer(allocator, ID);
 
             try (ObjectOutputStream oos = new ObjectOutputStream(new ByteBufOutputStream(result))) {
@@ -480,9 +463,7 @@ public abstract class NettyMessage {
 
                 if (!(obj instanceof Throwable)) {
                     throw new ClassCastException(
-                            "Read object expected to be of type Throwable, "
-                                    + "actual type is "
-                                    + obj.getClass()
+                            "Read object expected to be of type Throwable, " + "actual type is " + obj.getClass()
                                     + ".");
                 } else {
                     if (buffer.readBoolean()) {
@@ -512,11 +493,7 @@ public abstract class NettyMessage {
 
         final int credit;
 
-        PartitionRequest(
-                ResultPartitionID partitionId,
-                int queueIndex,
-                InputChannelID receiverId,
-                int credit) {
+        PartitionRequest(ResultPartitionID partitionId, int queueIndex, InputChannelID receiverId, int credit) {
             this.partitionId = checkNotNull(partitionId);
             this.queueIndex = queueIndex;
             this.receiverId = checkNotNull(receiverId);
@@ -524,35 +501,33 @@ public abstract class NettyMessage {
         }
 
         @Override
-        void write(ChannelOutboundInvoker out, ChannelPromise promise, ByteBufAllocator allocator)
-                throws IOException {
-            Consumer<ByteBuf> consumer =
-                    (bb) -> {
-                        partitionId.getPartitionId().writeTo(bb);
-                        partitionId.getProducerId().writeTo(bb);
-                        bb.writeInt(queueIndex);
-                        receiverId.writeTo(bb);
-                        bb.writeInt(credit);
-                    };
+        void write(ChannelOutboundInvoker out, ChannelPromise promise, ByteBufAllocator allocator) throws IOException {
+            Consumer<ByteBuf> consumer = (bb) -> {
+                partitionId.getPartitionId().writeTo(bb);
+                partitionId.getProducerId().writeTo(bb);
+                bb.writeInt(queueIndex);
+                receiverId.writeTo(bb);
+                bb.writeInt(credit);
+            };
 
-            writeToChannel(
-                    out,
+            /*************************************************
+             * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+             *  注释：
+             */
+            writeToChannel(out,
                     promise,
                     allocator,
                     consumer,
                     ID,
-                    IntermediateResultPartitionID.getByteBufLength()
-                            + ExecutionAttemptID.getByteBufLength()
-                            + Integer.BYTES
-                            + InputChannelID.getByteBufLength()
-                            + Integer.BYTES);
+                    IntermediateResultPartitionID.getByteBufLength() + ExecutionAttemptID.getByteBufLength()
+                            + Integer.BYTES + InputChannelID.getByteBufLength() + Integer.BYTES
+            );
         }
 
         static PartitionRequest readFrom(ByteBuf buffer) {
-            ResultPartitionID partitionId =
-                    new ResultPartitionID(
-                            IntermediateResultPartitionID.fromByteBuf(buffer),
-                            ExecutionAttemptID.fromByteBuf(buffer));
+            ResultPartitionID partitionId = new ResultPartitionID(IntermediateResultPartitionID.fromByteBuf(buffer),
+                    ExecutionAttemptID.fromByteBuf(buffer)
+            );
             int queueIndex = buffer.readInt();
             InputChannelID receiverId = InputChannelID.fromByteBuf(buffer);
             int credit = buffer.readInt();
@@ -576,57 +551,48 @@ public abstract class NettyMessage {
 
         final ResultPartitionID partitionId;
 
-        TaskEventRequest(
-                TaskEvent event, ResultPartitionID partitionId, InputChannelID receiverId) {
+        TaskEventRequest(TaskEvent event, ResultPartitionID partitionId, InputChannelID receiverId) {
             this.event = checkNotNull(event);
             this.receiverId = checkNotNull(receiverId);
             this.partitionId = checkNotNull(partitionId);
         }
 
         @Override
-        void write(ChannelOutboundInvoker out, ChannelPromise promise, ByteBufAllocator allocator)
-                throws IOException {
+        void write(ChannelOutboundInvoker out, ChannelPromise promise, ByteBufAllocator allocator) throws IOException {
             // TODO Directly serialize to Netty's buffer
             ByteBuffer serializedEvent = EventSerializer.toSerializedEvent(event);
 
-            Consumer<ByteBuf> consumer =
-                    (bb) -> {
-                        bb.writeInt(serializedEvent.remaining());
-                        bb.writeBytes(serializedEvent);
+            Consumer<ByteBuf> consumer = (bb) -> {
+                bb.writeInt(serializedEvent.remaining());
+                bb.writeBytes(serializedEvent);
 
-                        partitionId.getPartitionId().writeTo(bb);
-                        partitionId.getProducerId().writeTo(bb);
-                        receiverId.writeTo(bb);
-                    };
+                partitionId.getPartitionId().writeTo(bb);
+                partitionId.getProducerId().writeTo(bb);
+                receiverId.writeTo(bb);
+            };
 
-            writeToChannel(
-                    out,
+            writeToChannel(out,
                     promise,
                     allocator,
                     consumer,
                     ID,
-                    Integer.BYTES
-                            + serializedEvent.remaining()
-                            + IntermediateResultPartitionID.getByteBufLength()
-                            + ExecutionAttemptID.getByteBufLength()
-                            + InputChannelID.getByteBufLength());
+                    Integer.BYTES + serializedEvent.remaining() + IntermediateResultPartitionID.getByteBufLength()
+                            + ExecutionAttemptID.getByteBufLength() + InputChannelID.getByteBufLength()
+            );
         }
 
-        static TaskEventRequest readFrom(ByteBuf buffer, ClassLoader classLoader)
-                throws IOException {
+        static TaskEventRequest readFrom(ByteBuf buffer, ClassLoader classLoader) throws IOException {
             // directly deserialize fromNetty's buffer
             int length = buffer.readInt();
             ByteBuffer serializedEvent = buffer.nioBuffer(buffer.readerIndex(), length);
             // assume this event's content is read from the ByteBuf (positions are not shared!)
             buffer.readerIndex(buffer.readerIndex() + length);
 
-            TaskEvent event =
-                    (TaskEvent) EventSerializer.fromSerializedEvent(serializedEvent, classLoader);
+            TaskEvent event = (TaskEvent) EventSerializer.fromSerializedEvent(serializedEvent, classLoader);
 
-            ResultPartitionID partitionId =
-                    new ResultPartitionID(
-                            IntermediateResultPartitionID.fromByteBuf(buffer),
-                            ExecutionAttemptID.fromByteBuf(buffer));
+            ResultPartitionID partitionId = new ResultPartitionID(IntermediateResultPartitionID.fromByteBuf(buffer),
+                    ExecutionAttemptID.fromByteBuf(buffer)
+            );
 
             InputChannelID receiverId = InputChannelID.fromByteBuf(buffer);
 
@@ -652,15 +618,8 @@ public abstract class NettyMessage {
         }
 
         @Override
-        void write(ChannelOutboundInvoker out, ChannelPromise promise, ByteBufAllocator allocator)
-                throws IOException {
-            writeToChannel(
-                    out,
-                    promise,
-                    allocator,
-                    receiverId::writeTo,
-                    ID,
-                    InputChannelID.getByteBufLength());
+        void write(ChannelOutboundInvoker out, ChannelPromise promise, ByteBufAllocator allocator) throws IOException {
+            writeToChannel(out, promise, allocator, receiverId::writeTo, ID, InputChannelID.getByteBufLength());
         }
 
         static CancelPartitionRequest readFrom(ByteBuf buffer) throws Exception {
@@ -672,12 +631,13 @@ public abstract class NettyMessage {
 
         private static final byte ID = 5;
 
-        CloseRequest() {}
+        CloseRequest() {
+        }
 
         @Override
-        void write(ChannelOutboundInvoker out, ChannelPromise promise, ByteBufAllocator allocator)
-                throws IOException {
-            writeToChannel(out, promise, allocator, ignored -> {}, ID, 0);
+        void write(ChannelOutboundInvoker out, ChannelPromise promise, ByteBufAllocator allocator) throws IOException {
+            writeToChannel(out, promise, allocator, ignored -> {
+            }, ID, 0);
         }
 
         static CloseRequest readFrom(@SuppressWarnings("unused") ByteBuf buffer) throws Exception {
@@ -701,14 +661,11 @@ public abstract class NettyMessage {
         }
 
         @Override
-        void write(ChannelOutboundInvoker out, ChannelPromise promise, ByteBufAllocator allocator)
-                throws IOException {
+        void write(ChannelOutboundInvoker out, ChannelPromise promise, ByteBufAllocator allocator) throws IOException {
             ByteBuf result = null;
 
             try {
-                result =
-                        allocateBuffer(
-                                allocator, ID, Integer.BYTES + InputChannelID.getByteBufLength());
+                result = allocateBuffer(allocator, ID, Integer.BYTES + InputChannelID.getByteBufLength());
                 result.writeInt(credit);
                 receiverId.writeTo(result);
 
@@ -743,15 +700,8 @@ public abstract class NettyMessage {
         }
 
         @Override
-        void write(ChannelOutboundInvoker out, ChannelPromise promise, ByteBufAllocator allocator)
-                throws IOException {
-            writeToChannel(
-                    out,
-                    promise,
-                    allocator,
-                    receiverId::writeTo,
-                    ID,
-                    InputChannelID.getByteBufLength());
+        void write(ChannelOutboundInvoker out, ChannelPromise promise, ByteBufAllocator allocator) throws IOException {
+            writeToChannel(out, promise, allocator, receiverId::writeTo, ID, InputChannelID.getByteBufLength());
         }
 
         static ResumeConsumption readFrom(ByteBuf buffer) {
@@ -775,15 +725,8 @@ public abstract class NettyMessage {
         }
 
         @Override
-        void write(ChannelOutboundInvoker out, ChannelPromise promise, ByteBufAllocator allocator)
-                throws IOException {
-            writeToChannel(
-                    out,
-                    promise,
-                    allocator,
-                    receiverId::writeTo,
-                    ID,
-                    InputChannelID.getByteBufLength());
+        void write(ChannelOutboundInvoker out, ChannelPromise promise, ByteBufAllocator allocator) throws IOException {
+            writeToChannel(out, promise, allocator, receiverId::writeTo, ID, InputChannelID.getByteBufLength());
         }
 
         static AckAllUserRecordsProcessed readFrom(ByteBuf buffer) {
@@ -814,14 +757,11 @@ public abstract class NettyMessage {
         }
 
         @Override
-        void write(ChannelOutboundInvoker out, ChannelPromise promise, ByteBufAllocator allocator)
-                throws IOException {
+        void write(ChannelOutboundInvoker out, ChannelPromise promise, ByteBufAllocator allocator) throws IOException {
             ByteBuf result = null;
 
             try {
-                result =
-                        allocateBuffer(
-                                allocator, ID, Integer.BYTES + InputChannelID.getByteBufLength());
+                result = allocateBuffer(allocator, ID, Integer.BYTES + InputChannelID.getByteBufLength());
                 result.writeInt(backlog);
                 receiverId.writeTo(result);
 
@@ -860,14 +800,11 @@ public abstract class NettyMessage {
         }
 
         @Override
-        void write(ChannelOutboundInvoker out, ChannelPromise promise, ByteBufAllocator allocator)
-                throws IOException {
+        void write(ChannelOutboundInvoker out, ChannelPromise promise, ByteBufAllocator allocator) throws IOException {
             ByteBuf result = null;
 
             try {
-                result =
-                        allocateBuffer(
-                                allocator, ID, Integer.BYTES + InputChannelID.getByteBufLength());
+                result = allocateBuffer(allocator, ID, Integer.BYTES + InputChannelID.getByteBufLength());
                 result.writeInt(bufferSize);
                 receiverId.writeTo(result);
 
@@ -892,27 +829,29 @@ public abstract class NettyMessage {
 
     // ------------------------------------------------------------------------
 
-    void writeToChannel(
-            ChannelOutboundInvoker out,
-            ChannelPromise promise,
-            ByteBufAllocator allocator,
-            Consumer<ByteBuf> consumer,
-            byte id,
-            int length)
-            throws IOException {
+    void writeToChannel(ChannelOutboundInvoker out,
+                        ChannelPromise promise,
+                        ByteBufAllocator allocator,
+                        Consumer<ByteBuf> consumer,
+                        byte id,
+                        int length) throws IOException {
 
         ByteBuf byteBuf = null;
         try {
             byteBuf = allocateBuffer(allocator, id, length);
             consumer.accept(byteBuf);
+
+            /*************************************************
+             * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+             *  注释：
+             */
             out.write(byteBuf, promise);
         } catch (Throwable t) {
             handleException(byteBuf, null, t);
         }
     }
 
-    void handleException(@Nullable ByteBuf byteBuf, @Nullable Buffer buffer, Throwable t)
-            throws IOException {
+    void handleException(@Nullable ByteBuf byteBuf, @Nullable Buffer buffer, Throwable t) throws IOException {
         if (byteBuf != null) {
             byteBuf.release();
         }

@@ -45,10 +45,21 @@ public class EdgeManagerBuildUtil {
                                       IntermediateResult intermediateResult,
                                       DistributionPattern distributionPattern) {
 
+        // TODO_MA 马中华 注释： Flink 数据分发模式： 两种
         switch (distributionPattern) {
+
+            /*************************************************
+             * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+             *  注释： 点对点
+             */
             case POINTWISE:
                 connectPointwise(vertex.getTaskVertices(), intermediateResult);
                 break;
+
+            /*************************************************
+             * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+             *  注释： 全连接
+             */
             case ALL_TO_ALL:
                 connectAllToAll(vertex.getTaskVertices(), intermediateResult);
                 break;
@@ -80,55 +91,112 @@ public class EdgeManagerBuildUtil {
         }
     }
 
+    /*************************************************
+     * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+     *  注释： All to All 链接
+     */
     private static void connectAllToAll(ExecutionVertex[] taskVertices, IntermediateResult intermediateResult) {
 
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释： 获取到 IntermediateResult 中的所有的 IntermediateResultPartition 并且注册成一个 ConsumedPartitionGroup
+         */
         List<IntermediateResultPartitionID> consumedPartitions = Arrays
                 .stream(intermediateResult.getPartitions())
                 .map(IntermediateResultPartition::getPartitionId)
                 .collect(Collectors.toList());
+
         ConsumedPartitionGroup consumedPartitionGroup = createAndRegisterConsumedPartitionGroupToEdgeManager(
                 consumedPartitions,
                 intermediateResult
         );
+
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释： 将 ConsumedPartitionGroup 作为每个 ExecutionVertex 的消费者组
+         */
         for (ExecutionVertex ev : taskVertices) {
             ev.addConsumedPartitionGroup(consumedPartitionGroup);
         }
 
+        // TODO_MA 马中华 注释： 获取 ExecutionJobVertex 中的所有的 ExecutionVertex 构造成一个 ConsumerVertexGroup
         List<ExecutionVertexID> consumerVertices = Arrays
                 .stream(taskVertices)
                 .map(ExecutionVertex::getID)
                 .collect(Collectors.toList());
+
         ConsumerVertexGroup consumerVertexGroup = ConsumerVertexGroup.fromMultipleVertices(consumerVertices);
+
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释： 将 ConsumerVertexGroup 注册到每个 IntermediateResultPartition
+         */
         for (IntermediateResultPartition partition : intermediateResult.getPartitions()) {
             partition.addConsumers(consumerVertexGroup);
         }
     }
 
+    /*************************************************
+     * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+     *  注释：  获取上下游的并行度
+     *  1、 上：下 = n : 1  ( 1-2 ==> 1,  3-3 ==> 2)
+     *  2、 上：下 = 1 : 1  ( 1==>1, 2==> 2)
+     *  3、 上：下 = 1 : n  ( 1 ==> 1-2,  2==> 3-4)
+     */
     private static void connectPointwise(ExecutionVertex[] taskVertices, IntermediateResult intermediateResult) {
 
+        // TODO_MA 马中华 注释： 获取上下游的并行度
         final int sourceCount = intermediateResult.getPartitions().length;
         final int targetCount = taskVertices.length;
 
+        // TODO_MA 马中华 注释： 如果并行度一样
+        // TODO_MA 马中华 注释： 上：下 = 1 : 1
         if (sourceCount == targetCount) {
+
+            /*************************************************
+             * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+             *  注释： 维护上下游关系
+             *  遍历 ExecutionJobVertex 中的 ExecutionVertex
+             *  和
+             *  遍历 IntermediateResult 中的 IntermediateResultParitition
+             *  完成关系映射
+             */
             for (int i = 0; i < sourceCount; i++) {
+
+                // TODO_MA 马中华 注释： 获取 ExecutionVertex 和 IntermediateResultPartition
                 ExecutionVertex executionVertex = taskVertices[i];
                 IntermediateResultPartition partition = intermediateResult.getPartitions()[i];
 
+                /*************************************************
+                 * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+                 *  注释： 给 IntermediateResultPartition 添加消费者 ExecutionVertex 消费者组
+                 */
                 ConsumerVertexGroup consumerVertexGroup = ConsumerVertexGroup.fromSingleVertex(executionVertex.getID());
                 partition.addConsumers(consumerVertexGroup);
 
+                /*************************************************
+                 * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+                 *  注释： 给 executionVertex 添加 IntermediateResultPartition 消费者组
+                 */
                 ConsumedPartitionGroup consumedPartitionGroup = createAndRegisterConsumedPartitionGroupToEdgeManager(
                         partition.getPartitionId(),
                         intermediateResult
                 );
+
+                // TODO_MA 马中华 注释： 登记
                 executionVertex.addConsumedPartitionGroup(consumedPartitionGroup);
             }
-        } else if (sourceCount > targetCount) {
+        }
+
+        // TODO_MA 马中华 注释： 如果并行度不一样，并且是 source 大
+        // TODO_MA 马中华 注释： 上：下 = n : 1
+        else if (sourceCount > targetCount) {
             for (int index = 0; index < targetCount; index++) {
 
                 ExecutionVertex executionVertex = taskVertices[index];
                 ConsumerVertexGroup consumerVertexGroup = ConsumerVertexGroup.fromSingleVertex(executionVertex.getID());
 
+                // TODO_MA 马中华 注释：
                 int start = index * sourceCount / targetCount;
                 int end = (index + 1) * sourceCount / targetCount;
 
@@ -137,7 +205,6 @@ public class EdgeManagerBuildUtil {
                 for (int i = start; i < end; i++) {
                     IntermediateResultPartition partition = intermediateResult.getPartitions()[i];
                     partition.addConsumers(consumerVertexGroup);
-
                     consumedPartitions.add(partition.getPartitionId());
                 }
 
@@ -147,7 +214,11 @@ public class EdgeManagerBuildUtil {
                 );
                 executionVertex.addConsumedPartitionGroup(consumedPartitionGroup);
             }
-        } else {
+        }
+
+        // TODO_MA 马中华 注释： 如果并行度不一样，并且是 source 小
+        // TODO_MA 马中华 注释： 上：下 = 1 : n
+        else {
             for (int partitionNum = 0; partitionNum < sourceCount; partitionNum++) {
 
                 IntermediateResultPartition partition = intermediateResult.getPartitions()[partitionNum];
@@ -164,7 +235,6 @@ public class EdgeManagerBuildUtil {
                 for (int i = start; i < end; i++) {
                     ExecutionVertex executionVertex = taskVertices[i];
                     executionVertex.addConsumedPartitionGroup(consumedPartitionGroup);
-
                     consumers.add(executionVertex.getID());
                 }
 

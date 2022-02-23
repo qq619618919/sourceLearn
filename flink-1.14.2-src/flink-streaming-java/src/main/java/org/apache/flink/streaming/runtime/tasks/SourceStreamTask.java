@@ -89,13 +89,28 @@ public class SourceStreamTask<OUT, SRC extends SourceFunction<OUT>, OP extends S
      */
     private volatile FinishingReason finishingReason = FinishingReason.END_OF_DATA;
 
+    /*************************************************
+     * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+     *  注释： 通过反射创建该实例的 调用构造方法
+     */
     public SourceStreamTask(Environment env) throws Exception {
+        // TODO_MA 马中华 注释：
         this(env, new Object());
     }
 
     private SourceStreamTask(Environment env, Object lock) throws Exception {
+
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释： SourceStreamTask 就是 StreamTask 的子类
+         */
         super(env, null, FatalExitExceptionHandler.INSTANCE, StreamTaskActionExecutor.synchronizedExecutor(lock));
         this.lock = Preconditions.checkNotNull(lock);
+
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释： Source Task 内部都有一个 线程，负责对接数据源
+         */
         this.sourceThread = new LegacySourceFunctionThread();
 
         getEnvironment().getMetricGroup().getIOMetricGroup().setEnableBusyTime(false);
@@ -103,8 +118,7 @@ public class SourceStreamTask<OUT, SRC extends SourceFunction<OUT>, OP extends S
 
     @Override
     protected void init() {
-        // we check if the source is actually inducing the checkpoints, rather
-        // than the trigger
+        // we check if the source is actually inducing the checkpoints, rather than the trigger
         SourceFunction<?> source = mainOperator.getUserFunction();
         if (source instanceof ExternallyInducedSource) {
             externallyInducedCheckpoints = true;
@@ -171,6 +185,10 @@ public class SourceStreamTask<OUT, SRC extends SourceFunction<OUT>, OP extends S
         // not in steps).
         sourceThread.setTaskDescription(getName());
 
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释： 数据源线程启动
+         */
         sourceThread.start();
 
         sourceThread.getCompletionFuture().whenComplete((Void ignore, Throwable sourceThreadThrowable) -> {
@@ -304,6 +322,10 @@ public class SourceStreamTask<OUT, SRC extends SourceFunction<OUT>, OP extends S
                     LOG.debug("Legacy source {} skip execution since the task is finished on restore",
                             getTaskNameWithSubtaskAndId()
                     );
+                    /*************************************************
+                     * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+                     *  注释： 对接数据 源
+                     */
                     mainOperator.run(lock, operatorChain);
                 }
                 completeProcessing();

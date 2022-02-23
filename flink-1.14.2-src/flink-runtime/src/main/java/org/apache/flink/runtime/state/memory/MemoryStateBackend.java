@@ -356,6 +356,10 @@ public class MemoryStateBackend extends AbstractFileStateBackend implements Conf
         LatencyTrackingStateConfig latencyTrackingStateConfig = latencyTrackingConfigBuilder
                 .setMetricGroup(metricGroup)
                 .build();
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释：
+         */
         return new HeapKeyedStateBackendBuilder<>(kvStateRegistry,
                 keySerializer,
                 env.getUserCodeClassLoader().asClassLoader(),

@@ -38,10 +38,9 @@ public class NettyShuffleDescriptor implements ShuffleDescriptor {
 
     private final ResultPartitionID resultPartitionID;
 
-    public NettyShuffleDescriptor(
-            ResourceID producerLocation,
-            PartitionConnectionInfo partitionConnectionInfo,
-            ResultPartitionID resultPartitionID) {
+    public NettyShuffleDescriptor(ResourceID producerLocation,
+                                  PartitionConnectionInfo partitionConnectionInfo,
+                                  ResultPartitionID resultPartitionID) {
         this.producerLocation = producerLocation;
         this.partitionConnectionInfo = partitionConnectionInfo;
         this.resultPartitionID = resultPartitionID;
@@ -93,11 +92,9 @@ public class NettyShuffleDescriptor implements ShuffleDescriptor {
             return connectionID;
         }
 
-        static NetworkPartitionConnectionInfo fromProducerDescriptor(
-                ProducerDescriptor producerDescriptor, int connectionIndex) {
-            InetSocketAddress address =
-                    new InetSocketAddress(
-                            producerDescriptor.getAddress(), producerDescriptor.getDataPort());
+        static NetworkPartitionConnectionInfo fromProducerDescriptor(ProducerDescriptor producerDescriptor,
+                                                                     int connectionIndex) {
+            InetSocketAddress address = new InetSocketAddress(producerDescriptor.getAddress(), producerDescriptor.getDataPort());
             return new NetworkPartitionConnectionInfo(new ConnectionID(address, connectionIndex));
         }
     }
@@ -112,8 +109,7 @@ public class NettyShuffleDescriptor implements ShuffleDescriptor {
 
         @Override
         public ConnectionID getConnectionId() {
-            throw new UnsupportedOperationException(
-                    "Local execution does not support shuffle connection.");
+            throw new UnsupportedOperationException("Local execution does not support shuffle connection.");
         }
     }
 }

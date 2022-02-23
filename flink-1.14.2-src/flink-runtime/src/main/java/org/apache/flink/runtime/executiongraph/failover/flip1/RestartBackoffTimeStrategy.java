@@ -22,21 +22,18 @@ public interface RestartBackoffTimeStrategy {
 
     /**
      * Returns whether a restart should be conducted.
-     *
      * @return whether a restart should be conducted
      */
     boolean canRestart();
 
     /**
      * Returns the delay to do the restarting.
-     *
      * @return the delay to do the restarting
      */
     long getBackoffTime();
 
     /**
      * Notify the strategy about the task failure cause.
-     *
      * @param cause of the task failure
      */
     void notifyFailure(Throwable cause);
@@ -50,7 +47,6 @@ public interface RestartBackoffTimeStrategy {
 
         /**
          * Instantiates the {@link RestartBackoffTimeStrategy}.
-         *
          * @return The instantiated restart strategy.
          */
         RestartBackoffTimeStrategy create();

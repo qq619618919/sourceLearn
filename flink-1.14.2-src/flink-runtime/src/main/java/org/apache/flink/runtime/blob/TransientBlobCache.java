@@ -83,11 +83,8 @@ public class TransientBlobCache extends AbstractBlobCache implements TransientBl
          * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
          *  注释：
          */
-        this.cleanupTimer.schedule(new TransientBlobCleanupTask(blobExpiryTimes,
-                readWriteLock.writeLock(),
-                storageDir,
-                log
-        ), cleanupInterval, cleanupInterval);
+        this.cleanupTimer.schedule(new TransientBlobCleanupTask(blobExpiryTimes, readWriteLock.writeLock(), storageDir, log),
+                cleanupInterval, cleanupInterval);
     }
 
     @Override
@@ -105,16 +102,16 @@ public class TransientBlobCache extends AbstractBlobCache implements TransientBl
     protected File getFileInternal(@Nullable JobID jobId, BlobKey blobKey) throws IOException {
         File file = super.getFileInternal(jobId, blobKey);
 
-        readWriteLock.readLock().lock();
+        readWriteLock.readLock()
+                     .lock();
         try {
             // regarding concurrent operations, it is not really important which timestamp makes
             // it into the map as they are close to each other anyway, also we can simply
             // overwrite old values as long as we are in the read (or write) lock
-            blobExpiryTimes.put(Tuple2.of(jobId, (TransientBlobKey) blobKey),
-                    System.currentTimeMillis() + cleanupInterval
-            );
+            blobExpiryTimes.put(Tuple2.of(jobId, (TransientBlobKey) blobKey), System.currentTimeMillis() + cleanupInterval);
         } finally {
-            readWriteLock.readLock().unlock();
+            readWriteLock.readLock()
+                         .unlock();
         }
 
         return file;
@@ -173,7 +170,8 @@ public class TransientBlobCache extends AbstractBlobCache implements TransientBl
     private boolean deleteInternal(@Nullable JobID jobId, TransientBlobKey key) {
         final File localFile = new File(BlobUtils.getStorageLocationPath(storageDir.getAbsolutePath(), jobId, key));
 
-        readWriteLock.writeLock().lock();
+        readWriteLock.writeLock()
+                     .lock();
         try {
             if (!localFile.delete() && localFile.exists()) {
                 log.warn("Failed to delete locally cached BLOB {} at {}", key, localFile.getAbsolutePath());
@@ -183,7 +181,8 @@ public class TransientBlobCache extends AbstractBlobCache implements TransientBl
                 blobExpiryTimes.remove(Tuple2.of(jobId, key));
             }
         } finally {
-            readWriteLock.writeLock().unlock();
+            readWriteLock.writeLock()
+                         .unlock();
         }
         return true;
     }

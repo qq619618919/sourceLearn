@@ -34,31 +34,35 @@ public class StreamTaskNetworkInputFactory {
      * Factory method for {@link StreamTaskNetworkInput} or {@link RescalingStreamTaskNetworkInput}
      * depending on {@link InflightDataRescalingDescriptor}.
      */
-    public static <T> StreamTaskInput<T> create(
-            CheckpointedInputGate checkpointedInputGate,
-            TypeSerializer<T> inputSerializer,
-            IOManager ioManager,
-            StatusWatermarkValve statusWatermarkValve,
-            int inputIndex,
-            InflightDataRescalingDescriptor rescalingDescriptorinflightDataRescalingDescriptor,
-            Function<Integer, StreamPartitioner<?>> gatePartitioners,
-            TaskInfo taskInfo) {
-        return rescalingDescriptorinflightDataRescalingDescriptor.equals(
-                        InflightDataRescalingDescriptor.NO_RESCALE)
-                ? new StreamTaskNetworkInput<>(
-                        checkpointedInputGate,
+    public static <T> StreamTaskInput<T> create(CheckpointedInputGate checkpointedInputGate,
+                                                TypeSerializer<T> inputSerializer,
+                                                IOManager ioManager,
+                                                StatusWatermarkValve statusWatermarkValve,
+                                                int inputIndex,
+                                                InflightDataRescalingDescriptor rescalingDescriptorinflightDataRescalingDescriptor,
+                                                Function<Integer, StreamPartitioner<?>> gatePartitioners,
+                                                TaskInfo taskInfo) {
+
+        // TODO_MA 马中华 注释：
+        return rescalingDescriptorinflightDataRescalingDescriptor.equals(InflightDataRescalingDescriptor.NO_RESCALE) ?
+
+                // TODO_MA 马中华 注释：
+                new StreamTaskNetworkInput<>(checkpointedInputGate,
                         inputSerializer,
                         ioManager,
                         statusWatermarkValve,
-                        inputIndex)
-                : new RescalingStreamTaskNetworkInput<>(
-                        checkpointedInputGate,
+                        inputIndex
+                ) :
+
+                // TODO_MA 马中华 注释：
+                new RescalingStreamTaskNetworkInput<>(checkpointedInputGate,
                         inputSerializer,
                         ioManager,
                         statusWatermarkValve,
                         inputIndex,
                         rescalingDescriptorinflightDataRescalingDescriptor,
                         gatePartitioners,
-                        taskInfo);
+                        taskInfo
+                );
     }
 }

@@ -34,9 +34,13 @@ public class DefaultDeclarativeSlotPoolFactory implements DeclarativeSlotPoolFac
             Consumer<? super Collection<ResourceRequirement>> notifyNewResourceRequirements,
             Time idleSlotTimeout,
             Time rpcTimeout) {
+
+        // TODO_MA 马中华 注释：
         return new DefaultDeclarativeSlotPool(
                 jobId,
                 new DefaultAllocatedSlotPool(),
+
+                // TODO_MA 马中华 注释：
                 notifyNewResourceRequirements,
                 idleSlotTimeout,
                 rpcTimeout);

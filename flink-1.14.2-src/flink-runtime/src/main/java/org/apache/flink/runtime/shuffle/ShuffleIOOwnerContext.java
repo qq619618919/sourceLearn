@@ -27,18 +27,18 @@ import static org.apache.flink.util.Preconditions.checkNotNull;
  * Context of shuffle input/output owner used to create partitions or gates belonging to the owner.
  */
 public class ShuffleIOOwnerContext {
+
     private final String ownerName;
     private final ExecutionAttemptID executionAttemptID;
     private final MetricGroup parentGroup;
     private final MetricGroup outputGroup;
     private final MetricGroup inputGroup;
 
-    public ShuffleIOOwnerContext(
-            String ownerName,
-            ExecutionAttemptID executionAttemptID,
-            MetricGroup parentGroup,
-            MetricGroup outputGroup,
-            MetricGroup inputGroup) {
+    public ShuffleIOOwnerContext(String ownerName,
+                                 ExecutionAttemptID executionAttemptID,
+                                 MetricGroup parentGroup,
+                                 MetricGroup outputGroup,
+                                 MetricGroup inputGroup) {
         this.ownerName = checkNotNull(ownerName);
         this.executionAttemptID = checkNotNull(executionAttemptID);
         this.parentGroup = checkNotNull(parentGroup);

@@ -42,32 +42,47 @@ public class RegionPartitionGroupReleaseStrategy implements PartitionGroupReleas
 
     private final SchedulingTopology schedulingTopology;
 
-    private final Map<ExecutionVertexID, PipelinedRegionExecutionView> regionExecutionViewByVertex =
-            new HashMap<>();
+    private final Map<ExecutionVertexID, PipelinedRegionExecutionView> regionExecutionViewByVertex = new HashMap<>();
 
-    private final Map<ConsumedPartitionGroup, ConsumerRegionGroupExecutionView>
-            partitionGroupConsumerRegions = new HashMap<>();
+    private final Map<ConsumedPartitionGroup, ConsumerRegionGroupExecutionView> partitionGroupConsumerRegions = new HashMap<>();
 
-    private final ConsumerRegionGroupExecutionViewMaintainer
-            consumerRegionGroupExecutionViewMaintainer;
+    private final ConsumerRegionGroupExecutionViewMaintainer consumerRegionGroupExecutionViewMaintainer;
 
+    /*************************************************
+     * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+     *  注释：
+     */
     public RegionPartitionGroupReleaseStrategy(final SchedulingTopology schedulingTopology) {
         this.schedulingTopology = checkNotNull(schedulingTopology);
 
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释：
+         */
         initRegionExecutionViewByVertex();
 
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释：
+         */
         initPartitionGroupConsumerRegions();
 
-        this.consumerRegionGroupExecutionViewMaintainer =
-                new ConsumerRegionGroupExecutionViewMaintainer(
-                        partitionGroupConsumerRegions.values());
+        this.consumerRegionGroupExecutionViewMaintainer = new ConsumerRegionGroupExecutionViewMaintainer(
+                partitionGroupConsumerRegions.values());
     }
 
     private void initRegionExecutionViewByVertex() {
-        for (SchedulingPipelinedRegion pipelinedRegion :
-                schedulingTopology.getAllPipelinedRegions()) {
-            final PipelinedRegionExecutionView regionExecutionView =
-                    new PipelinedRegionExecutionView(pipelinedRegion);
+
+        // TODO_MA 马中华 注释：
+        for (SchedulingPipelinedRegion pipelinedRegion : schedulingTopology.getAllPipelinedRegions()) {
+
+            /*************************************************
+             * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+             *  注释：
+             */
+            final PipelinedRegionExecutionView regionExecutionView = new PipelinedRegionExecutionView(pipelinedRegion);
+
+            // TODO_MA 马中华 注释：
             for (SchedulingExecutionVertex executionVertexId : pipelinedRegion.getVertices()) {
                 regionExecutionViewByVertex.put(executionVertexId.getId(), regionExecutionView);
             }
@@ -75,12 +90,17 @@ public class RegionPartitionGroupReleaseStrategy implements PartitionGroupReleas
     }
 
     private void initPartitionGroupConsumerRegions() {
+
+        // TODO_MA 马中华 注释：
         for (SchedulingPipelinedRegion region : schedulingTopology.getAllPipelinedRegions()) {
-            for (ConsumedPartitionGroup consumedPartitionGroup :
-                    region.getAllBlockingConsumedPartitionGroups()) {
+
+            /*************************************************
+             * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+             *  注释：
+             */
+            for (ConsumedPartitionGroup consumedPartitionGroup : region.getAllBlockingConsumedPartitionGroups()) {
                 partitionGroupConsumerRegions
-                        .computeIfAbsent(
-                                consumedPartitionGroup, g -> new ConsumerRegionGroupExecutionView())
+                        .computeIfAbsent(consumedPartitionGroup, g -> new ConsumerRegionGroupExecutionView())
                         .add(region);
             }
         }
@@ -88,51 +108,47 @@ public class RegionPartitionGroupReleaseStrategy implements PartitionGroupReleas
 
     @Override
     public List<ConsumedPartitionGroup> vertexFinished(final ExecutionVertexID finishedVertex) {
-        final PipelinedRegionExecutionView regionExecutionView =
-                getPipelinedRegionExecutionViewForVertex(finishedVertex);
+        final PipelinedRegionExecutionView regionExecutionView = getPipelinedRegionExecutionViewForVertex(finishedVertex);
         regionExecutionView.vertexFinished(finishedVertex);
 
         if (regionExecutionView.isFinished()) {
-            final SchedulingPipelinedRegion pipelinedRegion =
-                    schedulingTopology.getPipelinedRegionOfVertex(finishedVertex);
+            final SchedulingPipelinedRegion pipelinedRegion = schedulingTopology.getPipelinedRegionOfVertex(
+                    finishedVertex);
             consumerRegionGroupExecutionViewMaintainer.regionFinished(pipelinedRegion);
 
-            return filterReleasablePartitionGroups(
-                    pipelinedRegion.getAllBlockingConsumedPartitionGroups());
+            return filterReleasablePartitionGroups(pipelinedRegion.getAllBlockingConsumedPartitionGroups());
         }
         return Collections.emptyList();
     }
 
     @Override
     public void vertexUnfinished(final ExecutionVertexID executionVertexId) {
-        final PipelinedRegionExecutionView regionExecutionView =
-                getPipelinedRegionExecutionViewForVertex(executionVertexId);
+        final PipelinedRegionExecutionView regionExecutionView = getPipelinedRegionExecutionViewForVertex(
+                executionVertexId);
         regionExecutionView.vertexUnfinished(executionVertexId);
 
-        final SchedulingPipelinedRegion pipelinedRegion =
-                schedulingTopology.getPipelinedRegionOfVertex(executionVertexId);
+        final SchedulingPipelinedRegion pipelinedRegion = schedulingTopology.getPipelinedRegionOfVertex(
+                executionVertexId);
         consumerRegionGroupExecutionViewMaintainer.regionUnfinished(pipelinedRegion);
     }
 
-    private PipelinedRegionExecutionView getPipelinedRegionExecutionViewForVertex(
-            final ExecutionVertexID executionVertexId) {
-        final PipelinedRegionExecutionView pipelinedRegionExecutionView =
-                regionExecutionViewByVertex.get(executionVertexId);
-        checkState(
-                pipelinedRegionExecutionView != null,
-                "PipelinedRegionExecutionView not found for execution vertex %s",
+    private PipelinedRegionExecutionView getPipelinedRegionExecutionViewForVertex(final ExecutionVertexID executionVertexId) {
+        final PipelinedRegionExecutionView pipelinedRegionExecutionView = regionExecutionViewByVertex.get(
                 executionVertexId);
+        checkState(pipelinedRegionExecutionView != null,
+                "PipelinedRegionExecutionView not found for execution vertex %s",
+                executionVertexId
+        );
         return pipelinedRegionExecutionView;
     }
 
-    private List<ConsumedPartitionGroup> filterReleasablePartitionGroups(
-            final Iterable<ConsumedPartitionGroup> consumedPartitionGroups) {
+    private List<ConsumedPartitionGroup> filterReleasablePartitionGroups(final Iterable<ConsumedPartitionGroup> consumedPartitionGroups) {
 
         final List<ConsumedPartitionGroup> releasablePartitionGroups = new ArrayList<>();
 
         for (ConsumedPartitionGroup consumedPartitionGroup : consumedPartitionGroups) {
-            final ConsumerRegionGroupExecutionView consumerRegionGroup =
-                    partitionGroupConsumerRegions.get(consumedPartitionGroup);
+            final ConsumerRegionGroupExecutionView consumerRegionGroup = partitionGroupConsumerRegions.get(
+                    consumedPartitionGroup);
             if (consumerRegionGroup.isFinished()) {
                 // At present, there's only one ConsumerVertexGroup for each
                 // ConsumedPartitionGroup, so if a ConsumedPartitionGroup is fully consumed, all
@@ -148,8 +164,11 @@ public class RegionPartitionGroupReleaseStrategy implements PartitionGroupReleas
     public static class Factory implements PartitionGroupReleaseStrategy.Factory {
 
         @Override
-        public PartitionGroupReleaseStrategy createInstance(
-                final SchedulingTopology schedulingStrategy) {
+        public PartitionGroupReleaseStrategy createInstance(final SchedulingTopology schedulingStrategy) {
+            /*************************************************
+             * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+             *  注释：
+             */
             return new RegionPartitionGroupReleaseStrategy(schedulingStrategy);
         }
     }

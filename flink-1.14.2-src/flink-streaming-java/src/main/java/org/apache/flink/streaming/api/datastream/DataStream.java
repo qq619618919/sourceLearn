@@ -655,6 +655,14 @@ public class DataStream<T> {
      * @return The transformed {@link DataStream}.
      */
     public <R> SingleOutputStreamOperator<R> flatMap(FlatMapFunction<T, R> flatMapper, TypeInformation<R> outputType) {
+
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释：
+         *  flatMapper = UserFunction
+         *  StreamFlatMap = StreamOperator
+         *  最终都会转换成 Transformation
+         */
         return transform("Flat Map", outputType, new StreamFlatMap<>(clean(flatMapper)));
     }
 
@@ -1197,6 +1205,10 @@ public class DataStream<T> {
                                                        TypeInformation<R> outTypeInfo,
                                                        OneInputStreamOperator<T, R> operator) {
 
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释：
+         */
         return doTransform(operatorName, outTypeInfo, SimpleOperatorFactory.of(operator));
     }
 
@@ -1229,6 +1241,10 @@ public class DataStream<T> {
         // read the output type of the input Transform to coax out errors about MissingTypeInfo
         transformation.getOutputType();
 
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释： 生成了一个 OneInputTransformation
+         */
         OneInputTransformation<T, R> resultTransform = new OneInputTransformation<>(this.transformation,
                 operatorName,
                 operatorFactory,
@@ -1239,6 +1255,10 @@ public class DataStream<T> {
         @SuppressWarnings({"unchecked", "rawtypes"})
         SingleOutputStreamOperator<R> returnStream = new SingleOutputStreamOperator(environment, resultTransform);
 
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释：
+         */
         getExecutionEnvironment().addOperator(resultTransform);
 
         return returnStream;

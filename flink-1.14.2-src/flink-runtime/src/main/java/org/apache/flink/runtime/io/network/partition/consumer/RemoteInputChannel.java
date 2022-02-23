@@ -79,6 +79,7 @@ public class RemoteInputChannel extends InputChannel {
     private final ConnectionManager connectionManager;
 
     /**
+     * // TODO_MA 马中华 注释： 存储接收到的数据。
      * The received buffers. Received buffers are enqueued by the network I/O thread and the queue
      * is consumed by the receiving task thread.
      */
@@ -97,6 +98,7 @@ public class RemoteInputChannel extends InputChannel {
     private int expectedSequenceNumber = 0;
 
     /** The initial number of exclusive buffers assigned to this channel. */
+    // TODO_MA 马中华 注释： 一个 InputChannel 的独家使用内存 MemorySegment 的数量 = 2
     private final int initialCredit;
 
     /** The number of available buffers that have not been announced to the producer yet. */
@@ -150,7 +152,7 @@ public class RemoteInputChannel extends InputChannel {
         );
         /*************************************************
          * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-         *  注释：
+         *  注释： 申请独家私有的 NetworkBuffer = 2
          */
         bufferManager.requestExclusiveBuffers(initialCredit);
     }
@@ -172,6 +174,10 @@ public class RemoteInputChannel extends InputChannel {
             );
             // Create a client and request the partition
             try {
+                /*************************************************
+                 * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+                 *  注释：
+                 */
                 partitionRequestClient = connectionManager.createPartitionRequestClient(connectionId);
             } catch (IOException e) {
                 // IOExceptions indicate that we could not open a connection to the remote
@@ -179,6 +185,10 @@ public class RemoteInputChannel extends InputChannel {
                 throw new PartitionConnectionException(partitionId, e);
             }
 
+            /*************************************************
+             * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+             *  注释：
+             */
             partitionRequestClient.requestSubpartition(partitionId, subpartitionIndex, this, 0);
         }
     }
@@ -201,6 +211,10 @@ public class RemoteInputChannel extends InputChannel {
         final SequenceBuffer next;
         final DataType nextDataType;
 
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释： 从 buffer 中获取数据
+         */
         synchronized (receivedBuffers) {
             next = receivedBuffers.poll();
             nextDataType = receivedBuffers.peek() != null ? receivedBuffers.peek().buffer.getDataType() : DataType.NONE;
@@ -222,6 +236,8 @@ public class RemoteInputChannel extends InputChannel {
         );
         numBytesIn.inc(next.buffer.getSize());
         numBuffersIn.inc();
+
+        // TODO_MA 马中华 注释： 返回数据
         return Optional.of(new BufferAndAvailability(next.buffer, nextDataType, 0, next.sequenceNumber));
     }
 
@@ -502,6 +518,7 @@ public class RemoteInputChannel extends InputChannel {
 
             final boolean wasEmpty;
             boolean firstPriorityEvent = false;
+
             synchronized (receivedBuffers) {
                 NetworkActionsLogger.traceInput("RemoteInputChannel#onBuffer",
                         buffer,
@@ -519,12 +536,21 @@ public class RemoteInputChannel extends InputChannel {
 
                 wasEmpty = receivedBuffers.isEmpty();
 
+                /*************************************************
+                 * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+                 *  注释： 将 Buffer 构造成 SequenceBuffer
+                 */
                 SequenceBuffer sequenceBuffer = new SequenceBuffer(buffer, sequenceNumber);
+
                 DataType dataType = buffer.getDataType();
                 if (dataType.hasPriority()) {
                     firstPriorityEvent = addPriorityBuffer(sequenceBuffer);
                     recycleBuffer = false;
                 } else {
+                    /*************************************************
+                     * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+                     *  注释： 加入到 receivedBuffers 中
+                     */
                     receivedBuffers.add(sequenceBuffer);
                     recycleBuffer = false;
                     if (dataType.requiresAnnouncement()) {
@@ -534,6 +560,7 @@ public class RemoteInputChannel extends InputChannel {
                 channelStatePersister
                         .checkForBarrier(sequenceBuffer.buffer)
                         .filter(id -> id > lastBarrierId)
+
                         .ifPresent(id -> {
                             // checkpoint was not yet started by task thread,
                             // so remember the numbers of buffers to spill for the time when
@@ -548,6 +575,11 @@ public class RemoteInputChannel extends InputChannel {
             if (firstPriorityEvent) {
                 notifyPriorityEvent(sequenceNumber);
             }
+
+            /*************************************************
+             * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+             *  注释： 通知有数据可用
+             */
             if (wasEmpty) {
                 notifyChannelNonEmpty();
             }
@@ -792,6 +824,7 @@ public class RemoteInputChannel extends InputChannel {
     }
 
     private static final class SequenceBuffer {
+
         final Buffer buffer;
         final int sequenceNumber;
 

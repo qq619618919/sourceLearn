@@ -33,8 +33,8 @@ class SlotExecutionVertexAssignment {
 
     private final CompletableFuture<LogicalSlot> logicalSlotFuture;
 
-    SlotExecutionVertexAssignment(
-            ExecutionVertexID executionVertexId, CompletableFuture<LogicalSlot> logicalSlotFuture) {
+    SlotExecutionVertexAssignment(ExecutionVertexID executionVertexId,
+                                  CompletableFuture<LogicalSlot> logicalSlotFuture) {
         this.executionVertexId = checkNotNull(executionVertexId);
         this.logicalSlotFuture = checkNotNull(logicalSlotFuture);
     }

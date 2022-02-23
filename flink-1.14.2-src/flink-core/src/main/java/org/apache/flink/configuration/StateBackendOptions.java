@@ -41,51 +41,46 @@ public class StateBackendOptions {
      * <p>Recognized shortcut names are 'hashmap' and 'rocksdb'.
      */
     @Documentation.Section(value = Documentation.Sections.COMMON_STATE_BACKENDS, position = 1)
-    public static final ConfigOption<String> STATE_BACKEND =
-            ConfigOptions.key("state.backend")
-                    .stringType()
-                    .noDefaultValue()
-                    .withDescription(
-                            Description.builder()
-                                    .text("The state backend to be used to store state.")
-                                    .linebreak()
-                                    .text(
-                                            "The implementation can be specified either via their shortcut "
-                                                    + " name, or via the class name of a %s. "
-                                                    + "If a factory is specified it is instantiated via its "
-                                                    + "zero argument constructor and its %s "
-                                                    + "method is called.",
-                                            TextElement.code("StateBackendFactory"),
-                                            TextElement.code(
-                                                    "StateBackendFactory#createFromConfig(ReadableConfig, ClassLoader)"))
-                                    .linebreak()
-                                    .text("Recognized shortcut names are 'hashmap' and 'rocksdb'.")
-                                    .build());
+    public static final ConfigOption<String> STATE_BACKEND = ConfigOptions
+            .key("state.backend")
+            .stringType()
+            .noDefaultValue()
+            .withDescription(Description
+                    .builder()
+                    .text("The state backend to be used to store state.")
+                    .linebreak()
+                    .text("The implementation can be specified either via their shortcut "
+                                    + " name, or via the class name of a %s. "
+                                    + "If a factory is specified it is instantiated via its "
+                                    + "zero argument constructor and its %s " + "method is called.",
+                            TextElement.code("StateBackendFactory"),
+                            TextElement.code("StateBackendFactory#createFromConfig(ReadableConfig, ClassLoader)")
+                    )
+                    .linebreak()
+                    .text("Recognized shortcut names are 'hashmap' and 'rocksdb'.")
+                    .build());
 
     @Documentation.Section(Documentation.Sections.STATE_BACKEND_LATENCY_TRACKING)
-    public static final ConfigOption<Boolean> LATENCY_TRACK_ENABLED =
-            ConfigOptions.key("state.backend.latency-track.keyed-state-enabled")
-                    .booleanType()
-                    .defaultValue(false)
-                    .withDescription(
-                            "Whether to track latency of keyed state operations, e.g value state put/get/clear.");
+    public static final ConfigOption<Boolean> LATENCY_TRACK_ENABLED = ConfigOptions
+            .key("state.backend.latency-track.keyed-state-enabled")
+            .booleanType()
+            .defaultValue(false)
+            .withDescription("Whether to track latency of keyed state operations, e.g value state put/get/clear.");
 
     @Documentation.Section(Documentation.Sections.STATE_BACKEND_LATENCY_TRACKING)
-    public static final ConfigOption<Integer> LATENCY_TRACK_SAMPLE_INTERVAL =
-            ConfigOptions.key("state.backend.latency-track.sample-interval")
-                    .intType()
-                    .defaultValue(100)
-                    .withDescription(
-                            String.format(
-                                    "The sample interval of latency track once '%s' is enabled. "
-                                            + "The default value is 100, which means we would track the latency every 100 access requests.",
-                                    LATENCY_TRACK_ENABLED.key()));
+    public static final ConfigOption<Integer> LATENCY_TRACK_SAMPLE_INTERVAL = ConfigOptions
+            .key("state.backend.latency-track.sample-interval")
+            .intType()
+            .defaultValue(100)
+            .withDescription(String.format("The sample interval of latency track once '%s' is enabled. "
+                            + "The default value is 100, which means we would track the latency every 100 access requests.",
+                    LATENCY_TRACK_ENABLED.key()
+            ));
 
     @Documentation.Section(Documentation.Sections.STATE_BACKEND_LATENCY_TRACKING)
-    public static final ConfigOption<Integer> LATENCY_TRACK_HISTORY_SIZE =
-            ConfigOptions.key("state.backend.latency-track.history-size")
-                    .intType()
-                    .defaultValue(128)
-                    .withDescription(
-                            "Defines the number of measured latencies to maintain at each state access operation.");
+    public static final ConfigOption<Integer> LATENCY_TRACK_HISTORY_SIZE = ConfigOptions
+            .key("state.backend.latency-track.history-size")
+            .intType()
+            .defaultValue(128)
+            .withDescription("Defines the number of measured latencies to maintain at each state access operation.");
 }

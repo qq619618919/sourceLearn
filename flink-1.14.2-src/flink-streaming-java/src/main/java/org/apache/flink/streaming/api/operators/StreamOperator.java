@@ -28,6 +28,7 @@ import org.apache.flink.streaming.runtime.streamrecord.StreamRecord;
 import java.io.Serializable;
 
 /**
+ * // TODO_MA 马中华 注释： StreamOperator 的一个基类
  * Basic interface for stream operators. Implementers would implement one of {@link
  * org.apache.flink.streaming.api.operators.OneInputStreamOperator} or {@link
  * org.apache.flink.streaming.api.operators.TwoInputStreamOperator} to create operators that process

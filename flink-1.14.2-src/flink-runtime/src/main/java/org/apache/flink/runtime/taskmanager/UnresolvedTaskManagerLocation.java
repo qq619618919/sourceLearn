@@ -37,8 +37,9 @@ public class UnresolvedTaskManagerLocation implements Serializable {
     private final String externalAddress;
     private final int dataPort;
 
-    public UnresolvedTaskManagerLocation(
-            final ResourceID resourceID, final String externalAddress, final int dataPort) {
+    public UnresolvedTaskManagerLocation(final ResourceID resourceID,
+                                         final String externalAddress,
+                                         final int dataPort) {
         // -1 indicates a local instance connection info
         checkArgument(dataPort > 0 || dataPort == -1, "dataPort must be > 0, or -1 (local)");
 

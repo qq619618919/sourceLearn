@@ -69,12 +69,17 @@ public class DefaultOperatorStateBackendBuilder implements StateBackendBuilder<D
         Map<String, BackendWritableBroadcastState<?, ?>> registeredBroadcastStates = new HashMap<>();
         CloseableRegistry cancelStreamRegistryForBackend = new CloseableRegistry();
 
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释： DefaultOperatorStateBackendSnapshotStrategy
+         */
         DefaultOperatorStateBackendSnapshotStrategy snapshotStrategy = new DefaultOperatorStateBackendSnapshotStrategy(
                 userClassloader,
                 registeredOperatorStates,
                 registeredBroadcastStates
         );
 
+        // TODO_MA 马中华 注释： OperatorStateRestoreOperation
         OperatorStateRestoreOperation restoreOperation = new OperatorStateRestoreOperation(cancelStreamRegistry,
                 userClassloader,
                 registeredOperatorStates,
@@ -82,11 +87,19 @@ public class DefaultOperatorStateBackendBuilder implements StateBackendBuilder<D
                 restoreStateHandles
         );
         try {
+            /*************************************************
+             * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+             *  注释：
+             */
             restoreOperation.restore();
         } catch (Exception e) {
             IOUtils.closeQuietly(cancelStreamRegistryForBackend);
             throw new BackendBuildingException("Failed when trying to restore operator state backend", e);
         }
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释：
+         */
         return new DefaultOperatorStateBackend(executionConfig,
                 cancelStreamRegistryForBackend,
                 registeredOperatorStates,

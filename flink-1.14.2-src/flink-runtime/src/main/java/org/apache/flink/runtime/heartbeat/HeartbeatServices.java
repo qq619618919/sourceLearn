@@ -40,18 +40,19 @@ public class HeartbeatServices {
 
     protected final int failedRpcRequestsUntilUnreachable;
 
-    public HeartbeatServices(long heartbeatInterval, long heartbeatTimeout) {
+    public HeartbeatServices(long heartbeatInterval,
+                             long heartbeatTimeout) {
         this(heartbeatInterval, heartbeatTimeout, -1);
     }
 
-    public HeartbeatServices(long heartbeatInterval, long heartbeatTimeout, int failedRpcRequestsUntilUnreachable) {
+    public HeartbeatServices(long heartbeatInterval,
+                             long heartbeatTimeout,
+                             int failedRpcRequestsUntilUnreachable) {
         Preconditions.checkArgument(0L < heartbeatInterval, "The heartbeat interval must be larger than 0.");
         Preconditions.checkArgument(heartbeatInterval <= heartbeatTimeout,
-                "The heartbeat timeout should be larger or equal than the heartbeat interval."
-        );
+                "The heartbeat timeout should be larger or equal than the heartbeat interval.");
         Preconditions.checkArgument(failedRpcRequestsUntilUnreachable > 0 || failedRpcRequestsUntilUnreachable == -1,
-                "The number of failed heartbeat RPC requests has to be larger than 0 or -1 (deactivated)."
-        );
+                "The number of failed heartbeat RPC requests has to be larger than 0 or -1 (deactivated).");
         this.heartbeatInterval = heartbeatInterval;
         this.heartbeatTimeout = heartbeatTimeout;
         this.failedRpcRequestsUntilUnreachable = failedRpcRequestsUntilUnreachable;
@@ -74,14 +75,12 @@ public class HeartbeatServices {
                                                                 HeartbeatListener<I, O> heartbeatListener,
                                                                 ScheduledExecutor mainThreadExecutor,
                                                                 Logger log) {
-
-        return new HeartbeatManagerImpl<>(heartbeatTimeout,
-                failedRpcRequestsUntilUnreachable,
-                resourceId,
-                heartbeatListener,
-                mainThreadExecutor,
-                log
-        );
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释：
+         */
+        return new HeartbeatManagerImpl<>(heartbeatTimeout, failedRpcRequestsUntilUnreachable, resourceId, heartbeatListener,
+                mainThreadExecutor, log);
     }
 
     /**
@@ -104,16 +103,10 @@ public class HeartbeatServices {
                                                                       Logger log) {
         /*************************************************
          * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-         *  注释：
+         *  注释： 构造方法很重要
          */
-        return new HeartbeatManagerSenderImpl<>(heartbeatInterval,
-                heartbeatTimeout,
-                failedRpcRequestsUntilUnreachable,
-                resourceId,
-                heartbeatListener,
-                mainThreadExecutor,
-                log
-        );
+        return new HeartbeatManagerSenderImpl<>(heartbeatInterval, heartbeatTimeout, failedRpcRequestsUntilUnreachable, resourceId,
+                heartbeatListener, mainThreadExecutor, log);
     }
 
     /**
@@ -135,7 +128,19 @@ public class HeartbeatServices {
 
         /*************************************************
          * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-         *  注释：
+         *  注释： 构造了一个心跳服务对象
+         *  具体的心跳工作组件，就是通过这个 服务对象创建出来的： 有两个：
+         *  1、HeartbeatManager = HeartbeatManagerReceiver 心跳的被动接收方
+         *  2、HeartbeatManagerSender = 心跳的发起方
+         *  -
+         *  Flink 集群中，有三个组件，他们两两之间都有心跳：
+         *  1、ResourceManager
+         *  2、JobMaster
+         *  3、TaskExecutor
+         *  -
+         *  不管是那两个组件：
+         *  1、有一个组件是心跳发起方
+         *  2、另外一个组件是心跳接收方， 当然处理完了要返回
          */
         return new HeartbeatServices(heartbeatInterval, heartbeatTimeout, failedRpcRequestsUntilUnreachable);
     }

@@ -43,10 +43,10 @@ class PipelinedRegionExecutionView {
 
     PipelinedRegionExecutionView(final SchedulingPipelinedRegion pipelinedRegion) {
         this.pipelinedRegion = checkNotNull(pipelinedRegion);
-        this.unfinishedVertices =
-                IterableUtils.toStream(pipelinedRegion.getVertices())
-                        .map(SchedulingExecutionVertex::getId)
-                        .collect(Collectors.toSet());
+        this.unfinishedVertices = IterableUtils
+                .toStream(pipelinedRegion.getVertices())
+                .map(SchedulingExecutionVertex::getId)
+                .collect(Collectors.toSet());
     }
 
     public boolean isFinished() {

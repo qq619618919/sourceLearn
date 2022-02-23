@@ -78,11 +78,8 @@ public class DefaultJobMasterServiceProcess implements JobMasterServiceProcess, 
     @GuardedBy("lock")
     private boolean isRunning = true;
 
-    public DefaultJobMasterServiceProcess(
-            JobID jobId,
-            UUID leaderSessionId,
-            JobMasterServiceFactory jobMasterServiceFactory,
-            Function<Throwable, ArchivedExecutionGraph> failedArchivedExecutionGraphFactory) {
+    public DefaultJobMasterServiceProcess(JobID jobId, UUID leaderSessionId, JobMasterServiceFactory jobMasterServiceFactory,
+                                          Function<Throwable, ArchivedExecutionGraph> failedArchivedExecutionGraphFactory) {
         this.jobId = jobId;
         this.leaderSessionId = leaderSessionId;
 
@@ -95,20 +92,14 @@ public class DefaultJobMasterServiceProcess implements JobMasterServiceProcess, 
         jobMasterServiceFuture.whenComplete((jobMasterService, throwable) -> {
             if (throwable != null) {
                 final JobInitializationException jobInitializationException = new JobInitializationException(jobId,
-                        "Could not start the JobMaster.",
-                        throwable
-                );
+                        "Could not start the JobMaster.", throwable);
 
-                LOG.debug("Initialization of the JobMasterService for job {} under leader id {} failed.",
-                        jobId,
-                        leaderSessionId,
-                        jobInitializationException
-                );
+                LOG.debug("Initialization of the JobMasterService for job {} under leader id {} failed.", jobId, leaderSessionId,
+                        jobInitializationException);
 
                 resultFuture.complete(JobManagerRunnerResult.forInitializationFailure(
                         new ExecutionGraphInfo(failedArchivedExecutionGraphFactory.apply(jobInitializationException)),
-                        jobInitializationException
-                ));
+                        jobInitializationException));
             } else {
                 registerJobMasterServiceFutures(jobMasterService);
             }
@@ -120,17 +111,17 @@ public class DefaultJobMasterServiceProcess implements JobMasterServiceProcess, 
         jobMasterGatewayFuture.complete(jobMasterService.getGateway());
         leaderAddressFuture.complete(jobMasterService.getAddress());
 
-        jobMasterService.getTerminationFuture().whenComplete((unused, throwable) -> {
-            synchronized (lock) {
-                if (isRunning) {
-                    LOG.warn("Unexpected termination of the JobMasterService for job {} under leader id {}.",
-                            jobId,
-                            leaderSessionId
-                    );
-                    jobMasterFailed(new FlinkException("Unexpected termination of the JobMasterService.", throwable));
-                }
-            }
-        });
+        jobMasterService.getTerminationFuture()
+                        .whenComplete((unused, throwable) -> {
+                            synchronized (lock) {
+                                if (isRunning) {
+                                    LOG.warn("Unexpected termination of the JobMasterService for job {} under leader id {}.", jobId,
+                                            leaderSessionId);
+                                    jobMasterFailed(
+                                            new FlinkException("Unexpected termination of the JobMasterService.", throwable));
+                                }
+                            }
+                        });
     }
 
     @Override
@@ -139,10 +130,7 @@ public class DefaultJobMasterServiceProcess implements JobMasterServiceProcess, 
             if (isRunning) {
                 isRunning = false;
 
-                LOG.debug("Terminating the JobMasterService process for job {} under leader id {}.",
-                        jobId,
-                        leaderSessionId
-                );
+                LOG.debug("Terminating the JobMasterService process for job {} under leader id {}.", jobId, leaderSessionId);
 
                 resultFuture.completeExceptionally(new JobNotFinishedException(jobId));
                 jobMasterGatewayFuture.completeExceptionally(new FlinkException("Process has been closed."));
@@ -152,15 +140,16 @@ public class DefaultJobMasterServiceProcess implements JobMasterServiceProcess, 
                         // JobMasterService creation has failed. Nothing to stop then :-)
                         terminationFuture.complete(null);
                     } else {
+                        /*************************************************
+                         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+                         *  注释：
+                         */
                         FutureUtils.forward(jobMasterService.closeAsync(), terminationFuture);
                     }
                 });
 
                 terminationFuture.whenComplete((unused, throwable) -> LOG.debug(
-                        "JobMasterService process for job {} under leader id {} has been terminated.",
-                        jobId,
-                        leaderSessionId
-                ));
+                        "JobMasterService process for job {} under leader id {} has been terminated.", jobId, leaderSessionId));
             }
         }
         return terminationFuture;
@@ -190,11 +179,9 @@ public class DefaultJobMasterServiceProcess implements JobMasterServiceProcess, 
 
     @Override
     public void jobReachedGloballyTerminalState(ExecutionGraphInfo executionGraphInfo) {
-        LOG.debug("Job {} under leader id {} reached a globally terminal state {}.",
-                jobId,
-                leaderSessionId,
-                executionGraphInfo.getArchivedExecutionGraph().getState()
-        );
+        LOG.debug("Job {} under leader id {} reached a globally terminal state {}.", jobId, leaderSessionId,
+                executionGraphInfo.getArchivedExecutionGraph()
+                                  .getState());
         resultFuture.complete(JobManagerRunnerResult.forSuccess(executionGraphInfo));
     }
 

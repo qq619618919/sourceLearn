@@ -63,6 +63,7 @@ public final class Handover implements Closeable {
      * exception is thrown rather than an element being returned.
      *
      * @return The next element (buffer of records, never null).
+     *
      * @throws ClosedException Thrown if the Handover was {@link #close() closed}.
      * @throws Exception Rethrows exceptions from the {@link #reportError(Throwable)} method.
      */
@@ -97,14 +98,14 @@ public final class Handover implements Closeable {
      * <p>This behavior is similar to a "size one" blocking queue.
      *
      * @param element The next element to hand over.
+     *
      * @throws InterruptedException Thrown, if the thread is interrupted while blocking for the
-     *     Handover to be empty.
+     *         Handover to be empty.
      * @throws WakeupException Thrown, if the {@link #wakeupProducer()} method is called while
-     *     blocking for the Handover to be empty.
+     *         blocking for the Handover to be empty.
      * @throws ClosedException Thrown if the Handover was closed or concurrently being closed.
      */
-    public void produce(final ConsumerRecords<byte[], byte[]> element)
-            throws InterruptedException, WakeupException, ClosedException {
+    public void produce(final ConsumerRecords<byte[], byte[]> element) throws InterruptedException, WakeupException, ClosedException {
 
         checkNotNull(element);
 

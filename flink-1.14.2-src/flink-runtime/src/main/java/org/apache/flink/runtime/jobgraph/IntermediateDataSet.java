@@ -40,13 +40,13 @@ public class IntermediateDataSet implements java.io.Serializable {
 
     /*************************************************
      * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-     *  注释： 生产者
+     *  注释： 生产者， 上游顶点
      */
     private final JobVertex producer; // the operation that produced this data set
 
     /*************************************************
      * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-     *  注释： 消费者
+     *  注释： 消费者， 下游边
      */
     private final List<JobEdge> consumers = new ArrayList<JobEdge>();
 

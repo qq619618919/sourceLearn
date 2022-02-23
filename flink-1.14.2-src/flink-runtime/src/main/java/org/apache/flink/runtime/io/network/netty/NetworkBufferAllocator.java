@@ -44,6 +44,7 @@ class NetworkBufferAllocator {
      * Allocates a pooled network buffer for the specific input channel.
      *
      * @param receiverId The id of the requested input channel.
+     *
      * @return The pooled network buffer.
      */
     @Nullable
@@ -67,6 +68,7 @@ class NetworkBufferAllocator {
      *
      * @param size The requested buffer size.
      * @param dataType The data type this buffer represents.
+     *
      * @return The un-pooled network buffer.
      */
     Buffer allocateUnPooledNetworkBuffer(int size, Buffer.DataType dataType) {

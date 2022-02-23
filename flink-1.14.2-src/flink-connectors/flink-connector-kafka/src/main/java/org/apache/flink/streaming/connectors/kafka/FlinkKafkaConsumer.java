@@ -237,6 +237,10 @@ public class FlinkKafkaConsumer<T> extends FlinkKafkaConsumerBase<T> {
         // this overwrites whatever setting the user configured in the properties
         adjustAutoCommitConfig(properties, offsetCommitMode);
 
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释：
+         */
         return new KafkaFetcher<>(sourceContext,
                 assignedPartitionsWithInitialOffsets,
                 watermarkStrategy,

@@ -31,8 +31,7 @@ import static org.apache.flink.util.Preconditions.checkNotNull;
  * availability based on whether the corresponding result partition in the execution graph is
  * tracked.
  */
-public class ExecutionGraphResultPartitionAvailabilityChecker
-        implements ResultPartitionAvailabilityChecker {
+public class ExecutionGraphResultPartitionAvailabilityChecker implements ResultPartitionAvailabilityChecker {
 
     /** The function maps an IntermediateResultPartitionID to a ResultPartitionID. */
     private final Function<IntermediateResultPartitionID, ResultPartitionID> partitionIDMapper;
@@ -40,9 +39,8 @@ public class ExecutionGraphResultPartitionAvailabilityChecker
     /** The tracker that tracks all available result partitions. */
     private final JobMasterPartitionTracker partitionTracker;
 
-    ExecutionGraphResultPartitionAvailabilityChecker(
-            final Function<IntermediateResultPartitionID, ResultPartitionID> partitionIDMapper,
-            final JobMasterPartitionTracker partitionTracker) {
+    ExecutionGraphResultPartitionAvailabilityChecker(final Function<IntermediateResultPartitionID, ResultPartitionID> partitionIDMapper,
+                                                     final JobMasterPartitionTracker partitionTracker) {
 
         this.partitionIDMapper = checkNotNull(partitionIDMapper);
         this.partitionTracker = checkNotNull(partitionTracker);

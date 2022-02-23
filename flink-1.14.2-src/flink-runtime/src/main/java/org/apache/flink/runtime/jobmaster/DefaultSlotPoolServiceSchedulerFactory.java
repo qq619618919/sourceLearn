@@ -106,28 +106,12 @@ public final class DefaultSlotPoolServiceSchedulerFactory implements SlotPoolSer
 
         /*************************************************
          * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-         *  注释： DefaultSchedulerFactory
+         *  注释： DefaultSchedulerFactory 创建得到 DefaultScheduler
          */
-        return schedulerNGFactory.createInstance(log,
-                jobGraph,
-                ioExecutor,
-                configuration,
-                slotPoolService,
-                futureExecutor,
-                userCodeLoader,
-                checkpointRecoveryFactory,
-                rpcTimeout,
-                blobWriter,
-                jobManagerJobMetricGroup,
-                slotRequestTimeout,
-                shuffleMaster,
-                partitionTracker,
-                executionDeploymentTracker,
-                initializationTimestamp,
-                mainThreadExecutor,
-                fatalErrorHandler,
-                jobStatusListener
-        );
+        return schedulerNGFactory.createInstance(log, jobGraph, ioExecutor, configuration, slotPoolService, futureExecutor,
+                userCodeLoader, checkpointRecoveryFactory, rpcTimeout, blobWriter, jobManagerJobMetricGroup, slotRequestTimeout,
+                shuffleMaster, partitionTracker, executionDeploymentTracker, initializationTimestamp, mainThreadExecutor,
+                fatalErrorHandler, jobStatusListener);
     }
 
     public static DefaultSlotPoolServiceSchedulerFactory create(SlotPoolServiceFactory slotPoolServiceFactory,
@@ -139,7 +123,17 @@ public final class DefaultSlotPoolServiceSchedulerFactory implements SlotPoolSer
                                                                            JobType jobType) {
 
         final Time rpcTimeout = Time.fromDuration(configuration.get(AkkaOptions.ASK_TIMEOUT_DURATION));
+
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释： slot.idle.timeout = 等同于心跳超时时间 = 50s
+         */
         final Time slotIdleTimeout = Time.milliseconds(configuration.getLong(JobManagerOptions.SLOT_IDLE_TIMEOUT));
+
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释： PendingRequestSlot 申请请求超时时间 = 5min
+         */
         final Time batchSlotTimeout = Time.milliseconds(configuration.getLong(JobManagerOptions.SLOT_REQUEST_TIMEOUT));
 
         final SlotPoolServiceFactory slotPoolServiceFactory;
@@ -147,8 +141,7 @@ public final class DefaultSlotPoolServiceSchedulerFactory implements SlotPoolSer
 
         JobManagerOptions.SchedulerType schedulerType = ClusterOptions.getSchedulerType(configuration);
         if (schedulerType == JobManagerOptions.SchedulerType.Adaptive && jobType == JobType.BATCH) {
-            LOG.info(
-                    "Adaptive Scheduler configured, but Batch job detected. Changing scheduler type to NG / DefaultScheduler.");
+            LOG.info("Adaptive Scheduler configured, but Batch job detected. Changing scheduler type to NG / DefaultScheduler.");
             // overwrite
             schedulerType = JobManagerOptions.SchedulerType.Ng;
         }
@@ -156,24 +149,17 @@ public final class DefaultSlotPoolServiceSchedulerFactory implements SlotPoolSer
         switch (schedulerType) {
             case Ng:
                 schedulerNGFactory = new DefaultSchedulerFactory();
-                slotPoolServiceFactory = new DeclarativeSlotPoolBridgeServiceFactory(SystemClock.getInstance(),
-                        rpcTimeout,
-                        slotIdleTimeout,
-                        batchSlotTimeout
-                );
+                slotPoolServiceFactory = new DeclarativeSlotPoolBridgeServiceFactory(SystemClock.getInstance(), rpcTimeout,
+                        slotIdleTimeout, batchSlotTimeout);
                 break;
             case Adaptive:
                 schedulerNGFactory = getAdaptiveSchedulerFactoryFromConfiguration(configuration);
-                slotPoolServiceFactory = new DeclarativeSlotPoolServiceFactory(SystemClock.getInstance(),
-                        slotIdleTimeout,
-                        rpcTimeout
-                );
+                slotPoolServiceFactory = new DeclarativeSlotPoolServiceFactory(SystemClock.getInstance(), slotIdleTimeout,
+                        rpcTimeout);
                 break;
             default:
-                throw new IllegalArgumentException(String.format("Illegal value [%s] for config option [%s]",
-                        schedulerType,
-                        JobManagerOptions.SCHEDULER.key()
-                ));
+                throw new IllegalArgumentException(String.format("Illegal value [%s] for config option [%s]", schedulerType,
+                        JobManagerOptions.SCHEDULER.key()));
         }
 
         return new DefaultSlotPoolServiceSchedulerFactory(slotPoolServiceFactory, schedulerNGFactory);
@@ -188,12 +174,10 @@ public final class DefaultSlotPoolServiceSchedulerFactory implements SlotPoolSer
             stabilizationTimeoutDefault = Duration.ZERO;
         }
 
-        final Duration initialResourceAllocationTimeout = configuration
-                .getOptional(JobManagerOptions.RESOURCE_WAIT_TIMEOUT)
+        final Duration initialResourceAllocationTimeout = configuration.getOptional(JobManagerOptions.RESOURCE_WAIT_TIMEOUT)
                 .orElse(allocationTimeoutDefault);
 
-        final Duration resourceStabilizationTimeout = configuration
-                .getOptional(JobManagerOptions.RESOURCE_STABILIZATION_TIMEOUT)
+        final Duration resourceStabilizationTimeout = configuration.getOptional(JobManagerOptions.RESOURCE_STABILIZATION_TIMEOUT)
                 .orElse(stabilizationTimeoutDefault);
 
         return new AdaptiveSchedulerFactory(initialResourceAllocationTimeout, resourceStabilizationTimeout);

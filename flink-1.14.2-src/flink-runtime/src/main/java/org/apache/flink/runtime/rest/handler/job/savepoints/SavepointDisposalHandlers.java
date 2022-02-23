@@ -44,79 +44,53 @@ import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
 /** Handlers to trigger the disposal of a savepoint. */
-public class SavepointDisposalHandlers
-        extends AbstractAsynchronousOperationHandlers<OperationKey, Acknowledge> {
+public class SavepointDisposalHandlers extends AbstractAsynchronousOperationHandlers<OperationKey, Acknowledge> {
 
     /** {@link TriggerHandler} implementation for the savepoint disposal operation. */
-    public class SavepointDisposalTriggerHandler
-            extends TriggerHandler<
-                    RestfulGateway, SavepointDisposalRequest, EmptyMessageParameters> {
+    public class SavepointDisposalTriggerHandler extends TriggerHandler<RestfulGateway, SavepointDisposalRequest, EmptyMessageParameters> {
 
-        public SavepointDisposalTriggerHandler(
-                GatewayRetriever<? extends RestfulGateway> leaderRetriever,
-                Time timeout,
-                Map<String, String> responseHeaders) {
-            super(
-                    leaderRetriever,
-                    timeout,
-                    responseHeaders,
-                    SavepointDisposalTriggerHeaders.getInstance());
+        public SavepointDisposalTriggerHandler(GatewayRetriever<? extends RestfulGateway> leaderRetriever,
+                                               Time timeout,
+                                               Map<String, String> responseHeaders) {
+            super(leaderRetriever, timeout, responseHeaders, SavepointDisposalTriggerHeaders.getInstance());
         }
 
         @Override
-        protected CompletableFuture<Acknowledge> triggerOperation(
-                HandlerRequest<SavepointDisposalRequest, EmptyMessageParameters> request,
-                RestfulGateway gateway)
-                throws RestHandlerException {
+        protected CompletableFuture<Acknowledge> triggerOperation(HandlerRequest<SavepointDisposalRequest, EmptyMessageParameters> request,
+                                                                  RestfulGateway gateway) throws RestHandlerException {
             final String savepointPath = request.getRequestBody().getSavepointPath();
             if (savepointPath == null) {
-                throw new RestHandlerException(
-                        String.format(
-                                "Field %s must not be omitted or be null.",
-                                SavepointDisposalRequest.FIELD_NAME_SAVEPOINT_PATH),
-                        HttpResponseStatus.BAD_REQUEST);
+                throw new RestHandlerException(String.format("Field %s must not be omitted or be null.",
+                        SavepointDisposalRequest.FIELD_NAME_SAVEPOINT_PATH
+                ), HttpResponseStatus.BAD_REQUEST);
             }
             return gateway.disposeSavepoint(savepointPath, RpcUtils.INF_TIMEOUT);
         }
 
         @Override
-        protected OperationKey createOperationKey(
-                HandlerRequest<SavepointDisposalRequest, EmptyMessageParameters> request) {
+        protected OperationKey createOperationKey(HandlerRequest<SavepointDisposalRequest, EmptyMessageParameters> request) {
             return new OperationKey(new TriggerId());
         }
     }
 
     /** {@link StatusHandler} implementation for the savepoint disposal operation. */
-    public class SavepointDisposalStatusHandler
-            extends StatusHandler<
-                    RestfulGateway,
-                    AsynchronousOperationInfo,
-                    SavepointDisposalStatusMessageParameters> {
+    public class SavepointDisposalStatusHandler extends StatusHandler<RestfulGateway, AsynchronousOperationInfo, SavepointDisposalStatusMessageParameters> {
 
-        public SavepointDisposalStatusHandler(
-                GatewayRetriever<? extends RestfulGateway> leaderRetriever,
-                Time timeout,
-                Map<String, String> responseHeaders) {
-            super(
-                    leaderRetriever,
-                    timeout,
-                    responseHeaders,
-                    SavepointDisposalStatusHeaders.getInstance());
+        public SavepointDisposalStatusHandler(GatewayRetriever<? extends RestfulGateway> leaderRetriever,
+                                              Time timeout,
+                                              Map<String, String> responseHeaders) {
+            super(leaderRetriever, timeout, responseHeaders, SavepointDisposalStatusHeaders.getInstance());
         }
 
         @Override
-        protected OperationKey getOperationKey(
-                HandlerRequest<EmptyRequestBody, SavepointDisposalStatusMessageParameters>
-                        request) {
+        protected OperationKey getOperationKey(HandlerRequest<EmptyRequestBody, SavepointDisposalStatusMessageParameters> request) {
             final TriggerId triggerId = request.getPathParameter(TriggerIdPathParameter.class);
             return new OperationKey(triggerId);
         }
 
         @Override
-        protected AsynchronousOperationInfo exceptionalOperationResultResponse(
-                Throwable throwable) {
-            return AsynchronousOperationInfo.completeExceptional(
-                    new SerializedThrowable(throwable));
+        protected AsynchronousOperationInfo exceptionalOperationResultResponse(Throwable throwable) {
+            return AsynchronousOperationInfo.completeExceptional(new SerializedThrowable(throwable));
         }
 
         @Override

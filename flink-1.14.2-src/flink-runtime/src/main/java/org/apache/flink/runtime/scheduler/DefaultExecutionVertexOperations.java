@@ -26,15 +26,20 @@ import java.util.concurrent.CompletableFuture;
 
 class DefaultExecutionVertexOperations implements ExecutionVertexOperations {
 
+    // TODO_MA 马中华 注释： SlotExecutionVertexAssignment
+    // TODO_MA 马中华 注释： Slot = LogicalSlot
+    // TODO_MA 马中华 注释： ExecutionVertex (ExecutionGraph 中一个顶点，需要部署一个 Task)
     @Override
     public void deploy(final ExecutionVertex executionVertex) throws JobException {
 
         /*************************************************
          * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-         *  注释：
+         *  注释： ExecutionVertex 就是 ExecutionGraph 中的一个顶点
+         *  当时：在创建 ExecutionVertex 的时候，内部有一个 Executioin 的对象
          */
         executionVertex.deploy();
     }
+    // TODO_MA 马中华 注释： 这个顶点使用哪个Slot呢?
 
     @Override
     public CompletableFuture<?> cancel(final ExecutionVertex executionVertex) {

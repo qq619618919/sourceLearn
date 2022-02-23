@@ -34,6 +34,7 @@ bin=`cd "$bin"; pwd`
 
 . "$bin"/config.sh
 
+# TODO_MA 马中华 注释： 从节点的代号
 ENTRYPOINT=taskexecutor
 
 if [[ $STARTSTOP == "start" ]] || [[ $STARTSTOP == "start-foreground" ]]; then
@@ -72,6 +73,8 @@ else
         # nodebind: 0 1
         # membind: 0 1
         read -ra NODE_LIST <<< $(numactl --show | grep "^nodebind: ")
+
+        # TODO_MA 马中华 注释： 遍历启动每一个从节点
         for NODE_ID in "${NODE_LIST[@]:1}"; do
             # Start a TaskManager for each NUMA node
             numactl --membind=$NODE_ID --cpunodebind=$NODE_ID -- "${FLINK_BIN_DIR}"/flink-daemon.sh $STARTSTOP $ENTRYPOINT "${ARGS[@]}"

@@ -35,6 +35,7 @@ import java.util.concurrent.ScheduledExecutorService;
 
 /** {@link RestEndpointFactory} which creates a {@link MiniDispatcherRestEndpoint}. */
 public enum JobRestEndpointFactory implements RestEndpointFactory<RestfulGateway> {
+
     INSTANCE;
 
     @Override
@@ -46,9 +47,15 @@ public enum JobRestEndpointFactory implements RestEndpointFactory<RestfulGateway
                                                                  MetricFetcher metricFetcher,
                                                                  LeaderElectionService leaderElectionService,
                                                                  FatalErrorHandler fatalErrorHandler) throws Exception {
+
+        // TODO_MA 马中华 注释： 获取配置
         final RestHandlerConfiguration restHandlerConfiguration = RestHandlerConfiguration.fromConfiguration(
                 configuration);
 
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释：
+         */
         return new MiniDispatcherRestEndpoint(dispatcherGatewayRetriever,
                 configuration,
                 restHandlerConfiguration,

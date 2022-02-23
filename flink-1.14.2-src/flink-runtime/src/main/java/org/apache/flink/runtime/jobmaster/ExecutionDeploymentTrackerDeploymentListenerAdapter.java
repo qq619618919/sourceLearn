@@ -35,7 +35,8 @@ public class ExecutionDeploymentTrackerDeploymentListenerAdapter
     }
 
     @Override
-    public void onStartedDeployment(ExecutionAttemptID execution, ResourceID host) {
+    public void onStartedDeployment(ExecutionAttemptID execution,
+                                    ResourceID host) {
         executionDeploymentTracker.startTrackingPendingDeploymentOf(execution, host);
     }
 

@@ -57,45 +57,57 @@ public class ApplicationClusterEntryPoint extends ClusterEntrypoint {
 
     private final ResourceManagerFactory<?> resourceManagerFactory;
 
-    protected ApplicationClusterEntryPoint(
-            final Configuration configuration,
-            final PackagedProgram program,
-            final ResourceManagerFactory<?> resourceManagerFactory) {
+    protected ApplicationClusterEntryPoint(final Configuration configuration,
+                                           final PackagedProgram program,
+                                           final ResourceManagerFactory<?> resourceManagerFactory) {
         super(configuration);
         this.program = checkNotNull(program);
         this.resourceManagerFactory = checkNotNull(resourceManagerFactory);
     }
 
     @Override
-    protected DispatcherResourceManagerComponentFactory
-            createDispatcherResourceManagerComponentFactory(final Configuration configuration) {
+    protected DispatcherResourceManagerComponentFactory createDispatcherResourceManagerComponentFactory(final Configuration configuration) {
+
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释：
+         */
         return new DefaultDispatcherResourceManagerComponentFactory(
-                new DefaultDispatcherRunnerFactory(
-                        ApplicationDispatcherLeaderProcessFactoryFactory.create(
-                                configuration, SessionDispatcherFactory.INSTANCE, program)),
+
+                // TODO_MA 马中华 注释： DefaultDispatcherRunnerFactory
+                new DefaultDispatcherRunnerFactory(ApplicationDispatcherLeaderProcessFactoryFactory.create(configuration,
+                        // TODO_MA 马中华 注释： SessionDispatcherFactory
+                        SessionDispatcherFactory.INSTANCE,
+                        program
+                )),
+
+                // TODO_MA 马中华 注释： YarnResourceManagerFactory
                 resourceManagerFactory,
-                JobRestEndpointFactory.INSTANCE);
+
+                // TODO_MA 马中华 注释： JobRestEndpointFactory
+                JobRestEndpointFactory.INSTANCE
+        );
     }
 
     @Override
-    protected ExecutionGraphInfoStore createSerializableExecutionGraphStore(
-            final Configuration configuration, final ScheduledExecutor scheduledExecutor) {
+    protected ExecutionGraphInfoStore createSerializableExecutionGraphStore(final Configuration configuration,
+                                                                            final ScheduledExecutor scheduledExecutor) {
         return new MemoryExecutionGraphInfoStore();
     }
 
-    protected static void configureExecution(
-            final Configuration configuration, final PackagedProgram program) throws Exception {
+    protected static void configureExecution(final Configuration configuration,
+                                             final PackagedProgram program) throws Exception {
         configuration.set(DeploymentOptions.TARGET, EmbeddedExecutor.NAME);
-        ConfigUtils.encodeCollectionToConfig(
-                configuration,
+        ConfigUtils.encodeCollectionToConfig(configuration,
                 PipelineOptions.JARS,
                 program.getJobJarAndDependencies(),
-                URL::toString);
-        ConfigUtils.encodeCollectionToConfig(
-                configuration,
+                URL::toString
+        );
+        ConfigUtils.encodeCollectionToConfig(configuration,
                 PipelineOptions.CLASSPATHS,
                 getClasspath(configuration, program),
-                URL::toString);
+                URL::toString
+        );
 
         // If it is a PyFlink Application, we need to extract Python dependencies from the program
         // arguments, and
@@ -105,15 +117,14 @@ public class ApplicationClusterEntryPoint extends ClusterEntrypoint {
         }
     }
 
-    private static List<URL> getClasspath(
-            final Configuration configuration, final PackagedProgram program)
-            throws MalformedURLException {
-        final List<URL> classpath =
-                ConfigUtils.decodeListFromConfig(
-                        configuration, PipelineOptions.CLASSPATHS, URL::new);
+    private static List<URL> getClasspath(final Configuration configuration,
+                                          final PackagedProgram program) throws MalformedURLException {
+        final List<URL> classpath = ConfigUtils.decodeListFromConfig(configuration,
+                PipelineOptions.CLASSPATHS,
+                URL::new
+        );
         classpath.addAll(program.getClasspaths());
-        return Collections.unmodifiableList(
-                classpath.stream().distinct().collect(Collectors.toList()));
+        return Collections.unmodifiableList(classpath.stream().distinct().collect(Collectors.toList()));
     }
 
     @Override

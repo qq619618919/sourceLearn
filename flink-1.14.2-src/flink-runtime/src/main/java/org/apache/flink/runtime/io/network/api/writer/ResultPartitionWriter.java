@@ -82,8 +82,8 @@ public interface ResultPartitionWriter extends AutoCloseable, AvailabilityProvid
     void setMetricGroup(TaskIOMetricGroup metrics);
 
     /** Returns a reader for the subpartition with the given index. */
-    ResultSubpartitionView createSubpartitionView(
-            int index, BufferAvailabilityListener availabilityListener) throws IOException;
+    ResultSubpartitionView createSubpartitionView(int index,
+                                                  BufferAvailabilityListener availabilityListener) throws IOException;
 
     /** Manually trigger the consumption of data from all subpartitions. */
     void flushAll();

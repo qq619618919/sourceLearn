@@ -115,35 +115,32 @@ public class RocksDBKeyedStateBackendBuilder<K> extends AbstractKeyedStateBacken
 
     private RocksDBNativeMetricOptions nativeMetricOptions;
     private int numberOfTransferingThreads;
-    private long writeBatchSize =
-            RocksDBConfigurableOptions.WRITE_BATCH_SIZE.defaultValue().getBytes();
+    private long writeBatchSize = RocksDBConfigurableOptions.WRITE_BATCH_SIZE.defaultValue().getBytes();
 
     private RocksDB injectedTestDB; // for testing
     private ColumnFamilyHandle injectedDefaultColumnFamilyHandle; // for testing
     private RocksDBStateUploader injectRocksDBStateUploader; // for testing
 
-    public RocksDBKeyedStateBackendBuilder(
-            String operatorIdentifier,
-            ClassLoader userCodeClassLoader,
-            File instanceBasePath,
-            RocksDBResourceContainer optionsContainer,
-            Function<String, ColumnFamilyOptions> columnFamilyOptionsFactory,
-            TaskKvStateRegistry kvStateRegistry,
-            TypeSerializer<K> keySerializer,
-            int numberOfKeyGroups,
-            KeyGroupRange keyGroupRange,
-            ExecutionConfig executionConfig,
-            LocalRecoveryConfig localRecoveryConfig,
-            EmbeddedRocksDBStateBackend.PriorityQueueStateType priorityQueueStateType,
-            TtlTimeProvider ttlTimeProvider,
-            LatencyTrackingStateConfig latencyTrackingStateConfig,
-            MetricGroup metricGroup,
-            @Nonnull Collection<KeyedStateHandle> stateHandles,
-            StreamCompressionDecorator keyGroupCompressionDecorator,
-            CloseableRegistry cancelStreamRegistry) {
+    public RocksDBKeyedStateBackendBuilder(String operatorIdentifier,
+                                           ClassLoader userCodeClassLoader,
+                                           File instanceBasePath,
+                                           RocksDBResourceContainer optionsContainer,
+                                           Function<String, ColumnFamilyOptions> columnFamilyOptionsFactory,
+                                           TaskKvStateRegistry kvStateRegistry,
+                                           TypeSerializer<K> keySerializer,
+                                           int numberOfKeyGroups,
+                                           KeyGroupRange keyGroupRange,
+                                           ExecutionConfig executionConfig,
+                                           LocalRecoveryConfig localRecoveryConfig,
+                                           EmbeddedRocksDBStateBackend.PriorityQueueStateType priorityQueueStateType,
+                                           TtlTimeProvider ttlTimeProvider,
+                                           LatencyTrackingStateConfig latencyTrackingStateConfig,
+                                           MetricGroup metricGroup,
+                                           @Nonnull Collection<KeyedStateHandle> stateHandles,
+                                           StreamCompressionDecorator keyGroupCompressionDecorator,
+                                           CloseableRegistry cancelStreamRegistry) {
 
-        super(
-                kvStateRegistry,
+        super(kvStateRegistry,
                 keySerializer,
                 userCodeClassLoader,
                 numberOfKeyGroups,
@@ -153,7 +150,8 @@ public class RocksDBKeyedStateBackendBuilder<K> extends AbstractKeyedStateBacken
                 latencyTrackingStateConfig,
                 stateHandles,
                 keyGroupCompressionDecorator,
-                cancelStreamRegistry);
+                cancelStreamRegistry
+        );
 
         this.operatorIdentifier = operatorIdentifier;
         this.priorityQueueStateType = priorityQueueStateType;
@@ -166,34 +164,31 @@ public class RocksDBKeyedStateBackendBuilder<K> extends AbstractKeyedStateBacken
         this.metricGroup = metricGroup;
         this.enableIncrementalCheckpointing = false;
         this.nativeMetricOptions = new RocksDBNativeMetricOptions();
-        this.numberOfTransferingThreads =
-                RocksDBOptions.CHECKPOINT_TRANSFER_THREAD_NUM.defaultValue();
+        this.numberOfTransferingThreads = RocksDBOptions.CHECKPOINT_TRANSFER_THREAD_NUM.defaultValue();
     }
 
     @VisibleForTesting
-    RocksDBKeyedStateBackendBuilder(
-            String operatorIdentifier,
-            ClassLoader userCodeClassLoader,
-            File instanceBasePath,
-            RocksDBResourceContainer optionsContainer,
-            Function<String, ColumnFamilyOptions> columnFamilyOptionsFactory,
-            TaskKvStateRegistry kvStateRegistry,
-            TypeSerializer<K> keySerializer,
-            int numberOfKeyGroups,
-            KeyGroupRange keyGroupRange,
-            ExecutionConfig executionConfig,
-            LocalRecoveryConfig localRecoveryConfig,
-            EmbeddedRocksDBStateBackend.PriorityQueueStateType priorityQueueStateType,
-            TtlTimeProvider ttlTimeProvider,
-            LatencyTrackingStateConfig latencyTrackingStateConfig,
-            MetricGroup metricGroup,
-            @Nonnull Collection<KeyedStateHandle> stateHandles,
-            StreamCompressionDecorator keyGroupCompressionDecorator,
-            RocksDB injectedTestDB,
-            ColumnFamilyHandle injectedDefaultColumnFamilyHandle,
-            CloseableRegistry cancelStreamRegistry) {
-        this(
-                operatorIdentifier,
+    RocksDBKeyedStateBackendBuilder(String operatorIdentifier,
+                                    ClassLoader userCodeClassLoader,
+                                    File instanceBasePath,
+                                    RocksDBResourceContainer optionsContainer,
+                                    Function<String, ColumnFamilyOptions> columnFamilyOptionsFactory,
+                                    TaskKvStateRegistry kvStateRegistry,
+                                    TypeSerializer<K> keySerializer,
+                                    int numberOfKeyGroups,
+                                    KeyGroupRange keyGroupRange,
+                                    ExecutionConfig executionConfig,
+                                    LocalRecoveryConfig localRecoveryConfig,
+                                    EmbeddedRocksDBStateBackend.PriorityQueueStateType priorityQueueStateType,
+                                    TtlTimeProvider ttlTimeProvider,
+                                    LatencyTrackingStateConfig latencyTrackingStateConfig,
+                                    MetricGroup metricGroup,
+                                    @Nonnull Collection<KeyedStateHandle> stateHandles,
+                                    StreamCompressionDecorator keyGroupCompressionDecorator,
+                                    RocksDB injectedTestDB,
+                                    ColumnFamilyHandle injectedDefaultColumnFamilyHandle,
+                                    CloseableRegistry cancelStreamRegistry) {
+        this(operatorIdentifier,
                 userCodeClassLoader,
                 instanceBasePath,
                 optionsContainer,
@@ -210,28 +205,26 @@ public class RocksDBKeyedStateBackendBuilder<K> extends AbstractKeyedStateBacken
                 metricGroup,
                 stateHandles,
                 keyGroupCompressionDecorator,
-                cancelStreamRegistry);
+                cancelStreamRegistry
+        );
         this.injectedTestDB = injectedTestDB;
         this.injectedDefaultColumnFamilyHandle = injectedDefaultColumnFamilyHandle;
     }
 
-    RocksDBKeyedStateBackendBuilder<K> setEnableIncrementalCheckpointing(
-            boolean enableIncrementalCheckpointing) {
+    RocksDBKeyedStateBackendBuilder<K> setEnableIncrementalCheckpointing(boolean enableIncrementalCheckpointing) {
         this.enableIncrementalCheckpointing = enableIncrementalCheckpointing;
         return this;
     }
 
-    RocksDBKeyedStateBackendBuilder<K> setNativeMetricOptions(
-            RocksDBNativeMetricOptions nativeMetricOptions) {
+    RocksDBKeyedStateBackendBuilder<K> setNativeMetricOptions(RocksDBNativeMetricOptions nativeMetricOptions) {
         this.nativeMetricOptions = nativeMetricOptions;
         return this;
     }
 
-    RocksDBKeyedStateBackendBuilder<K> setNumberOfTransferingThreads(
-            int numberOfTransferingThreads) {
-        Preconditions.checkState(
-                injectRocksDBStateUploader == null,
-                "numberOfTransferingThreads can be set only when injectRocksDBStateUploader is null.");
+    RocksDBKeyedStateBackendBuilder<K> setNumberOfTransferingThreads(int numberOfTransferingThreads) {
+        Preconditions.checkState(injectRocksDBStateUploader == null,
+                "numberOfTransferingThreads can be set only when injectRocksDBStateUploader is null."
+        );
         this.numberOfTransferingThreads = numberOfTransferingThreads;
         return this;
     }
@@ -242,14 +235,12 @@ public class RocksDBKeyedStateBackendBuilder<K> extends AbstractKeyedStateBacken
         return this;
     }
 
-    RocksDBKeyedStateBackendBuilder<K> setRocksDBStateUploader(
-            RocksDBStateUploader rocksDBStateUploader) {
+    RocksDBKeyedStateBackendBuilder<K> setRocksDBStateUploader(RocksDBStateUploader rocksDBStateUploader) {
+        Preconditions.checkState(injectRocksDBStateUploader == null, "rocksDBStateUploader can be only set once");
         Preconditions.checkState(
-                injectRocksDBStateUploader == null, "rocksDBStateUploader can be only set once");
-        Preconditions.checkState(
-                numberOfTransferingThreads
-                        == RocksDBOptions.CHECKPOINT_TRANSFER_THREAD_NUM.defaultValue(),
-                "RocksDBStateUploader can only be set if numberOfTransferingThreads has not been manually set.");
+                numberOfTransferingThreads == RocksDBOptions.CHECKPOINT_TRANSFER_THREAD_NUM.defaultValue(),
+                "RocksDBStateUploader can only be set if numberOfTransferingThreads has not been manually set."
+        );
         this.injectRocksDBStateUploader = rocksDBStateUploader;
         return this;
     }
@@ -260,8 +251,7 @@ public class RocksDBKeyedStateBackendBuilder<K> extends AbstractKeyedStateBacken
                 throw new IOException("Not a directory: " + directory);
             }
         } else if (!directory.mkdirs()) {
-            throw new IOException(
-                    String.format("Could not create RocksDB data directory at %s.", directory));
+            throw new IOException(String.format("Could not create RocksDB data directory at %s.", directory));
         }
     }
 
@@ -271,23 +261,18 @@ public class RocksDBKeyedStateBackendBuilder<K> extends AbstractKeyedStateBacken
         ColumnFamilyHandle defaultColumnFamilyHandle = null;
         RocksDBNativeMetricMonitor nativeMetricMonitor = null;
         CloseableRegistry cancelStreamRegistryForBackend = new CloseableRegistry();
-        LinkedHashMap<String, RocksDBKeyedStateBackend.RocksDbKvStateInfo> kvStateInformation =
-                new LinkedHashMap<>();
-        LinkedHashMap<String, HeapPriorityQueueSnapshotRestoreWrapper<?>> registeredPQStates =
-                new LinkedHashMap<>();
+        LinkedHashMap<String, RocksDBKeyedStateBackend.RocksDbKvStateInfo> kvStateInformation = new LinkedHashMap<>();
+        LinkedHashMap<String, HeapPriorityQueueSnapshotRestoreWrapper<?>> registeredPQStates = new LinkedHashMap<>();
         RocksDB db = null;
         RocksDBRestoreOperation restoreOperation = null;
-        RocksDbTtlCompactFiltersManager ttlCompactFiltersManager =
-                new RocksDbTtlCompactFiltersManager(ttlTimeProvider);
+        RocksDbTtlCompactFiltersManager ttlCompactFiltersManager = new RocksDbTtlCompactFiltersManager(ttlTimeProvider);
 
         ResourceGuard rocksDBResourceGuard = new ResourceGuard();
         RocksDBSnapshotStrategyBase<K, ?> checkpointStrategy = null;
         PriorityQueueSetFactory priorityQueueFactory;
         SerializedCompositeKeyBuilder<K> sharedRocksKeyBuilder;
         // Number of bytes required to prefix the key groups.
-        int keyGroupPrefixBytes =
-                CompositeKeySerializationUtils.computeRequiredBytesInKeyGroupPrefix(
-                        numberOfKeyGroups);
+        int keyGroupPrefixBytes = CompositeKeySerializationUtils.computeRequiredBytesInKeyGroupPrefix(numberOfKeyGroups);
 
         try {
             // Variables for snapshot strategy when incremental checkpoint is enabled
@@ -297,20 +282,19 @@ public class RocksDBKeyedStateBackendBuilder<K> extends AbstractKeyedStateBacken
             if (injectedTestDB != null) {
                 db = injectedTestDB;
                 defaultColumnFamilyHandle = injectedDefaultColumnFamilyHandle;
-                nativeMetricMonitor =
-                        nativeMetricOptions.isEnabled()
-                                ? new RocksDBNativeMetricMonitor(
-                                        nativeMetricOptions, metricGroup, db)
-                                : null;
+                nativeMetricMonitor = nativeMetricOptions.isEnabled() ? new RocksDBNativeMetricMonitor(
+                        nativeMetricOptions,
+                        metricGroup,
+                        db
+                ) : null;
             } else {
                 prepareDirectories();
-                restoreOperation =
-                        getRocksDBRestoreOperation(
-                                keyGroupPrefixBytes,
-                                cancelStreamRegistry,
-                                kvStateInformation,
-                                registeredPQStates,
-                                ttlCompactFiltersManager);
+                restoreOperation = getRocksDBRestoreOperation(keyGroupPrefixBytes,
+                        cancelStreamRegistry,
+                        kvStateInformation,
+                        registeredPQStates,
+                        ttlCompactFiltersManager
+                );
                 RocksDBRestoreResult restoreResult = restoreOperation.restore();
                 db = restoreResult.getDb();
                 defaultColumnFamilyHandle = restoreResult.getDefaultColumnFamilyHandle();
@@ -322,54 +306,47 @@ public class RocksDBKeyedStateBackendBuilder<K> extends AbstractKeyedStateBacken
                 }
             }
 
-            writeBatchWrapper =
-                    new RocksDBWriteBatchWrapper(
-                            db, optionsContainer.getWriteOptions(), writeBatchSize);
+            writeBatchWrapper = new RocksDBWriteBatchWrapper(db, optionsContainer.getWriteOptions(), writeBatchSize);
 
             // it is important that we only create the key builder after the restore, and not
             // before;
             // restore operations may reconfigure the key serializer, so accessing the key
             // serializer
             // only now we can be certain that the key serializer used in the builder is final.
-            sharedRocksKeyBuilder =
-                    new SerializedCompositeKeyBuilder<>(
-                            keySerializerProvider.currentSchemaSerializer(),
-                            keyGroupPrefixBytes,
-                            32);
+            sharedRocksKeyBuilder = new SerializedCompositeKeyBuilder<>(keySerializerProvider.currentSchemaSerializer(),
+                    keyGroupPrefixBytes,
+                    32
+            );
             // init snapshot strategy after db is assured to be initialized
-            checkpointStrategy =
-                    initializeSavepointAndCheckpointStrategies(
-                            cancelStreamRegistryForBackend,
-                            rocksDBResourceGuard,
-                            kvStateInformation,
-                            registeredPQStates,
-                            keyGroupPrefixBytes,
-                            db,
-                            backendUID,
-                            materializedSstFiles,
-                            lastCompletedCheckpointId);
+            checkpointStrategy = initializeSavepointAndCheckpointStrategies(cancelStreamRegistryForBackend,
+                    rocksDBResourceGuard,
+                    kvStateInformation,
+                    registeredPQStates,
+                    keyGroupPrefixBytes,
+                    db,
+                    backendUID,
+                    materializedSstFiles,
+                    lastCompletedCheckpointId
+            );
             // init priority queue factory
-            priorityQueueFactory =
-                    initPriorityQueueFactory(
-                            keyGroupPrefixBytes,
-                            kvStateInformation,
-                            db,
-                            writeBatchWrapper,
-                            nativeMetricMonitor);
+            priorityQueueFactory = initPriorityQueueFactory(keyGroupPrefixBytes,
+                    kvStateInformation,
+                    db,
+                    writeBatchWrapper,
+                    nativeMetricMonitor
+            );
         } catch (Throwable e) {
             // Do clean up
-            List<ColumnFamilyOptions> columnFamilyOptions =
-                    new ArrayList<>(kvStateInformation.values().size());
+            List<ColumnFamilyOptions> columnFamilyOptions = new ArrayList<>(kvStateInformation.values().size());
             IOUtils.closeQuietly(cancelStreamRegistryForBackend);
             IOUtils.closeQuietly(writeBatchWrapper);
-            RocksDBOperationUtils.addColumnFamilyOptionsToCloseLater(
-                    columnFamilyOptions, defaultColumnFamilyHandle);
+            RocksDBOperationUtils.addColumnFamilyOptionsToCloseLater(columnFamilyOptions, defaultColumnFamilyHandle);
             IOUtils.closeQuietly(defaultColumnFamilyHandle);
             IOUtils.closeQuietly(nativeMetricMonitor);
-            for (RocksDBKeyedStateBackend.RocksDbKvStateInfo kvStateInfo :
-                    kvStateInformation.values()) {
-                RocksDBOperationUtils.addColumnFamilyOptionsToCloseLater(
-                        columnFamilyOptions, kvStateInfo.columnFamilyHandle);
+            for (RocksDBKeyedStateBackend.RocksDbKvStateInfo kvStateInfo : kvStateInformation.values()) {
+                RocksDBOperationUtils.addColumnFamilyOptionsToCloseLater(columnFamilyOptions,
+                        kvStateInfo.columnFamilyHandle
+                );
                 IOUtils.closeQuietly(kvStateInfo.columnFamilyHandle);
             }
             IOUtils.closeQuietly(db);
@@ -394,11 +371,9 @@ public class RocksDBKeyedStateBackendBuilder<K> extends AbstractKeyedStateBacken
                 throw new BackendBuildingException(errMsg, e);
             }
         }
-        InternalKeyContext<K> keyContext =
-                new InternalKeyContextImpl<>(keyGroupRange, numberOfKeyGroups);
+        InternalKeyContext<K> keyContext = new InternalKeyContextImpl<>(keyGroupRange, numberOfKeyGroups);
         logger.info("Finished building RocksDB keyed state-backend at {}.", instanceBasePath);
-        return new RocksDBKeyedStateBackend<>(
-                this.userCodeClassLoader,
+        return new RocksDBKeyedStateBackend<>(this.userCodeClassLoader,
                 this.instanceBasePath,
                 this.optionsContainer,
                 columnFamilyOptionsFactory,
@@ -422,31 +397,30 @@ public class RocksDBKeyedStateBackendBuilder<K> extends AbstractKeyedStateBacken
                 priorityQueueFactory,
                 ttlCompactFiltersManager,
                 keyContext,
-                writeBatchSize);
+                writeBatchSize
+        );
     }
 
-    private RocksDBRestoreOperation getRocksDBRestoreOperation(
-            int keyGroupPrefixBytes,
-            CloseableRegistry cancelStreamRegistry,
-            LinkedHashMap<String, RocksDBKeyedStateBackend.RocksDbKvStateInfo> kvStateInformation,
-            LinkedHashMap<String, HeapPriorityQueueSnapshotRestoreWrapper<?>> registeredPQStates,
-            RocksDbTtlCompactFiltersManager ttlCompactFiltersManager) {
+    private RocksDBRestoreOperation getRocksDBRestoreOperation(int keyGroupPrefixBytes,
+                                                               CloseableRegistry cancelStreamRegistry,
+                                                               LinkedHashMap<String, RocksDBKeyedStateBackend.RocksDbKvStateInfo> kvStateInformation,
+                                                               LinkedHashMap<String, HeapPriorityQueueSnapshotRestoreWrapper<?>> registeredPQStates,
+                                                               RocksDbTtlCompactFiltersManager ttlCompactFiltersManager) {
         DBOptions dbOptions = optionsContainer.getDbOptions();
         if (restoreStateHandles.isEmpty()) {
-            return new RocksDBNoneRestoreOperation<>(
-                    kvStateInformation,
+            return new RocksDBNoneRestoreOperation<>(kvStateInformation,
                     instanceRocksDBPath,
                     dbOptions,
                     columnFamilyOptionsFactory,
                     nativeMetricOptions,
                     metricGroup,
                     ttlCompactFiltersManager,
-                    optionsContainer.getWriteBufferManagerCapacity());
+                    optionsContainer.getWriteBufferManagerCapacity()
+            );
         }
         KeyedStateHandle firstStateHandle = restoreStateHandles.iterator().next();
         if (firstStateHandle instanceof IncrementalKeyedStateHandle) {
-            return new RocksDBIncrementalRestoreOperation<>(
-                    operatorIdentifier,
+            return new RocksDBIncrementalRestoreOperation<>(operatorIdentifier,
                     keyGroupRange,
                     keyGroupPrefixBytes,
                     numberOfTransferingThreads,
@@ -463,11 +437,10 @@ public class RocksDBKeyedStateBackendBuilder<K> extends AbstractKeyedStateBacken
                     restoreStateHandles,
                     ttlCompactFiltersManager,
                     writeBatchSize,
-                    optionsContainer.getWriteBufferManagerCapacity());
-        } else if (priorityQueueStateType
-                == EmbeddedRocksDBStateBackend.PriorityQueueStateType.HEAP) {
-            return new RocksDBHeapTimersFullRestoreOperation<>(
-                    keyGroupRange,
+                    optionsContainer.getWriteBufferManagerCapacity()
+            );
+        } else if (priorityQueueStateType == EmbeddedRocksDBStateBackend.PriorityQueueStateType.HEAP) {
+            return new RocksDBHeapTimersFullRestoreOperation<>(keyGroupRange,
                     numberOfKeyGroups,
                     userCodeClassLoader,
                     kvStateInformation,
@@ -482,10 +455,10 @@ public class RocksDBKeyedStateBackendBuilder<K> extends AbstractKeyedStateBacken
                     restoreStateHandles,
                     ttlCompactFiltersManager,
                     writeBatchSize,
-                    optionsContainer.getWriteBufferManagerCapacity());
+                    optionsContainer.getWriteBufferManagerCapacity()
+            );
         } else {
-            return new RocksDBFullRestoreOperation<>(
-                    keyGroupRange,
+            return new RocksDBFullRestoreOperation<>(keyGroupRange,
                     userCodeClassLoader,
                     kvStateInformation,
                     keySerializerProvider,
@@ -497,85 +470,78 @@ public class RocksDBKeyedStateBackendBuilder<K> extends AbstractKeyedStateBacken
                     restoreStateHandles,
                     ttlCompactFiltersManager,
                     writeBatchSize,
-                    optionsContainer.getWriteBufferManagerCapacity());
+                    optionsContainer.getWriteBufferManagerCapacity()
+            );
         }
     }
 
-    private RocksDBSnapshotStrategyBase<K, ?> initializeSavepointAndCheckpointStrategies(
-            CloseableRegistry cancelStreamRegistry,
-            ResourceGuard rocksDBResourceGuard,
-            LinkedHashMap<String, RocksDBKeyedStateBackend.RocksDbKvStateInfo> kvStateInformation,
-            LinkedHashMap<String, HeapPriorityQueueSnapshotRestoreWrapper<?>> registeredPQStates,
-            int keyGroupPrefixBytes,
-            RocksDB db,
-            UUID backendUID,
-            SortedMap<Long, Set<StateHandleID>> materializedSstFiles,
-            long lastCompletedCheckpointId) {
+    private RocksDBSnapshotStrategyBase<K, ?> initializeSavepointAndCheckpointStrategies(CloseableRegistry cancelStreamRegistry,
+                                                                                         ResourceGuard rocksDBResourceGuard,
+                                                                                         LinkedHashMap<String, RocksDBKeyedStateBackend.RocksDbKvStateInfo> kvStateInformation,
+                                                                                         LinkedHashMap<String, HeapPriorityQueueSnapshotRestoreWrapper<?>> registeredPQStates,
+                                                                                         int keyGroupPrefixBytes,
+                                                                                         RocksDB db,
+                                                                                         UUID backendUID,
+                                                                                         SortedMap<Long, Set<StateHandleID>> materializedSstFiles,
+                                                                                         long lastCompletedCheckpointId) {
         RocksDBSnapshotStrategyBase<K, ?> checkpointSnapshotStrategy;
         if (enableIncrementalCheckpointing) {
-            RocksDBStateUploader stateUploader =
-                    injectRocksDBStateUploader == null
-                            ? new RocksDBStateUploader(numberOfTransferingThreads)
-                            : injectRocksDBStateUploader;
-            checkpointSnapshotStrategy =
-                    new RocksIncrementalSnapshotStrategy<>(
-                            db,
-                            rocksDBResourceGuard,
-                            keySerializerProvider.currentSchemaSerializer(),
-                            kvStateInformation,
-                            keyGroupRange,
-                            keyGroupPrefixBytes,
-                            localRecoveryConfig,
-                            cancelStreamRegistry,
-                            instanceBasePath,
-                            backendUID,
-                            materializedSstFiles,
-                            stateUploader,
-                            lastCompletedCheckpointId);
+            RocksDBStateUploader stateUploader = injectRocksDBStateUploader == null ? new RocksDBStateUploader(
+                    numberOfTransferingThreads) : injectRocksDBStateUploader;
+            checkpointSnapshotStrategy = new RocksIncrementalSnapshotStrategy<>(db,
+                    rocksDBResourceGuard,
+                    keySerializerProvider.currentSchemaSerializer(),
+                    kvStateInformation,
+                    keyGroupRange,
+                    keyGroupPrefixBytes,
+                    localRecoveryConfig,
+                    cancelStreamRegistry,
+                    instanceBasePath,
+                    backendUID,
+                    materializedSstFiles,
+                    stateUploader,
+                    lastCompletedCheckpointId
+            );
         } else {
-            checkpointSnapshotStrategy =
-                    new RocksFullSnapshotStrategy<>(
-                            db,
-                            rocksDBResourceGuard,
-                            keySerializerProvider.currentSchemaSerializer(),
-                            kvStateInformation,
-                            registeredPQStates,
-                            keyGroupRange,
-                            keyGroupPrefixBytes,
-                            localRecoveryConfig,
-                            keyGroupCompressionDecorator);
+            checkpointSnapshotStrategy = new RocksFullSnapshotStrategy<>(db,
+                    rocksDBResourceGuard,
+                    keySerializerProvider.currentSchemaSerializer(),
+                    kvStateInformation,
+                    registeredPQStates,
+                    keyGroupRange,
+                    keyGroupPrefixBytes,
+                    localRecoveryConfig,
+                    keyGroupCompressionDecorator
+            );
         }
         return checkpointSnapshotStrategy;
     }
 
-    private PriorityQueueSetFactory initPriorityQueueFactory(
-            int keyGroupPrefixBytes,
-            Map<String, RocksDBKeyedStateBackend.RocksDbKvStateInfo> kvStateInformation,
-            RocksDB db,
-            RocksDBWriteBatchWrapper writeBatchWrapper,
-            RocksDBNativeMetricMonitor nativeMetricMonitor) {
+    private PriorityQueueSetFactory initPriorityQueueFactory(int keyGroupPrefixBytes,
+                                                             Map<String, RocksDBKeyedStateBackend.RocksDbKvStateInfo> kvStateInformation,
+                                                             RocksDB db,
+                                                             RocksDBWriteBatchWrapper writeBatchWrapper,
+                                                             RocksDBNativeMetricMonitor nativeMetricMonitor) {
         PriorityQueueSetFactory priorityQueueFactory;
         switch (priorityQueueStateType) {
             case HEAP:
                 priorityQueueFactory = createHeapQueueFactory();
                 break;
             case ROCKSDB:
-                priorityQueueFactory =
-                        new RocksDBPriorityQueueSetFactory(
-                                keyGroupRange,
-                                keyGroupPrefixBytes,
-                                numberOfKeyGroups,
-                                kvStateInformation,
-                                db,
-                                optionsContainer.getReadOptions(),
-                                writeBatchWrapper,
-                                nativeMetricMonitor,
-                                columnFamilyOptionsFactory,
-                                optionsContainer.getWriteBufferManagerCapacity());
+                priorityQueueFactory = new RocksDBPriorityQueueSetFactory(keyGroupRange,
+                        keyGroupPrefixBytes,
+                        numberOfKeyGroups,
+                        kvStateInformation,
+                        db,
+                        optionsContainer.getReadOptions(),
+                        writeBatchWrapper,
+                        nativeMetricMonitor,
+                        columnFamilyOptionsFactory,
+                        optionsContainer.getWriteBufferManagerCapacity()
+                );
                 break;
             default:
-                throw new IllegalArgumentException(
-                        "Unknown priority queue state type: " + priorityQueueStateType);
+                throw new IllegalArgumentException("Unknown priority queue state type: " + priorityQueueStateType);
         }
         return priorityQueueFactory;
     }

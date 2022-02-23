@@ -71,8 +71,7 @@ public class BufferBuilder implements AutoCloseable {
     }
 
     private BufferConsumer createBufferConsumer(int currentReaderPosition) {
-        checkState(
-                !bufferConsumerCreated, "Two BufferConsumer shouldn't exist for one BufferBuilder");
+        checkState(!bufferConsumerCreated, "Two BufferConsumer shouldn't exist for one BufferBuilder");
         bufferConsumerCreated = true;
         return new BufferConsumer(buffer.retainBuffer(), positionMarker, currentReaderPosition);
     }
@@ -152,8 +151,7 @@ public class BufferBuilder implements AutoCloseable {
      * than already written data.
      */
     public void trim(int newSize) {
-        maxCapacity =
-                Math.min(Math.max(newSize, positionMarker.getCached()), buffer.getMaxCapacity());
+        maxCapacity = Math.min(Math.max(newSize, positionMarker.getCached()), buffer.getMaxCapacity());
     }
 
     @Override

@@ -46,24 +46,19 @@ public class TaskExecutorResourceSpec {
 
     private final Map<String, ExternalResource> extendedResources;
 
-    public TaskExecutorResourceSpec(
-            CPUResource cpuCores,
-            MemorySize taskHeapSize,
-            MemorySize taskOffHeapSize,
-            MemorySize networkMemSize,
-            MemorySize managedMemorySize,
-            Collection<ExternalResource> extendedResources) {
+    public TaskExecutorResourceSpec(CPUResource cpuCores, MemorySize taskHeapSize, MemorySize taskOffHeapSize,
+                                    MemorySize networkMemSize, MemorySize managedMemorySize,
+                                    Collection<ExternalResource> extendedResources) {
         this.cpuCores = cpuCores;
         this.taskHeapSize = taskHeapSize;
         this.taskOffHeapSize = taskOffHeapSize;
         this.networkMemSize = networkMemSize;
         this.managedMemorySize = managedMemorySize;
-        this.extendedResources =
-                Preconditions.checkNotNull(extendedResources).stream()
-                        .filter(resource -> !resource.isZero())
-                        .collect(Collectors.toMap(ExternalResource::getName, Function.identity()));
-        Preconditions.checkArgument(
-                this.extendedResources.size() == extendedResources.size(),
+        this.extendedResources = Preconditions.checkNotNull(extendedResources)
+                                              .stream()
+                                              .filter(resource -> !resource.isZero())
+                                              .collect(Collectors.toMap(ExternalResource::getName, Function.identity()));
+        Preconditions.checkArgument(this.extendedResources.size() == extendedResources.size(),
                 "Duplicate resource name encountered in external resources.");
     }
 

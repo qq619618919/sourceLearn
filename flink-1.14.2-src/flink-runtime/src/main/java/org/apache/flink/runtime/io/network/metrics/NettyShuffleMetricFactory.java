@@ -73,7 +73,8 @@ public class NettyShuffleMetricFactory {
     private static final String METRIC_INPUT_FLOATING_BUFFERS_USAGE = "inputFloatingBuffersUsage";
     private static final String METRIC_INPUT_EXCLUSIVE_BUFFERS_USAGE = "inputExclusiveBuffersUsage";
 
-    private NettyShuffleMetricFactory() {}
+    private NettyShuffleMetricFactory() {
+    }
 
     public static void registerShuffleMetrics(
             MetricGroup metricGroup, NetworkBufferPool networkBufferPool) {

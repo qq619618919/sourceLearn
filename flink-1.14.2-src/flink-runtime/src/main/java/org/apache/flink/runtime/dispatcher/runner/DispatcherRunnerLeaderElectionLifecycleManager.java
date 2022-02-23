@@ -26,10 +26,19 @@ import org.apache.flink.util.concurrent.FutureUtils;
 import java.util.Arrays;
 import java.util.concurrent.CompletableFuture;
 
+/*************************************************
+ * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+ *  注释： DefaultDispatcherRunner 的生命周期的包装器
+ */
 final class DispatcherRunnerLeaderElectionLifecycleManager<T extends DispatcherRunner & LeaderContender> implements DispatcherRunner {
     private final T dispatcherRunner;
     private final LeaderElectionService leaderElectionService;
 
+    /*************************************************
+     * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+     *  注释： 其实就为了包装： leaderElectionService.start(dispatcherRunner);
+     *  启动选举，已经开始进入服务了。
+     */
     private DispatcherRunnerLeaderElectionLifecycleManager(T dispatcherRunner,
                                                            LeaderElectionService leaderElectionService) throws Exception {
         this.dispatcherRunner = dispatcherRunner;
@@ -37,7 +46,13 @@ final class DispatcherRunnerLeaderElectionLifecycleManager<T extends DispatcherR
 
         /*************************************************
          * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-         *  注释：
+         *  注释： 进入到了重点了： 执行 dispatcherRunner 的选举
+         *  最终，会回调 dispatcherRunner 的 grantLeadership()
+         *  -
+         *  主节点内部有三大组件：
+         *  1、resourcemanager  有创建和启动 step3 和 step5
+         *  2、dispatcher  step4
+         *  3、webmonitorendpoint   有创建和启动 step1 step2
          */
         leaderElectionService.start(dispatcherRunner);
     }

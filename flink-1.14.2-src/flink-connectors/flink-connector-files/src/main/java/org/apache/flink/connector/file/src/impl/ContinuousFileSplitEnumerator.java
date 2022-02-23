@@ -48,8 +48,7 @@ import static org.apache.flink.util.Preconditions.checkNotNull;
 
 /** A continuously monitoring enumerator. */
 @Internal
-public class ContinuousFileSplitEnumerator
-        implements SplitEnumerator<FileSourceSplit, PendingSplitsCheckpoint<FileSourceSplit>> {
+public class ContinuousFileSplitEnumerator implements SplitEnumerator<FileSourceSplit, PendingSplitsCheckpoint<FileSourceSplit>> {
 
     private static final Logger LOG = LoggerFactory.getLogger(ContinuousFileSplitEnumerator.class);
 
@@ -69,13 +68,12 @@ public class ContinuousFileSplitEnumerator
 
     // ------------------------------------------------------------------------
 
-    public ContinuousFileSplitEnumerator(
-            SplitEnumeratorContext<FileSourceSplit> context,
-            FileEnumerator enumerator,
-            FileSplitAssigner splitAssigner,
-            Path[] paths,
-            Collection<Path> alreadyDiscoveredPaths,
-            long discoveryInterval) {
+    public ContinuousFileSplitEnumerator(SplitEnumeratorContext<FileSourceSplit> context,
+                                         FileEnumerator enumerator,
+                                         FileSplitAssigner splitAssigner,
+                                         Path[] paths,
+                                         Collection<Path> alreadyDiscoveredPaths,
+                                         long discoveryInterval) {
 
         checkArgument(discoveryInterval > 0L);
         this.context = checkNotNull(context);
@@ -89,11 +87,11 @@ public class ContinuousFileSplitEnumerator
 
     @Override
     public void start() {
-        context.callAsync(
-                () -> enumerator.enumerateSplits(paths, 1),
+        context.callAsync(() -> enumerator.enumerateSplits(paths, 1),
                 this::processDiscoveredSplits,
                 discoveryInterval,
-                discoveryInterval);
+                discoveryInterval
+        );
     }
 
     @Override
@@ -124,11 +122,11 @@ public class ContinuousFileSplitEnumerator
     }
 
     @Override
-    public PendingSplitsCheckpoint<FileSourceSplit> snapshotState(long checkpointId)
-            throws Exception {
-        final PendingSplitsCheckpoint<FileSourceSplit> checkpoint =
-                PendingSplitsCheckpoint.fromCollectionSnapshot(
-                        splitAssigner.remainingSplits(), pathsAlreadyProcessed);
+    public PendingSplitsCheckpoint<FileSourceSplit> snapshotState(long checkpointId) throws Exception {
+        final PendingSplitsCheckpoint<FileSourceSplit> checkpoint = PendingSplitsCheckpoint.fromCollectionSnapshot(
+                splitAssigner.remainingSplits(),
+                pathsAlreadyProcessed
+        );
 
         LOG.debug("Source Checkpoint is {}", checkpoint);
         return checkpoint;
@@ -142,18 +140,17 @@ public class ContinuousFileSplitEnumerator
             return;
         }
 
-        final Collection<FileSourceSplit> newSplits =
-                splits.stream()
-                        .filter((split) -> pathsAlreadyProcessed.add(split.path()))
-                        .collect(Collectors.toList());
+        final Collection<FileSourceSplit> newSplits = splits
+                .stream()
+                .filter((split) -> pathsAlreadyProcessed.add(split.path()))
+                .collect(Collectors.toList());
         splitAssigner.addSplits(newSplits);
 
         assignSplits();
     }
 
     private void assignSplits() {
-        final Iterator<Map.Entry<Integer, String>> awaitingReader =
-                readersAwaitingSplit.entrySet().iterator();
+        final Iterator<Map.Entry<Integer, String>> awaitingReader = readersAwaitingSplit.entrySet().iterator();
 
         while (awaitingReader.hasNext()) {
             final Map.Entry<Integer, String> nextAwaiting = awaitingReader.next();

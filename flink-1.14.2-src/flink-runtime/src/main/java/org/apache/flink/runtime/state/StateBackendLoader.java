@@ -49,12 +49,10 @@ public class StateBackendLoader {
     private static final Logger LOG = LoggerFactory.getLogger(StateBackendLoader.class);
 
     /** Used for Loading ChangelogStateBackend. */
-    private static final String CHANGELOG_STATE_BACKEND =
-            "org.apache.flink.state.changelog.ChangelogStateBackend";
+    private static final String CHANGELOG_STATE_BACKEND = "org.apache.flink.state.changelog.ChangelogStateBackend";
 
     /** Used for loading RocksDBStateBackend. */
-    private static final String ROCKSDB_STATE_BACKEND_FACTORY =
-            "org.apache.flink.contrib.streaming.state.EmbeddedRocksDBStateBackendFactory";
+    private static final String ROCKSDB_STATE_BACKEND_FACTORY = "org.apache.flink.contrib.streaming.state.EmbeddedRocksDBStateBackendFactory";
 
     // ------------------------------------------------------------------------
     //  Configuration shortcut names
@@ -66,10 +64,12 @@ public class StateBackendLoader {
      * The shortcut configuration name for the MemoryState backend that checkpoints to the
      * JobManager.
      */
-    @Deprecated public static final String MEMORY_STATE_BACKEND_NAME = "jobmanager";
+    @Deprecated
+    public static final String MEMORY_STATE_BACKEND_NAME = "jobmanager";
 
     /** The shortcut configuration name for the FileSystem State backend. */
-    @Deprecated public static final String FS_STATE_BACKEND_NAME = "filesystem";
+    @Deprecated
+    public static final String FS_STATE_BACKEND_NAME = "filesystem";
 
     /** The shortcut configuration name for the RocksDB State Backend. */
     public static final String ROCKSDB_STATE_BACKEND_NAME = "rocksdb";
@@ -103,13 +103,13 @@ public class StateBackendLoader {
      * @throws IOException May be thrown by the StateBackendFactory when instantiating the state
      *     backend
      */
-    public static StateBackend loadStateBackendFromConfig(
-            ReadableConfig config, ClassLoader classLoader, @Nullable Logger logger)
-            throws IllegalConfigurationException, DynamicCodeLoadingException, IOException {
+    public static StateBackend loadStateBackendFromConfig(ReadableConfig config, ClassLoader classLoader,
+                                                          @Nullable Logger logger) throws IllegalConfigurationException, DynamicCodeLoadingException, IOException {
 
         checkNotNull(config, "config");
         checkNotNull(classLoader, "classLoader");
 
+        // TODO_MA 马中华 注释： state.backend
         final String backendName = config.get(StateBackendOptions.STATE_BACKEND);
         if (backendName == null) {
             return null;
@@ -119,70 +119,71 @@ public class StateBackendLoader {
         String factoryClassName = backendName;
 
         switch (backendName.toLowerCase()) {
-            case MEMORY_STATE_BACKEND_NAME:
-                MemoryStateBackend backend =
-                        new MemoryStateBackendFactory().createFromConfig(config, classLoader);
 
+            /*************************************************
+             * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+             *  注释： jobmanager = MemoryStateBackend
+             */
+            case MEMORY_STATE_BACKEND_NAME:
+                MemoryStateBackend backend = new MemoryStateBackendFactory().createFromConfig(config, classLoader);
                 if (logger != null) {
                     logger.warn(
-                            "MemoryStateBackend has been deprecated. Please use 'hashmap' state "
-                                    + "backend instead with JobManagerCheckpointStorage for equivalent "
-                                    + "functionality");
+                            "MemoryStateBackend has been deprecated. Please use 'hashmap' state " + "backend instead with JobManagerCheckpointStorage for equivalent " + "functionality");
 
                     logger.info("State backend is set to job manager {}", backend);
                 }
-
                 return backend;
+
+            /*************************************************
+             * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+             *  注释： filesystem
+             */
             case FS_STATE_BACKEND_NAME:
                 if (logger != null) {
-                    logger.warn(
-                            "{} state backend has been deprecated. Please use 'hashmap' state "
-                                    + "backend instead.",
-                            backendName.toLowerCase());
+                    logger.warn("{} state backend has been deprecated. Please use 'hashmap' state " + "backend instead.",
+                            backendName.toLowerCase()
+                    );
                 }
                 // fall through and use the HashMapStateBackend instead which
                 // utilizes the same HeapKeyedStateBackend runtime implementation.
+                // TODO_MA 马中华 注释： hashmap = HashMapStateBackend
             case HASHMAP_STATE_BACKEND_NAME:
-                HashMapStateBackend hashMapStateBackend =
-                        new HashMapStateBackendFactory().createFromConfig(config, classLoader);
+                HashMapStateBackend hashMapStateBackend = new HashMapStateBackendFactory().createFromConfig(config, classLoader);
                 if (logger != null) {
                     logger.info("State backend is set to heap memory {}", hashMapStateBackend);
                 }
                 return hashMapStateBackend;
 
+            /*************************************************
+             * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+             *  注释： rocksdb
+             */
             case ROCKSDB_STATE_BACKEND_NAME:
+                // TODO_MA 马中华 注释： org.apache.flink.contrib.streaming.state.EmbeddedRocksDBStateBackendFactory
                 factoryClassName = ROCKSDB_STATE_BACKEND_FACTORY;
-
                 // fall through to the 'default' case that uses reflection to load the backend
                 // that way we can keep RocksDB in a separate module
-
             default:
                 if (logger != null) {
                     logger.info("Loading state backend via factory {}", factoryClassName);
                 }
-
+                // TODO_MA 马中华 注释： 通过反射创建 EmbeddedRocksDBStateBackendFactory
                 StateBackendFactory<?> factory;
                 try {
-                    @SuppressWarnings("rawtypes")
-                    Class<? extends StateBackendFactory> clazz =
-                            Class.forName(factoryClassName, false, classLoader)
-                                    .asSubclass(StateBackendFactory.class);
-
+                    @SuppressWarnings("rawtypes") Class<? extends StateBackendFactory> clazz = Class.forName(factoryClassName,
+                                    false, classLoader
+                            )
+                            .asSubclass(StateBackendFactory.class);
                     factory = clazz.newInstance();
                 } catch (ClassNotFoundException e) {
-                    throw new DynamicCodeLoadingException(
-                            "Cannot find configured state backend factory class: " + backendName,
-                            e);
+                    throw new DynamicCodeLoadingException("Cannot find configured state backend factory class: " + backendName, e);
                 } catch (ClassCastException | InstantiationException | IllegalAccessException e) {
                     throw new DynamicCodeLoadingException(
-                            "The class configured under '"
-                                    + StateBackendOptions.STATE_BACKEND.key()
-                                    + "' is not a valid state backend factory ("
-                                    + backendName
-                                    + ')',
-                            e);
+                            "The class configured under '" + StateBackendOptions.STATE_BACKEND.key() + "' is not a valid state backend factory (" + backendName + ')',
+                            e
+                    );
                 }
-
+                // TODO_MA 马中华 注释： 创建 EmbeddedRocksDBStateBackend
                 return factory.createFromConfig(config, classLoader);
         }
     }
@@ -211,12 +212,9 @@ public class StateBackendLoader {
      * @throws IOException May be thrown by the StateBackendFactory when instantiating the state
      *     backend
      */
-    private static StateBackend loadFromApplicationOrConfigOrDefaultInternal(
-            @Nullable StateBackend fromApplication,
-            Configuration config,
-            ClassLoader classLoader,
-            @Nullable Logger logger)
-            throws IllegalConfigurationException, DynamicCodeLoadingException, IOException {
+    private static StateBackend loadFromApplicationOrConfigOrDefaultInternal(@Nullable StateBackend fromApplication,
+                                                                             Configuration config, ClassLoader classLoader,
+                                                                             @Nullable Logger logger) throws IllegalConfigurationException, DynamicCodeLoadingException, IOException {
 
         checkNotNull(config, "config");
         checkNotNull(classLoader, "classLoader");
@@ -229,13 +227,9 @@ public class StateBackendLoader {
             if (fromApplication instanceof ConfigurableStateBackend) {
                 // needs to pick up configuration
                 if (logger != null) {
-                    logger.info(
-                            "Using job/cluster config to configure application-defined state backend: {}",
-                            fromApplication);
+                    logger.info("Using job/cluster config to configure application-defined state backend: {}", fromApplication);
                 }
-
-                backend =
-                        ((ConfigurableStateBackend) fromApplication).configure(config, classLoader);
+                backend = ((ConfigurableStateBackend) fromApplication).configure(config, classLoader);
             } else {
                 // keep as is!
                 backend = fromApplication;
@@ -246,16 +240,19 @@ public class StateBackendLoader {
             }
         } else {
             // (2) check if the config defines a state backend
+            /*************************************************
+             * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+             *  注释：
+             */
             final StateBackend fromConfig = loadStateBackendFromConfig(config, classLoader, logger);
             if (fromConfig != null) {
                 backend = fromConfig;
             } else {
                 // (3) use the default
+                // TODO_MA 马中华 注释： 默认： HashMapStateBackend
                 backend = new HashMapStateBackendFactory().createFromConfig(config, classLoader);
                 if (logger != null) {
-                    logger.info(
-                            "No state backend has been configured, using default (HashMap) {}",
-                            backend);
+                    logger.info("No state backend has been configured, using default (HashMap) {}", backend);
                 }
             }
         }
@@ -283,37 +280,40 @@ public class StateBackendLoader {
      * @throws IOException May be thrown by the StateBackendFactory when instantiating the state
      *     backend
      */
-    public static StateBackend fromApplicationOrConfigOrDefault(
-            @Nullable StateBackend fromApplication,
-            TernaryBoolean isChangelogStateBackendEnableFromApplication,
-            Configuration config,
-            ClassLoader classLoader,
-            @Nullable Logger logger)
-            throws IllegalConfigurationException, DynamicCodeLoadingException, IOException {
+    public static StateBackend fromApplicationOrConfigOrDefault(@Nullable StateBackend fromApplication,
+                                                                TernaryBoolean isChangelogStateBackendEnableFromApplication,
+                                                                Configuration config, ClassLoader classLoader,
+                                                                @Nullable Logger logger) throws IllegalConfigurationException, DynamicCodeLoadingException, IOException {
 
-        StateBackend rootBackend =
-                loadFromApplicationOrConfigOrDefaultInternal(
-                        fromApplication, config, classLoader, logger);
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释： 根据配置，创建 Statebackend
+         *  1、 jobmanager = MemoryStateBackend
+         *  2、 filesystem, hashmap = HashMapStateBackend
+         *  3、 rocksdb = EmbeddedRocksDBStateBackend
+         */
+        StateBackend rootBackend = loadFromApplicationOrConfigOrDefaultInternal(fromApplication, config, classLoader, logger);
 
         // Configuration from application will override the one from env.
-        boolean enableChangeLog =
-                TernaryBoolean.TRUE.equals(isChangelogStateBackendEnableFromApplication)
-                        || (TernaryBoolean.UNDEFINED.equals(
-                                        isChangelogStateBackendEnableFromApplication)
-                                && config.get(CheckpointingOptions.ENABLE_STATE_CHANGE_LOG));
+        boolean enableChangeLog = TernaryBoolean.TRUE.equals(
+                isChangelogStateBackendEnableFromApplication) || (TernaryBoolean.UNDEFINED.equals(
+                isChangelogStateBackendEnableFromApplication) && config.get(CheckpointingOptions.ENABLE_STATE_CHANGE_LOG)
+        );
 
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释： 通过反射创建 ChangelogStateBackend
+         */
         StateBackend backend;
         if (enableChangeLog) {
             backend = loadChangelogStateBackend(rootBackend, classLoader);
-            LOG.info(
-                    "State backend loader loads {} to delegate {}",
-                    backend.getClass().getSimpleName(),
-                    rootBackend.getClass().getSimpleName());
+            LOG.info("State backend loader loads {} to delegate {}", backend.getClass()
+                    .getSimpleName(), rootBackend.getClass()
+                    .getSimpleName());
         } else {
             backend = rootBackend;
-            LOG.info(
-                    "State backend loader loads the state backend as {}",
-                    backend.getClass().getSimpleName());
+            LOG.info("State backend loader loads the state backend as {}", backend.getClass()
+                    .getSimpleName());
         }
         return backend;
     }
@@ -328,10 +328,9 @@ public class StateBackendLoader {
      * @param classLoader User code classloader.
      * @return Whether the state backend uses managed memory.
      */
-    public static boolean stateBackendFromApplicationOrConfigOrDefaultUseManagedMemory(
-            Configuration config,
-            Optional<Boolean> stateBackendFromApplicationUsesManagedMemory,
-            ClassLoader classLoader) {
+    public static boolean stateBackendFromApplicationOrConfigOrDefaultUseManagedMemory(Configuration config,
+                                                                                       Optional<Boolean> stateBackendFromApplicationUsesManagedMemory,
+                                                                                       ClassLoader classLoader) {
 
         checkNotNull(config, "config");
 
@@ -347,9 +346,7 @@ public class StateBackendLoader {
                 return fromConfig.useManagedMemory();
             }
         } catch (IllegalConfigurationException | DynamicCodeLoadingException | IOException e) {
-            LOG.warn(
-                    "Cannot decide whether state backend uses managed memory. Will reserve managed memory by default.",
-                    e);
+            LOG.warn("Cannot decide whether state backend uses managed memory. Will reserve managed memory by default.", e);
             return true;
         }
 
@@ -357,31 +354,29 @@ public class StateBackendLoader {
         return false;
     }
 
-    private static StateBackend loadChangelogStateBackend(
-            StateBackend backend, ClassLoader classLoader) throws DynamicCodeLoadingException {
+    private static StateBackend loadChangelogStateBackend(StateBackend backend,
+                                                          ClassLoader classLoader) throws DynamicCodeLoadingException {
 
         // ChangelogStateBackend resides in a separate module, load it using reflection
         try {
-            Constructor<? extends DelegatingStateBackend> constructor =
-                    Class.forName(CHANGELOG_STATE_BACKEND, false, classLoader)
-                            .asSubclass(DelegatingStateBackend.class)
-                            .getDeclaredConstructor(StateBackend.class);
+            // TODO_MA 马中华 注释： org.apache.flink.state.changelog.ChangelogStateBackend
+            Constructor<? extends DelegatingStateBackend> constructor = Class.forName(CHANGELOG_STATE_BACKEND, false, classLoader)
+                    .asSubclass(DelegatingStateBackend.class)
+                    .getDeclaredConstructor(StateBackend.class);
             constructor.setAccessible(true);
+
+            // TODO_MA 马中华 注释： 通过反射创建 ChangelogStateBackend
             return constructor.newInstance(backend);
         } catch (ClassNotFoundException e) {
-            throw new DynamicCodeLoadingException(
-                    "Cannot find DelegateStateBackend class: " + CHANGELOG_STATE_BACKEND, e);
-        } catch (InstantiationException
-                | IllegalAccessException
-                | NoSuchMethodException
-                | InvocationTargetException e) {
-            throw new DynamicCodeLoadingException(
-                    "Fail to initialize: " + CHANGELOG_STATE_BACKEND, e);
+            throw new DynamicCodeLoadingException("Cannot find DelegateStateBackend class: " + CHANGELOG_STATE_BACKEND, e);
+        } catch (InstantiationException | IllegalAccessException | NoSuchMethodException | InvocationTargetException e) {
+            throw new DynamicCodeLoadingException("Fail to initialize: " + CHANGELOG_STATE_BACKEND, e);
         }
     }
 
     // ------------------------------------------------------------------------
 
     /** This class is not meant to be instantiated. */
-    private StateBackendLoader() {}
+    private StateBackendLoader() {
+    }
 }

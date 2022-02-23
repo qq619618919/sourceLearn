@@ -128,7 +128,8 @@ public class BlobServer extends Thread implements BlobService, BlobWriter, Perma
      * @throws IOException thrown if the BLOB server cannot bind to a free network port or if the
      *         (local or distributed) file storage cannot be created or is not usable
      */
-    public BlobServer(Configuration config, BlobStore blobStore) throws IOException {
+    public BlobServer(Configuration config,
+                      BlobStore blobStore) throws IOException {
         this.blobServiceConfiguration = checkNotNull(config);
         this.blobStore = checkNotNull(blobStore);
         this.readWriteLock = new ReentrantReadWriteLock();
@@ -249,7 +250,8 @@ public class BlobServer extends Thread implements BlobService, BlobWriter, Perma
      * @throws IOException if creating the directory fails
      */
     @VisibleForTesting
-    public File getStorageLocation(@Nullable JobID jobId, BlobKey key) throws IOException {
+    public File getStorageLocation(@Nullable JobID jobId,
+                                   BlobKey key) throws IOException {
         return BlobUtils.getStorageLocation(storageDir, jobId, key);
     }
 
@@ -414,7 +416,8 @@ public class BlobServer extends Thread implements BlobService, BlobWriter, Perma
      * @throws IOException Thrown if the file retrieval failed.
      */
     @Override
-    public File getFile(JobID jobId, TransientBlobKey key) throws IOException {
+    public File getFile(JobID jobId,
+                        TransientBlobKey key) throws IOException {
         checkNotNull(jobId);
         return getFileInternal(jobId, key);
     }
@@ -435,7 +438,8 @@ public class BlobServer extends Thread implements BlobService, BlobWriter, Perma
      * @throws IOException if any other error occurs when retrieving the file
      */
     @Override
-    public File getFile(JobID jobId, PermanentBlobKey key) throws IOException {
+    public File getFile(JobID jobId,
+                        PermanentBlobKey key) throws IOException {
         checkNotNull(jobId);
         return getFileInternal(jobId, key);
     }
@@ -454,13 +458,18 @@ public class BlobServer extends Thread implements BlobService, BlobWriter, Perma
      *
      * @throws IOException Thrown if the file retrieval failed.
      */
-    private File getFileInternal(@Nullable JobID jobId, BlobKey blobKey) throws IOException {
+    private File getFileInternal(@Nullable JobID jobId,
+                                 BlobKey blobKey) throws IOException {
         checkArgument(blobKey != null, "BLOB key cannot be null.");
 
         final File localFile = BlobUtils.getStorageLocation(storageDir, jobId, blobKey);
         readWriteLock.readLock().lock();
 
         try {
+            /*************************************************
+             * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+             *  注释：
+             */
             getFileInternal(jobId, blobKey, localFile);
             return localFile;
         } finally {
@@ -483,7 +492,9 @@ public class BlobServer extends Thread implements BlobService, BlobWriter, Perma
      *
      * @throws IOException Thrown if the file retrieval failed.
      */
-    void getFileInternal(@Nullable JobID jobId, BlobKey blobKey, File localFile) throws IOException {
+    void getFileInternal(@Nullable JobID jobId,
+                         BlobKey blobKey,
+                         File localFile) throws IOException {
         // assume readWriteLock.readLock() was already locked (cannot really check that)
 
         if (localFile.exists()) {
@@ -505,11 +516,19 @@ public class BlobServer extends Thread implements BlobService, BlobWriter, Perma
             // use a temporary file (thread-safe without locking)
             File incomingFile = null;
             try {
+                /*************************************************
+                 * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+                 *  注释：
+                 */
                 incomingFile = createTemporaryFilename();
                 blobStore.get(jobId, blobKey, incomingFile);
 
                 readWriteLock.writeLock().lock();
                 try {
+                    /*************************************************
+                     * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+                     *  注释：
+                     */
                     BlobUtils.moveTempFileToStore(incomingFile, jobId, blobKey, localFile, LOG, null);
                 } finally {
                     readWriteLock.writeLock().unlock();
@@ -541,7 +560,8 @@ public class BlobServer extends Thread implements BlobService, BlobWriter, Perma
     }
 
     @Override
-    public TransientBlobKey putTransient(JobID jobId, byte[] value) throws IOException {
+    public TransientBlobKey putTransient(JobID jobId,
+                                         byte[] value) throws IOException {
         checkNotNull(jobId);
         return (TransientBlobKey) putBuffer(jobId, value, TRANSIENT_BLOB);
     }
@@ -552,19 +572,22 @@ public class BlobServer extends Thread implements BlobService, BlobWriter, Perma
     }
 
     @Override
-    public TransientBlobKey putTransient(JobID jobId, InputStream inputStream) throws IOException {
+    public TransientBlobKey putTransient(JobID jobId,
+                                         InputStream inputStream) throws IOException {
         checkNotNull(jobId);
         return (TransientBlobKey) putInputStream(jobId, inputStream, TRANSIENT_BLOB);
     }
 
     @Override
-    public PermanentBlobKey putPermanent(JobID jobId, byte[] value) throws IOException {
+    public PermanentBlobKey putPermanent(JobID jobId,
+                                         byte[] value) throws IOException {
         checkNotNull(jobId);
         return (PermanentBlobKey) putBuffer(jobId, value, PERMANENT_BLOB);
     }
 
     @Override
-    public PermanentBlobKey putPermanent(JobID jobId, InputStream inputStream) throws IOException {
+    public PermanentBlobKey putPermanent(JobID jobId,
+                                         InputStream inputStream) throws IOException {
         checkNotNull(jobId);
         return (PermanentBlobKey) putInputStream(jobId, inputStream, PERMANENT_BLOB);
     }
@@ -581,7 +604,9 @@ public class BlobServer extends Thread implements BlobService, BlobWriter, Perma
      * @throws IOException thrown if an I/O error occurs while writing it to a local file, or
      *         uploading it to the HA store
      */
-    private BlobKey putBuffer(@Nullable JobID jobId, byte[] value, BlobKey.BlobType blobType) throws IOException {
+    private BlobKey putBuffer(@Nullable JobID jobId,
+                              byte[] value,
+                              BlobKey.BlobType blobType) throws IOException {
 
         if (LOG.isDebugEnabled()) {
             LOG.debug("Received PUT call for BLOB of job {}.", jobId);
@@ -771,7 +796,8 @@ public class BlobServer extends Thread implements BlobService, BlobWriter, Perma
      *         <tt>false</tt> otherwise
      */
     @Override
-    public boolean deleteFromCache(JobID jobId, TransientBlobKey key) {
+    public boolean deleteFromCache(JobID jobId,
+                                   TransientBlobKey key) {
         checkNotNull(jobId);
         return deleteInternal(jobId, key);
     }
@@ -785,7 +811,8 @@ public class BlobServer extends Thread implements BlobService, BlobWriter, Perma
      * @return <tt>true</tt> if the given blob is successfully deleted or non-existing;
      *         <tt>false</tt> otherwise
      */
-    boolean deleteInternal(@Nullable JobID jobId, TransientBlobKey key) {
+    boolean deleteInternal(@Nullable JobID jobId,
+                           TransientBlobKey key) {
         final File localFile = new File(BlobUtils.getStorageLocationPath(storageDir.getAbsolutePath(), jobId, key));
 
         readWriteLock.writeLock().lock();
@@ -812,7 +839,8 @@ public class BlobServer extends Thread implements BlobService, BlobWriter, Perma
      * @return <tt>true</tt> if the given blob is successfully deleted or non-existing;
      *         <tt>false</tt> otherwise
      */
-    private boolean deleteInternal(JobID jobId, PermanentBlobKey key) {
+    private boolean deleteInternal(JobID jobId,
+                                   PermanentBlobKey key) {
         final File localFile = new File(BlobUtils.getStorageLocationPath(storageDir.getAbsolutePath(), jobId, key));
 
         readWriteLock.writeLock().lock();
@@ -838,7 +866,8 @@ public class BlobServer extends Thread implements BlobService, BlobWriter, Perma
      * @param key the key of this blob
      */
     @Override
-    public boolean deletePermanent(JobID jobId, PermanentBlobKey key) {
+    public boolean deletePermanent(JobID jobId,
+                                   PermanentBlobKey key) {
         return deleteInternal(jobId, key);
     }
 
@@ -852,7 +881,8 @@ public class BlobServer extends Thread implements BlobService, BlobWriter, Perma
      * @return <tt>true</tt> if the job directory is successfully deleted or non-existing;
      *         <tt>false</tt> otherwise
      */
-    public boolean cleanupJob(JobID jobId, boolean cleanupBlobStoreFiles) {
+    public boolean cleanupJob(JobID jobId,
+                              boolean cleanupBlobStoreFiles) {
         checkNotNull(jobId);
 
         final File jobDir = new File(BlobUtils.getStorageLocationPath(storageDir.getAbsolutePath(), jobId));

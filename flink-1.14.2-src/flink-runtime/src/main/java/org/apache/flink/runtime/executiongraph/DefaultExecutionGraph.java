@@ -268,7 +268,16 @@ public class DefaultExecutionGraph implements ExecutionGraph, InternalExecutionG
 
     private final EdgeManager edgeManager;
 
+    /*************************************************
+     * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+     *  注释： 当前 ExecutionGraph 的 ExecutionVertex 集合
+     */
     private final Map<ExecutionVertexID, ExecutionVertex> executionVerticesById;
+
+    /*************************************************
+     * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+     *  注释： 当前 ExecutionGraph 的 IntermediateResultPartition 集合
+     */
     private final Map<IntermediateResultPartitionID, IntermediateResultPartition> resultPartitionsById;
 
     // --------------------------------------------------------------------------------------------
@@ -753,7 +762,8 @@ public class DefaultExecutionGraph implements ExecutionGraph, InternalExecutionG
 
         /*************************************************
          * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-         *  注释：
+         *  注释： 遍历 JobGraph 中的每个顶点 JobVertex，然后创建 ExecutionGraph 中对应的
+         *  一个顶点：ExecutionJobVertex
          */
         for (JobVertex jobVertex : topologicallySorted) {
 
@@ -766,7 +776,7 @@ public class DefaultExecutionGraph implements ExecutionGraph, InternalExecutionG
             // create the execution job vertex and attach it to the graph
             /*************************************************
              * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-             *  注释：
+             *  注释： 遍历 JobGraph 中的每个顶点 JobVertex 生成一个 ExecutionJobVertex
              */
             ExecutionJobVertex ejv = new ExecutionJobVertex(this,
                     jobVertex,
@@ -779,7 +789,7 @@ public class DefaultExecutionGraph implements ExecutionGraph, InternalExecutionG
 
             /*************************************************
              * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-             *  注释：
+             *  注释： 完成上下游 ExecutionVertex 的链接 的 边的关系
              */
             ejv.connectToPredecessors(this.intermediateResults);
 
@@ -805,19 +815,28 @@ public class DefaultExecutionGraph implements ExecutionGraph, InternalExecutionG
                 }
             }
 
+            // TODO_MA 马中华 注释： 将创建的 ExecutionJobVertex 加入到 List<ExecutionJobVertex> verticesInCreationOrder 中
             this.verticesInCreationOrder.add(ejv);
             this.numVerticesTotal += ejv.getParallelism();
         }
 
         /*************************************************
          * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-         *  注释：
+         *  注释： ExecutionVertex 和 IntermediateResultPartition 的相互注册
          */
         registerExecutionVerticesAndResultPartitions(this.verticesInCreationOrder);
 
         // the topology assigning should happen before notifying new vertices to failoverStrategy
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释： 构建 DefaultExecutionTopology 为 Job 调度做准备
+         */
         executionTopology = DefaultExecutionTopology.fromExecutionGraph(this);
 
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释：
+         */
         partitionGroupReleaseStrategy = partitionGroupReleaseStrategyFactory.createInstance(getSchedulingTopology());
     }
 
@@ -1031,6 +1050,8 @@ public class DefaultExecutionGraph implements ExecutionGraph, InternalExecutionG
 
         // now do the actual state transition
         if (state == current) {
+
+            // TODO_MA 马中华 注释： 更新状态
             state = newState;
             LOG.info("Job {} ({}) switched from state {} to {}.", getJobName(), getJobID(), current, newState, error);
 
@@ -1334,6 +1355,10 @@ public class DefaultExecutionGraph implements ExecutionGraph, InternalExecutionG
 
         checkState(execution != null, "Cannot find execution for execution Id " + partitionId.getPartitionId() + ".");
 
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释：
+         */
         execution.getVertex().notifyPartitionDataAvailable(partitionId);
     }
 
@@ -1345,6 +1370,11 @@ public class DefaultExecutionGraph implements ExecutionGraph, InternalExecutionG
     @Override
     public void registerExecution(Execution exec) {
         assertRunningInJobMasterMainThread();
+
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释： 注册 Execution
+         */
         Execution previous = currentExecutions.putIfAbsent(exec.getAttemptId(), exec);
         if (previous != null) {
             failGlobal(new Exception(
@@ -1376,7 +1406,6 @@ public class DefaultExecutionGraph implements ExecutionGraph, InternalExecutionG
              *  注释：
              */
             for (ExecutionVertex executionVertex : executionJobVertex.getTaskVertices()) {
-
                 executionVerticesById.put(executionVertex.getID(), executionVertex);
                 resultPartitionsById.putAll(executionVertex.getProducedPartitions());
             }

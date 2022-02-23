@@ -107,7 +107,8 @@ public class RestartPipelinedRegionFailoverStrategy implements FailoverStrategy 
      * @return set of IDs of vertices to restart
      */
     @Override
-    public Set<ExecutionVertexID> getTasksNeedingRestart(ExecutionVertexID executionVertexId, Throwable cause) {
+    public Set<ExecutionVertexID> getTasksNeedingRestart(ExecutionVertexID executionVertexId,
+                                                         Throwable cause) {
         LOG.info("Calculating tasks to restart to recover the failed task {}.", executionVertexId);
 
         final SchedulingPipelinedRegion failedRegion = topology.getPipelinedRegionOfVertex(executionVertexId);
@@ -298,6 +299,10 @@ public class RestartPipelinedRegionFailoverStrategy implements FailoverStrategy 
         public FailoverStrategy create(final SchedulingTopology topology,
                                        final ResultPartitionAvailabilityChecker resultPartitionAvailabilityChecker) {
 
+            /*************************************************
+             * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+             *  注释：
+             */
             return new RestartPipelinedRegionFailoverStrategy(topology, resultPartitionAvailabilityChecker);
         }
     }

@@ -29,8 +29,7 @@ import java.io.Serializable;
 /**
  * Base class for responses from the ResourceManager to a registration attempt by a TaskExecutor.
  */
-public final class TaskExecutorRegistrationSuccess extends RegistrationResponse.Success
-        implements Serializable {
+public final class TaskExecutorRegistrationSuccess extends RegistrationResponse.Success implements Serializable {
 
     private static final long serialVersionUID = 1L;
 
@@ -47,10 +46,9 @@ public final class TaskExecutorRegistrationSuccess extends RegistrationResponse.
      * @param resourceManagerResourceId The unique ID that identifies the ResourceManager.
      * @param clusterInformation information about the cluster
      */
-    public TaskExecutorRegistrationSuccess(
-            InstanceID registrationId,
-            ResourceID resourceManagerResourceId,
-            ClusterInformation clusterInformation) {
+    public TaskExecutorRegistrationSuccess(InstanceID registrationId,
+                                           ResourceID resourceManagerResourceId,
+                                           ClusterInformation clusterInformation) {
         this.registrationId = Preconditions.checkNotNull(registrationId);
         this.resourceManagerResourceId = Preconditions.checkNotNull(resourceManagerResourceId);
         this.clusterInformation = Preconditions.checkNotNull(clusterInformation);
@@ -73,13 +71,6 @@ public final class TaskExecutorRegistrationSuccess extends RegistrationResponse.
 
     @Override
     public String toString() {
-        return "TaskExecutorRegistrationSuccess{"
-                + "registrationId="
-                + registrationId
-                + ", resourceManagerResourceId="
-                + resourceManagerResourceId
-                + ", clusterInformation="
-                + clusterInformation
-                + '}';
+        return "TaskExecutorRegistrationSuccess{" + "registrationId=" + registrationId + ", resourceManagerResourceId=" + resourceManagerResourceId + ", clusterInformation=" + clusterInformation + '}';
     }
 }

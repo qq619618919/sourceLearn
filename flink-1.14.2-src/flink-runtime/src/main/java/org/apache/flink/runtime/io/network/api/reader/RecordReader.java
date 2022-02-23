@@ -28,8 +28,7 @@ import java.io.IOException;
  *
  * @param <T> Thy type of the records that is read.
  */
-public class RecordReader<T extends IOReadableWritable> extends AbstractRecordReader<T>
-        implements Reader<T> {
+public class RecordReader<T extends IOReadableWritable> extends AbstractRecordReader<T> implements Reader<T> {
 
     private final Class<T> recordType;
 
@@ -66,6 +65,10 @@ public class RecordReader<T extends IOReadableWritable> extends AbstractRecordRe
 
     @Override
     public T next() throws IOException, InterruptedException {
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释：
+         */
         if (hasNext()) {
             T tmp = currentRecord;
             currentRecord = null;

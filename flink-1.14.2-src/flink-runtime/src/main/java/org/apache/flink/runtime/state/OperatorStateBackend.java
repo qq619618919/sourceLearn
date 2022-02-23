@@ -27,11 +27,7 @@ import java.io.Closeable;
  * Interface that combines both, the user facing {@link OperatorStateStore} interface and the system
  * interface {@link Snapshotable}
  */
-public interface OperatorStateBackend
-        extends OperatorStateStore,
-                Snapshotable<SnapshotResult<OperatorStateHandle>>,
-                Closeable,
-                Disposable {
+public interface OperatorStateBackend extends OperatorStateStore, Snapshotable<SnapshotResult<OperatorStateHandle>>, Closeable, Disposable {
 
     @Override
     void dispose();

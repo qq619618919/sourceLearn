@@ -53,6 +53,11 @@ import java.util.concurrent.Executor;
 import java.util.stream.Collectors;
 
 /** This handler can be used to submit jobs to a Flink cluster. */
+
+/*************************************************
+ * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+ *  注释： 当处理请求的时候，会调用： handleRequest 方法来处理请求
+ */
 public final class JobSubmitHandler extends AbstractRestHandler<DispatcherGateway, JobSubmitRequestBody, JobSubmitResponseBody, EmptyMessageParameters> {
 
     private static final String FILE_TYPE_JOB_GRAPH = "JobGraph";
@@ -82,32 +87,28 @@ public final class JobSubmitHandler extends AbstractRestHandler<DispatcherGatewa
 
         /*************************************************
          * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-         *  注释： 客户端提交过来的文件有很多
+         *  注释： 客户端提交过来的文件有喝多
          *  1、JobGraph 的文件
          *  2、jar 包
          *  3、依赖 jar包
          */
         final Collection<File> uploadedFiles = request.getUploadedFiles();
 
-        final Map<String, Path> nameToFile = uploadedFiles
-                .stream()
-                .collect(Collectors.toMap(File::getName, Path::fromLocalFile));
+        final Map<String, Path> nameToFile = uploadedFiles.stream().collect(Collectors.toMap(File::getName, Path::fromLocalFile));
 
         if (uploadedFiles.size() != nameToFile.size()) {
-            throw new RestHandlerException(String.format(
-                    "The number of uploaded files was %s than the expected count. Expected: %s Actual %s",
-                    uploadedFiles.size() < nameToFile.size() ? "lower" : "higher",
-                    nameToFile.size(),
-                    uploadedFiles.size()
-            ), HttpResponseStatus.BAD_REQUEST);
+            throw new RestHandlerException(
+                    String.format("The number of uploaded files was %s than the expected count. Expected: %s Actual %s",
+                            uploadedFiles.size() < nameToFile.size() ? "lower" : "higher", nameToFile.size(), uploadedFiles.size()),
+                    HttpResponseStatus.BAD_REQUEST);
         }
 
         final JobSubmitRequestBody requestBody = request.getRequestBody();
 
         if (requestBody.jobGraphFileName == null) {
-            throw new RestHandlerException(String.format("The %s field must not be omitted or be null.",
-                    JobSubmitRequestBody.FIELD_NAME_JOB_GRAPH
-            ), HttpResponseStatus.BAD_REQUEST);
+            throw new RestHandlerException(
+                    String.format("The %s field must not be omitted or be null.", JobSubmitRequestBody.FIELD_NAME_JOB_GRAPH),
+                    HttpResponseStatus.BAD_REQUEST);
         }
 
         /*************************************************
@@ -120,37 +121,32 @@ public final class JobSubmitHandler extends AbstractRestHandler<DispatcherGatewa
         Collection<Path> jarFiles = getJarFilesToUpload(requestBody.jarFileNames, nameToFile);
 
         // TODO_MA 马中华 注释： 得到 依赖 jar
-        Collection<Tuple2<String, Path>> artifacts = getArtifactFilesToUpload(requestBody.artifactFileNames,
-                nameToFile
-        );
+        Collection<Tuple2<String, Path>> artifacts = getArtifactFilesToUpload(requestBody.artifactFileNames, nameToFile);
 
         /*************************************************
          * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
          *  注释： 上传
          */
-        CompletableFuture<JobGraph> finalizedJobGraphFuture = uploadJobGraphFiles(gateway,
-                jobGraphFuture,
-                jarFiles,
-                artifacts,
-                configuration
-        );
+        CompletableFuture<JobGraph> finalizedJobGraphFuture = uploadJobGraphFiles(gateway, jobGraphFuture, jarFiles, artifacts,
+                configuration);
 
         /*************************************************
          * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-         *  注释：
+         *  注释： WebMonitorEndpoint 接收到 RestClient 提交的 Job 完成了接收，然后转交给 Dispatcher 进行下一步工作
          */
         CompletableFuture<Acknowledge> jobSubmissionFuture = finalizedJobGraphFuture.thenCompose(
 
                 /*************************************************
                  * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-                 *  注释：
+                 *  注释： 转交给 Dispatcher
                  */
                 jobGraph -> gateway.submitJob(jobGraph, timeout));
 
         return jobSubmissionFuture.thenCombine(jobGraphFuture,
-                (ack, jobGraph) -> new JobSubmitResponseBody("/jobs/" + jobGraph.getJobID())
-        );
+                (ack, jobGraph) -> new JobSubmitResponseBody("/jobs/" + jobGraph.getJobID()));
     }
+
+    // TODO_MA 马中华 注释： 上节课，就讲到这儿
 
     private CompletableFuture<JobGraph> loadJobGraph(JobSubmitRequestBody requestBody,
                                                      Map<String, Path> nameToFile) throws MissingFileException {
@@ -161,10 +157,8 @@ public final class JobSubmitHandler extends AbstractRestHandler<DispatcherGatewa
             try (ObjectInputStream objectIn = new ObjectInputStream(jobGraphFile.getFileSystem().open(jobGraphFile))) {
                 jobGraph = (JobGraph) objectIn.readObject();
             } catch (Exception e) {
-                throw new CompletionException(new RestHandlerException("Failed to deserialize JobGraph.",
-                        HttpResponseStatus.BAD_REQUEST,
-                        e
-                ));
+                throw new CompletionException(
+                        new RestHandlerException("Failed to deserialize JobGraph.", HttpResponseStatus.BAD_REQUEST, e));
             }
             return jobGraph;
         }, executor);
@@ -198,7 +192,8 @@ public final class JobSubmitHandler extends AbstractRestHandler<DispatcherGatewa
 
         /*************************************************
          * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-         *  注释：
+         *  注释： 当 主节点接收到一个 Job 提交的时候，会把这个 job 的相关信息，都提交到 BlobServer 中保存
+         *  返回了一堆 BlobKey  钥匙
          */
         CompletableFuture<Integer> blobServerPortFuture = gateway.getBlobServerPort(timeout);
 
@@ -209,18 +204,13 @@ public final class JobSubmitHandler extends AbstractRestHandler<DispatcherGatewa
                  * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
                  *  注释： 上传这个 job 的相关重要文件资料到 BlobServer
                  */
-                ClientUtils.uploadJobGraphFiles(jobGraph,
-                        jarFiles,
-                        artifacts,
+                ClientUtils.uploadJobGraphFiles(jobGraph, jarFiles, artifacts,
 
                         // TODO_MA 马中华 注释： 客户端一个 BlobClient 去上传 Job 的相关重要文件到 BlobServer
-                        () -> new BlobClient(address, configuration)
-                );
+                        () -> new BlobClient(address, configuration));
             } catch (FlinkException e) {
-                throw new CompletionException(new RestHandlerException("Could not upload job files.",
-                        HttpResponseStatus.INTERNAL_SERVER_ERROR,
-                        e
-                ));
+                throw new CompletionException(
+                        new RestHandlerException("Could not upload job files.", HttpResponseStatus.INTERNAL_SERVER_ERROR, e));
             }
             return jobGraph;
         });
@@ -240,7 +230,8 @@ public final class JobSubmitHandler extends AbstractRestHandler<DispatcherGatewa
 
         private static final long serialVersionUID = -7954810495610194965L;
 
-        MissingFileException(String type, String fileName) {
+        MissingFileException(String type,
+                             String fileName) {
             super(type + " file " + fileName + " could not be found on the server.", HttpResponseStatus.BAD_REQUEST);
         }
     }

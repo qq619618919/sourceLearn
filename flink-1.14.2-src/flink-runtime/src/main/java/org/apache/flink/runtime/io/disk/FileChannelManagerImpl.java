@@ -39,7 +39,10 @@ import static org.apache.flink.util.Preconditions.checkArgument;
 import static org.apache.flink.util.Preconditions.checkNotNull;
 import static org.apache.flink.util.Preconditions.checkState;
 
-/** The manager used for creating/deleting file channels based on config temp dirs. */
+/**
+ * // TODO_MA 马中华 注释： 用于根据配置临时目录创建删除文件通道的管理器。
+ * The manager used for creating/deleting file channels based on config temp dirs.
+ */
 public class FileChannelManagerImpl implements FileChannelManager {
     private static final Logger LOG = LoggerFactory.getLogger(FileChannelManagerImpl.class);
 
@@ -72,9 +75,7 @@ public class FileChannelManagerImpl implements FileChannelManager {
         this.nextPath = 0;
         this.prefix = prefix;
 
-        shutdownHook =
-                ShutdownHookUtil.addShutdownHook(
-                        this, String.format("%s-%s", getClass().getSimpleName(), prefix), LOG);
+        shutdownHook = ShutdownHookUtil.addShutdownHook(this, String.format("%s-%s", getClass().getSimpleName(), prefix), LOG);
 
         // Creates directories after registering shutdown hook to ensure the directories can be
         // removed if required.
@@ -85,19 +86,17 @@ public class FileChannelManagerImpl implements FileChannelManager {
         File[] files = new File[tempDirs.length];
         for (int i = 0; i < tempDirs.length; i++) {
             File baseDir = new File(tempDirs[i]);
-            String subfolder = String.format("flink-%s-%s", prefix, UUID.randomUUID().toString());
+            String subfolder = String.format("flink-%s-%s", prefix, UUID.randomUUID()
+                                                                        .toString());
             File storageDir = new File(baseDir, subfolder);
 
             if (!storageDir.exists() && !storageDir.mkdirs()) {
                 throw new RuntimeException(
-                        "Could not create storage directory for FileChannelManager: "
-                                + storageDir.getAbsolutePath());
+                        "Could not create storage directory for FileChannelManager: " + storageDir.getAbsolutePath());
             }
             files[i] = storageDir;
 
-            LOG.debug(
-                    "FileChannelManager uses directory {} for spill files.",
-                    storageDir.getAbsolutePath());
+            LOG.debug("FileChannelManager uses directory {} for spill files.", storageDir.getAbsolutePath());
         }
         return files;
     }
@@ -132,28 +131,21 @@ public class FileChannelManagerImpl implements FileChannelManager {
             return;
         }
 
-        IOUtils.closeAll(
-                Arrays.stream(paths)
-                        .filter(File::exists)
-                        .map(FileChannelManagerImpl::getFileCloser)
-                        .collect(Collectors.toList()));
+        IOUtils.closeAll(Arrays.stream(paths)
+                               .filter(File::exists)
+                               .map(FileChannelManagerImpl::getFileCloser)
+                               .collect(Collectors.toList()));
 
-        ShutdownHookUtil.removeShutdownHook(
-                shutdownHook, String.format("%s-%s", getClass().getSimpleName(), prefix), LOG);
+        ShutdownHookUtil.removeShutdownHook(shutdownHook, String.format("%s-%s", getClass().getSimpleName(), prefix), LOG);
     }
 
     private static AutoCloseable getFileCloser(File path) {
         return () -> {
             try {
                 FileUtils.deleteDirectory(path);
-                LOG.info(
-                        "FileChannelManager removed spill file directory {}",
-                        path.getAbsolutePath());
+                LOG.info("FileChannelManager removed spill file directory {}", path.getAbsolutePath());
             } catch (IOException e) {
-                String errorMessage =
-                        String.format(
-                                "FileChannelManager failed to properly clean up temp file directory: %s",
-                                path);
+                String errorMessage = String.format("FileChannelManager failed to properly clean up temp file directory: %s", path);
                 throw new IOException(errorMessage, e);
             }
         };

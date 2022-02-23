@@ -235,10 +235,11 @@ public class CliFrontend {
 
         /*************************************************
          * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-         *  注释：
+         *  注释： 解析各种配置， Properties = Configuration = Options 都是用来管理配置的
          */
         final ProgramOptions programOptions = ProgramOptions.create(commandLine);
 
+        // TODO_MA 马中华 注释： jar包 和 依赖jar包
         final List<URL> jobJars = getJobJarAndDependencies(programOptions);
 
         /*************************************************
@@ -255,13 +256,13 @@ public class CliFrontend {
 
         /*************************************************
          * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-         *  注释：
+         *  注释： 第一个重点： 将程序打包：PackagedProgram
          */
         try (PackagedProgram program = getPackagedProgram(programOptions, effectiveConfiguration)) {
 
             /*************************************************
              * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-             *  注释：
+             *  注释： 执行
              */
             executeProgram(effectiveConfiguration, program);
         }
@@ -764,7 +765,10 @@ public class CliFrontend {
 
         /*************************************************
          * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-         *  注释：
+         *  注释： 分三步完成：
+         *  1\首先找到 jar 中的 mainClass
+         *  2\然后通过反射创建这个 mainClass 实例
+         *  3\最后再通过反射调用 mainClass 实例的 main()
          */
         ClientUtils.executeProgram(new DefaultExecutorServiceLoader(), configuration, program, false, false);
     }
@@ -798,7 +802,7 @@ public class CliFrontend {
 
         /*************************************************
          * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-         *  注释：
+         *  注释： 建造者设计模式的应用
          */
         return PackagedProgram
                 .newBuilder()
@@ -957,6 +961,11 @@ public class CliFrontend {
 
         try (final ClusterDescriptor<ClusterID> clusterDescriptor = clusterClientFactory.createClusterDescriptor(
                 effectiveConfiguration)) {
+
+            /*************************************************
+             * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+             *  注释：
+             */
             try (final ClusterClient<ClusterID> clusterClient = clusterDescriptor
                     .retrieve(clusterId)
                     .getClusterClient()) {
@@ -1005,6 +1014,8 @@ public class CliFrontend {
         }
 
         // get action
+        // TODO_MA 马中华 注释： flink  run
+        // TODO_MA 马中华 注释： args[0] = "run"
         String action = args[0];
 
         // remove action from parameters
@@ -1012,6 +1023,7 @@ public class CliFrontend {
 
         try {
             // do action
+            // TODO_MA 马中华 注释： 一个行为对应到一个方法
             switch (action) {
 
                 /*************************************************
@@ -1073,6 +1085,10 @@ public class CliFrontend {
         }
     }
 
+    /*************************************************
+     * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+     *  注释：
+     */
     /** Submits the job based on the arguments. */
     public static void main(final String[] args) {
 
@@ -1091,6 +1107,8 @@ public class CliFrontend {
 
         int retCode = 31;
         try {
+
+            // TODO_MA 马中华 注释： CliFrontend
             final CliFrontend cli = new CliFrontend(configuration, customCommandLines);
 
             SecurityUtils.install(new SecurityConfiguration(cli.configuration));

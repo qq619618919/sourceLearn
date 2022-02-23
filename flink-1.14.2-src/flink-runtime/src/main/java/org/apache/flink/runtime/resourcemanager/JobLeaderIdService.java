@@ -25,10 +25,15 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
 /**
+ * // TODO_MA 马中华 注释： 为已注册的作业检索当前作业领导者 ID（负责该作业的作业经理的领导者 ID）的服务。
  * Service which retrieves for a registered job the current job leader id (the leader id of the job
- * manager responsible for the job). The leader id will be exposed as a future via the {@link
- * #getLeaderId(JobID)}. The future will only be completed with an exception in case the service
- * will be stopped.
+ * manager responsible for the job).
+ *
+ * // TODO_MA 马中华 注释： 领导者 ID 将通过 {@linkgetLeaderId(JobID)} 公开为未来。
+ * The leader id will be exposed as a future via the {@link#getLeaderId(JobID)}.
+ *
+ * // TODO_MA 马中华 注释： 未来只会在服务停止的情况下完成。
+ * The future will only be completed with an exception in case the service will be stopped.
  */
 public interface JobLeaderIdService {
 

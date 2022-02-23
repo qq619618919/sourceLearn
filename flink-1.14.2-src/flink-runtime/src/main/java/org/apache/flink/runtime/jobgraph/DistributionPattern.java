@@ -23,6 +23,7 @@ import org.apache.flink.runtime.executiongraph.ExecutionVertex;
 import org.apache.flink.runtime.executiongraph.IntermediateResultPartition;
 
 /**
+ * // TODO_MA 马中华 注释： 分配模式确定生产任务的哪些子任务连接到哪些消费子任务。
  * A distribution pattern determines, which sub tasks of a producing task are connected to which
  * consuming sub tasks.
  *
@@ -31,9 +32,13 @@ import org.apache.flink.runtime.executiongraph.IntermediateResultPartition;
  */
 public enum DistributionPattern {
 
+    // TODO_MA 马中华 注释： 全链接
+    // TODO_MA 马中华 注释： 每个生产子任务都连接到消费任务的每个子任务。
     /** Each producing sub task is connected to each sub task of the consuming task. */
     ALL_TO_ALL,
 
+    // TODO_MA 马中华 注释： 点对点
+    // TODO_MA 马中华 注释： 每个生产子任务都连接到消费任务的一个或多个子任务。
     /** Each producing sub task is connected to one or more subtask(s) of the consuming task. */
     POINTWISE
 }

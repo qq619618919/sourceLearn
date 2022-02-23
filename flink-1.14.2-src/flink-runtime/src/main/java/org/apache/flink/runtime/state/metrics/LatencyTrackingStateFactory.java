@@ -35,18 +35,16 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 /** Factory to create {@link AbstractLatencyTrackState}. */
-public class LatencyTrackingStateFactory<
-        K, N, V, S extends State, IS extends InternalKvState<K, N, ?>> {
+public class LatencyTrackingStateFactory<K, N, V, S extends State, IS extends InternalKvState<K, N, ?>> {
 
     private final InternalKvState<K, N, ?> kvState;
     private final StateDescriptor<S, V> stateDescriptor;
     private final LatencyTrackingStateConfig latencyTrackingStateConfig;
     private final Map<StateDescriptor.Type, SupplierWithException<IS, Exception>> stateFactories;
 
-    private LatencyTrackingStateFactory(
-            InternalKvState<K, N, ?> kvState,
-            StateDescriptor<S, V> stateDescriptor,
-            LatencyTrackingStateConfig latencyTrackingStateConfig) {
+    private LatencyTrackingStateFactory(InternalKvState<K, N, ?> kvState,
+                                        StateDescriptor<S, V> stateDescriptor,
+                                        LatencyTrackingStateConfig latencyTrackingStateConfig) {
         this.kvState = kvState;
         this.stateDescriptor = stateDescriptor;
         this.latencyTrackingStateConfig = latencyTrackingStateConfig;
@@ -54,49 +52,50 @@ public class LatencyTrackingStateFactory<
     }
 
     /** Create latency tracking state if enabled. */
-    public static <K, N, V, S extends State>
-            InternalKvState<K, N, ?> createStateAndWrapWithLatencyTrackingIfEnabled(
-                    InternalKvState<K, N, ?> kvState,
-                    StateDescriptor<S, V> stateDescriptor,
-                    LatencyTrackingStateConfig latencyTrackingStateConfig)
-                    throws Exception {
+    public static <K, N, V, S extends State> InternalKvState<K, N, ?> createStateAndWrapWithLatencyTrackingIfEnabled(
+            InternalKvState<K, N, ?> kvState,
+            StateDescriptor<S, V> stateDescriptor,
+            LatencyTrackingStateConfig latencyTrackingStateConfig) throws Exception {
         if (latencyTrackingStateConfig.isEnabled()) {
-            return new LatencyTrackingStateFactory<>(
-                            kvState, stateDescriptor, latencyTrackingStateConfig)
-                    .createState();
+
+            // TODO_MA 马中华 注释：
+            return new LatencyTrackingStateFactory<>(kvState,
+                    stateDescriptor,
+                    latencyTrackingStateConfig
+            ).createState();
         }
         return kvState;
     }
 
     private Map<StateDescriptor.Type, SupplierWithException<IS, Exception>> createStateFactories() {
-        return Stream.of(
-                        Tuple2.of(
-                                StateDescriptor.Type.VALUE,
-                                (SupplierWithException<IS, Exception>) this::createValueState),
-                        Tuple2.of(
-                                StateDescriptor.Type.LIST,
-                                (SupplierWithException<IS, Exception>) this::createListState),
-                        Tuple2.of(
-                                StateDescriptor.Type.MAP,
-                                (SupplierWithException<IS, Exception>) this::createMapState),
-                        Tuple2.of(
-                                StateDescriptor.Type.REDUCING,
-                                (SupplierWithException<IS, Exception>) this::createReducingState),
-                        Tuple2.of(
-                                StateDescriptor.Type.AGGREGATING,
-                                (SupplierWithException<IS, Exception>)
-                                        this::createAggregatingState))
+        return Stream
+                .of(Tuple2.of(StateDescriptor.Type.VALUE,
+                                (SupplierWithException<IS, Exception>) this::createValueState
+                        ),
+                        Tuple2.of(StateDescriptor.Type.LIST,
+                                (SupplierWithException<IS, Exception>) this::createListState
+                        ),
+                        Tuple2.of(StateDescriptor.Type.MAP,
+                                (SupplierWithException<IS, Exception>) this::createMapState
+                        ),
+                        Tuple2.of(StateDescriptor.Type.REDUCING,
+                                (SupplierWithException<IS, Exception>) this::createReducingState
+                        ),
+                        Tuple2.of(StateDescriptor.Type.AGGREGATING,
+                                (SupplierWithException<IS, Exception>) this::createAggregatingState
+                        )
+                )
                 .collect(Collectors.toMap(t -> t.f0, t -> t.f1));
     }
 
     private IS createState() throws Exception {
-        SupplierWithException<IS, Exception> stateFactory =
-                stateFactories.get(stateDescriptor.getType());
+        // TODO_MA 马中华 注释：
+        SupplierWithException<IS, Exception> stateFactory = stateFactories.get(stateDescriptor.getType());
         if (stateFactory == null) {
-            String message =
-                    String.format(
-                            "State %s is not supported by %s",
-                            stateDescriptor.getClass(), LatencyTrackingStateFactory.class);
+            String message = String.format("State %s is not supported by %s",
+                    stateDescriptor.getClass(),
+                    LatencyTrackingStateFactory.class
+            );
             throw new FlinkRuntimeException(message);
         }
         return stateFactory.get();
@@ -104,46 +103,41 @@ public class LatencyTrackingStateFactory<
 
     @SuppressWarnings({"unchecked"})
     private IS createValueState() {
-        return (IS)
-                new LatencyTrackingValueState<>(
-                        stateDescriptor.getName(),
-                        (InternalValueState<K, N, V>) kvState,
-                        latencyTrackingStateConfig);
+        return (IS) new LatencyTrackingValueState<>(stateDescriptor.getName(),
+                (InternalValueState<K, N, V>) kvState,
+                latencyTrackingStateConfig
+        );
     }
 
     @SuppressWarnings({"unchecked"})
     private IS createListState() {
-        return (IS)
-                new LatencyTrackingListState<>(
-                        stateDescriptor.getName(),
-                        (InternalListState<K, N, V>) kvState,
-                        latencyTrackingStateConfig);
+        return (IS) new LatencyTrackingListState<>(stateDescriptor.getName(),
+                (InternalListState<K, N, V>) kvState,
+                latencyTrackingStateConfig
+        );
     }
 
     @SuppressWarnings({"unchecked"})
     private <UK, UV> IS createMapState() {
-        return (IS)
-                new LatencyTrackingMapState<>(
-                        stateDescriptor.getName(),
-                        (InternalMapState<K, N, UK, UV>) kvState,
-                        latencyTrackingStateConfig);
+        return (IS) new LatencyTrackingMapState<>(stateDescriptor.getName(),
+                (InternalMapState<K, N, UK, UV>) kvState,
+                latencyTrackingStateConfig
+        );
     }
 
     @SuppressWarnings({"unchecked"})
     private IS createReducingState() {
-        return (IS)
-                new LatencyTrackingReducingState<>(
-                        stateDescriptor.getName(),
-                        (InternalReducingState<K, N, V>) kvState,
-                        latencyTrackingStateConfig);
+        return (IS) new LatencyTrackingReducingState<>(stateDescriptor.getName(),
+                (InternalReducingState<K, N, V>) kvState,
+                latencyTrackingStateConfig
+        );
     }
 
     @SuppressWarnings({"unchecked"})
     private <IN, SV, OUT> IS createAggregatingState() {
-        return (IS)
-                new LatencyTrackingAggregatingState<>(
-                        stateDescriptor.getName(),
-                        (InternalAggregatingState<K, N, IN, SV, OUT>) kvState,
-                        latencyTrackingStateConfig);
+        return (IS) new LatencyTrackingAggregatingState<>(stateDescriptor.getName(),
+                (InternalAggregatingState<K, N, IN, SV, OUT>) kvState,
+                latencyTrackingStateConfig
+        );
     }
 }

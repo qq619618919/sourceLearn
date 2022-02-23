@@ -41,15 +41,9 @@ public class ShuffleEnvironmentContext {
 
     private final Executor ioExecutor;
 
-    public ShuffleEnvironmentContext(
-            Configuration configuration,
-            ResourceID taskExecutorResourceId,
-            MemorySize networkMemorySize,
-            boolean localCommunicationOnly,
-            InetAddress hostAddress,
-            TaskEventPublisher eventPublisher,
-            MetricGroup parentMetricGroup,
-            Executor ioExecutor) {
+    public ShuffleEnvironmentContext(Configuration configuration, ResourceID taskExecutorResourceId, MemorySize networkMemorySize,
+                                     boolean localCommunicationOnly, InetAddress hostAddress, TaskEventPublisher eventPublisher,
+                                     MetricGroup parentMetricGroup, Executor ioExecutor) {
         this.configuration = checkNotNull(configuration);
         this.taskExecutorResourceId = checkNotNull(taskExecutorResourceId);
         this.networkMemorySize = networkMemorySize;

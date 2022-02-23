@@ -88,8 +88,8 @@ import static org.apache.flink.util.Preconditions.checkNotNull;
  * // TODO_MA 马中华 注释： 实现一些业务
  * // TODO_MA 马中华 注释： RpcEndpoint 有两个重要的实现： 主节点的工作组件 ResourceManager， 从节点的工作组件 TaskExecutor
  * // TODO_MA 马中华 注释： 非常重要的两个对象
- * // TODO_MA 马中华 注释： 再补充两个
- * // TODO_MA 马中华 注释： JobMaster   Dispatcher
+ * // TODO_MA 马中华 注释： 再补充两个 JobMaster   Dispatcher
+ * // TODO_MA 马中华 注释： 重要：  ResourceManager  TaskExecutor
  */
 public abstract class RpcEndpoint implements RpcGateway, AutoCloseableAsync {
 
@@ -183,6 +183,9 @@ public abstract class RpcEndpoint implements RpcGateway, AutoCloseableAsync {
      * endpoint is ready to process remote procedure calls.
      */
     public final void start() {
+
+        // TODO_MA 马中华 注释： StandaloneDispatcher 是一个 RpcEndpoint
+        // TODO_MA 马中华 注释： 启动了，执行 StandaloneDispatcher 的 onStart()
         rpcServer.start();
     }
 
@@ -257,6 +260,10 @@ public abstract class RpcEndpoint implements RpcGateway, AutoCloseableAsync {
      */
     @Override
     public final CompletableFuture<Void> closeAsync() {
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释：
+         */
         rpcService.stopServer(rpcServer);
         return getTerminationFuture();
     }

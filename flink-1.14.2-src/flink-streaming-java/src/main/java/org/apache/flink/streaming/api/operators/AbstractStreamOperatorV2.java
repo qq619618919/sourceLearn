@@ -66,9 +66,8 @@ import java.util.Optional;
 import static org.apache.flink.util.Preconditions.checkState;
 
 /**
- * New base class for all stream operators, intended to eventually replace {@link
- * AbstractStreamOperator}. Currently intended to work smoothly just with {@link
- * MultipleInputStreamOperator}.
+ * New base class for all stream operators, intended to eventually replace {@link AbstractStreamOperator}.
+ * Currently intended to work smoothly just with {@link MultipleInputStreamOperator}.
  *
  * <p>One note-able difference in comparison to {@link AbstractStreamOperator} is lack of {@link
  * AbstractStreamOperator#setup(StreamTask, StreamConfig, Output)} in favor of initialisation in the
@@ -80,6 +79,7 @@ import static org.apache.flink.util.Preconditions.checkState;
  */
 @Experimental
 public abstract class AbstractStreamOperatorV2<OUT> implements StreamOperator<OUT>, CheckpointedStreamOperator {
+
     /** The logger used by the operator class and its subclasses. */
     protected static final Logger LOG = LoggerFactory.getLogger(AbstractStreamOperatorV2.class);
 
@@ -211,7 +211,13 @@ public abstract class AbstractStreamOperatorV2<OUT> implements StreamOperator<OU
         );
 
         stateHandler = new StreamOperatorStateHandler(context, getExecutionConfig(), cancelables);
+
         timeServiceManager = context.internalTimerServiceManager();
+
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释：
+         */
         stateHandler.initializeOperatorState(this);
     }
 

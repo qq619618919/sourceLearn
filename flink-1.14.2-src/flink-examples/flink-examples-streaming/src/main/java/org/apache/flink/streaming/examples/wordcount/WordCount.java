@@ -49,6 +49,7 @@ public class WordCount {
     // PROGRAM
     // *************************************************************************
 
+    // TODO_MA 马中华 注释： 5 个大步骤
     public static void main(String[] args) throws Exception {
 
         // Checking input parameters
@@ -58,6 +59,8 @@ public class WordCount {
         /*************************************************
          * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
          *  注释： 1、spark:  SparkSession (SparkContext)
+         *  1、 其实需要关注内部的一个成员变量： List transformatioins
+         *  2、 关于配置的解析，checkpoint 有用
          */
         final StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
 
@@ -131,7 +134,8 @@ public class WordCount {
     public static final class Tokenizer implements FlatMapFunction<String, Tuple2<String, Integer>> {
 
         @Override
-        public void flatMap(String value, Collector<Tuple2<String, Integer>> out) {
+        public void flatMap(String value,
+                            Collector<Tuple2<String, Integer>> out) {
             // normalize and split the line
             String[] tokens = value.toLowerCase().split("\\W+");
 

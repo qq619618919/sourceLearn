@@ -168,18 +168,28 @@ public final class GlobalConfiguration {
 
         final Configuration config = new Configuration();
 
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释： BufferedReader
+         */
         try (BufferedReader reader = new BufferedReader(new InputStreamReader(new FileInputStream(file)))) {
 
             String line;
             int lineNo = 0;
+
+            // TODO_MA 马中华 注释： 读取一行
             while ((line = reader.readLine()) != null) {
                 lineNo++;
+
+                // TODO_MA 马中华 注释： 注释，不要了
                 // 1. check for comments
                 String[] comments = line.split("#", 2);
                 String conf = comments[0].trim();
 
                 // 2. get key and value
                 if (conf.length() > 0) {
+
+                    // TODO_MA 马中华 注释： 切割
                     String[] kv = conf.split(": ", 2);
 
                     // skip line with no valid key-value pair
@@ -190,7 +200,10 @@ public final class GlobalConfiguration {
                         continue;
                     }
 
+                    // TODO_MA 马中华 注释： key
                     String key = kv[0].trim();
+
+                    // TODO_MA 马中华 注释： value
                     String value = kv[1].trim();
 
                     // sanity check

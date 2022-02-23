@@ -32,8 +32,8 @@ import java.io.IOException;
 public class RocksDBStateBackendFactory implements StateBackendFactory<RocksDBStateBackend> {
 
     @Override
-    public RocksDBStateBackend createFromConfig(ReadableConfig config, ClassLoader classLoader)
-            throws IllegalConfigurationException, IOException {
+    public RocksDBStateBackend createFromConfig(ReadableConfig config,
+                                                ClassLoader classLoader) throws IllegalConfigurationException, IOException {
 
         // we need to explicitly read the checkpoint directory here, because that
         // is a required constructor parameter
@@ -41,11 +41,12 @@ public class RocksDBStateBackendFactory implements StateBackendFactory<RocksDBSt
         if (checkpointDirURI == null) {
             throw new IllegalConfigurationException(
                     "Cannot create the RocksDB state backend: The configuration does not specify the "
-                            + "checkpoint directory '"
-                            + CheckpointingOptions.CHECKPOINTS_DIRECTORY.key()
-                            + '\'');
+                            + "checkpoint directory '" + CheckpointingOptions.CHECKPOINTS_DIRECTORY.key() + '\'');
         }
-
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释：
+         */
         return new RocksDBStateBackend(checkpointDirURI).configure(config, classLoader);
     }
 }

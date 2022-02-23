@@ -25,11 +25,14 @@ import org.apache.flink.runtime.state.StateBackendFactory;
 
 /** A factory that creates an {@link EmbeddedRocksDBStateBackend} from a configuration. */
 @PublicEvolving
-public class EmbeddedRocksDBStateBackendFactory
-        implements StateBackendFactory<EmbeddedRocksDBStateBackend> {
+public class EmbeddedRocksDBStateBackendFactory implements StateBackendFactory<EmbeddedRocksDBStateBackend> {
     @Override
-    public EmbeddedRocksDBStateBackend createFromConfig(
-            ReadableConfig config, ClassLoader classLoader) throws IllegalConfigurationException {
+    public EmbeddedRocksDBStateBackend createFromConfig(ReadableConfig config,
+                                                        ClassLoader classLoader) throws IllegalConfigurationException {
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释：
+         */
         return new EmbeddedRocksDBStateBackend().configure(config, classLoader);
     }
 }

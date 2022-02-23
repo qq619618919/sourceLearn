@@ -29,12 +29,14 @@ public enum ShuffleServiceLoader {
     ;
 
     public static ShuffleServiceFactory<?, ?, ?> loadShuffleServiceFactory(Configuration configuration) throws FlinkException {
+
+        // TODO_MA 马中华 注释： shuffle-service-factory.class = org.apache.flink.runtime.io.network.NettyShuffleServiceFactory
         String shuffleServiceClassName = configuration.getString(SHUFFLE_SERVICE_FACTORY_CLASS);
         ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
 
         /*************************************************
          * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-         *  注释：
+         *  注释： 通过反射创建 NettyShuffleServiceFactory
          */
         return InstantiationUtil.instantiate(shuffleServiceClassName, ShuffleServiceFactory.class, classLoader);
     }

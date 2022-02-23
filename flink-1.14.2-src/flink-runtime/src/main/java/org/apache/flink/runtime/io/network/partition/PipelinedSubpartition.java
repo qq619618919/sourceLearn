@@ -66,8 +66,7 @@ import static org.apache.flink.util.Preconditions.checkState;
  * PipelinedSubpartitionView#notifyDataAvailable() notification} for any {@link BufferConsumer}
  * present in the queue.
  */
-public class PipelinedSubpartition extends ResultSubpartition
-        implements CheckpointedResultSubpartition, ChannelStateHolder {
+public class PipelinedSubpartition extends ResultSubpartition implements CheckpointedResultSubpartition, ChannelStateHolder {
 
     private static final Logger LOG = LoggerFactory.getLogger(PipelinedSubpartition.class);
 
@@ -80,8 +79,7 @@ public class PipelinedSubpartition extends ResultSubpartition
     private final int receiverExclusiveBuffersPerChannel;
 
     /** All buffers of this subpartition. Access to the buffers is synchronized on this object. */
-    final PrioritizedDeque<BufferConsumerWithPartialRecordLength> buffers =
-            new PrioritizedDeque<>();
+    final PrioritizedDeque<BufferConsumerWithPartialRecordLength> buffers = new PrioritizedDeque<>();
 
     /** The number of non-event buffers currently in this subpartition. */
     @GuardedBy("buffers")
@@ -121,13 +119,9 @@ public class PipelinedSubpartition extends ResultSubpartition
 
     // ------------------------------------------------------------------------
 
-    PipelinedSubpartition(
-            int index, int receiverExclusiveBuffersPerChannel, ResultPartition parent) {
+    PipelinedSubpartition(int index, int receiverExclusiveBuffersPerChannel, ResultPartition parent) {
         super(index, parent);
-
-        checkArgument(
-                receiverExclusiveBuffersPerChannel >= 0,
-                "Buffers per channel must be non-negative.");
+        checkArgument(receiverExclusiveBuffersPerChannel >= 0, "Buffers per channel must be non-negative.");
         this.receiverExclusiveBuffersPerChannel = receiverExclusiveBuffersPerChannel;
     }
 
@@ -144,11 +138,11 @@ public class PipelinedSubpartition extends ResultSubpartition
 
     @Override
     public void addRecovered(BufferConsumer bufferConsumer) throws IOException {
-        NetworkActionsLogger.traceRecover(
-                "PipelinedSubpartition#addRecovered",
+        NetworkActionsLogger.traceRecover("PipelinedSubpartition#addRecovered",
                 bufferConsumer,
                 parent.getOwningTaskName(),
-                subpartitionInfo);
+                subpartitionInfo
+        );
         if (add(bufferConsumer, Integer.MIN_VALUE) == -1) {
             throw new IOException("Buffer consumer couldn't be added to ResultSubpartition");
         }
@@ -211,15 +205,14 @@ public class PipelinedSubpartition extends ResultSubpartition
     }
 
     private boolean processPriorityBuffer(BufferConsumer bufferConsumer, int partialRecordLength) {
-        buffers.addPriorityElement(
-                new BufferConsumerWithPartialRecordLength(bufferConsumer, partialRecordLength));
+        buffers.addPriorityElement(new BufferConsumerWithPartialRecordLength(bufferConsumer, partialRecordLength));
         final int numPriorityElements = buffers.getNumPriorityElements();
 
         CheckpointBarrier barrier = parseCheckpointBarrier(bufferConsumer);
         if (barrier != null) {
-            checkState(
-                    barrier.getCheckpointOptions().isUnalignedCheckpoint(),
-                    "Only unaligned checkpoints should be priority events");
+            checkState(barrier.getCheckpointOptions().isUnalignedCheckpoint(),
+                    "Only unaligned checkpoints should be priority events"
+            );
             final Iterator<BufferConsumerWithPartialRecordLength> iterator = buffers.iterator();
             Iterators.advance(iterator, numPriorityElements);
             List<Buffer> inflightBuffers = new ArrayList<>();
@@ -233,15 +226,14 @@ public class PipelinedSubpartition extends ResultSubpartition
                 }
             }
             if (!inflightBuffers.isEmpty()) {
-                channelStateWriter.addOutputData(
-                        barrier.getId(),
+                channelStateWriter.addOutputData(barrier.getId(),
                         subpartitionInfo,
                         ChannelStateWriter.SEQUENCE_NUMBER_UNKNOWN,
-                        inflightBuffers.toArray(new Buffer[0]));
+                        inflightBuffers.toArray(new Buffer[0])
+                );
             }
         }
-        return numPriorityElements == 1
-                && !isBlocked; // if subpartition is blocked then downstream doesn't expect any
+        return numPriorityElements == 1 && !isBlocked; // if subpartition is blocked then downstream doesn't expect any
         // notifications
     }
 
@@ -251,12 +243,10 @@ public class PipelinedSubpartition extends ResultSubpartition
         try (BufferConsumer bc = bufferConsumer.copy()) {
             Buffer buffer = bc.build();
             try {
-                final AbstractEvent event =
-                        EventSerializer.fromBuffer(buffer, getClass().getClassLoader());
+                final AbstractEvent event = EventSerializer.fromBuffer(buffer, getClass().getClassLoader());
                 barrier = event instanceof CheckpointBarrier ? (CheckpointBarrier) event : null;
             } catch (IOException e) {
-                throw new IllegalStateException(
-                        "Should always be able to deserialize in-memory event", e);
+                throw new IllegalStateException("Should always be able to deserialize in-memory event", e);
             } finally {
                 buffer.recycleBuffer();
             }
@@ -308,16 +298,14 @@ public class PipelinedSubpartition extends ResultSubpartition
             }
 
             while (!buffers.isEmpty()) {
-                BufferConsumerWithPartialRecordLength bufferConsumerWithPartialRecordLength =
-                        buffers.peek();
-                BufferConsumer bufferConsumer =
-                        bufferConsumerWithPartialRecordLength.getBufferConsumer();
+                BufferConsumerWithPartialRecordLength bufferConsumerWithPartialRecordLength = buffers.peek();
+                BufferConsumer bufferConsumer = bufferConsumerWithPartialRecordLength.getBufferConsumer();
 
                 buffer = buildSliceBuffer(bufferConsumerWithPartialRecordLength);
 
-                checkState(
-                        bufferConsumer.isFinished() || buffers.size() == 1,
-                        "When there are multiple buffers, an unfinished bufferConsumer can not be at the head of the buffers queue.");
+                checkState(bufferConsumer.isFinished() || buffers.size() == 1,
+                        "When there are multiple buffers, an unfinished bufferConsumer can not be at the head of the buffers queue."
+                );
 
                 if (buffers.size() == 1) {
                     // turn off flushRequested flag if we drained all of the available data
@@ -363,16 +351,16 @@ public class PipelinedSubpartition extends ResultSubpartition
             // It will be reported for reading either on flush or when the number of buffers in the
             // queue
             // will be 2 or more.
-            NetworkActionsLogger.traceOutput(
-                    "PipelinedSubpartition#pollBuffer",
+            NetworkActionsLogger.traceOutput("PipelinedSubpartition#pollBuffer",
                     buffer,
                     parent.getOwningTaskName(),
-                    subpartitionInfo);
-            return new BufferAndBacklog(
-                    buffer,
+                    subpartitionInfo
+            );
+            return new BufferAndBacklog(buffer,
                     getBuffersInBacklogUnsafe(),
                     isDataAvailableUnsafe() ? getNextBufferTypeUnsafe() : Buffer.DataType.NONE,
-                    sequenceNumber++);
+                    sequenceNumber++
+            );
         }
     }
 
@@ -394,31 +382,33 @@ public class PipelinedSubpartition extends ResultSubpartition
     }
 
     @Override
-    public PipelinedSubpartitionView createReadView(
-            BufferAvailabilityListener availabilityListener) {
+    public PipelinedSubpartitionView createReadView(BufferAvailabilityListener availabilityListener) {
         synchronized (buffers) {
             checkState(!isReleased);
-            checkState(
-                    readView == null,
+            checkState(readView == null,
                     "Subpartition %s of is being (or already has been) consumed, "
                             + "but pipelined subpartitions can only be consumed once.",
                     getSubPartitionIndex(),
-                    parent.getPartitionId());
+                    parent.getPartitionId()
+            );
 
-            LOG.debug(
-                    "{}: Creating read view for subpartition {} of partition {}.",
+            LOG.debug("{}: Creating read view for subpartition {} of partition {}.",
                     parent.getOwningTaskName(),
                     getSubPartitionIndex(),
-                    parent.getPartitionId());
+                    parent.getPartitionId()
+            );
 
+            /*************************************************
+             * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+             *  注释：
+             */
             readView = new PipelinedSubpartitionView(this, availabilityListener);
         }
 
         return readView;
     }
 
-    public ResultSubpartitionView.AvailabilityWithBacklog getAvailabilityAndBacklog(
-            int numCreditsAvailable) {
+    public ResultSubpartitionView.AvailabilityWithBacklog getAvailabilityAndBacklog(int numCreditsAvailable) {
         synchronized (buffers) {
             boolean isAvailable;
             if (numCreditsAvailable > 0) {
@@ -426,8 +416,7 @@ public class PipelinedSubpartition extends ResultSubpartition
             } else {
                 isAvailable = getNextBufferTypeUnsafe().isEvent();
             }
-            return new ResultSubpartitionView.AvailabilityWithBacklog(
-                    isAvailable, getBuffersInBacklogUnsafe());
+            return new ResultSubpartitionView.AvailabilityWithBacklog(isAvailable, getBuffersInBacklogUnsafe());
         }
     }
 
@@ -488,7 +477,8 @@ public class PipelinedSubpartition extends ResultSubpartition
                 numBytes,
                 getBuffersInBacklogUnsafe(),
                 finished,
-                hasReadView);
+                hasReadView
+        );
     }
 
     @Override
@@ -511,6 +501,11 @@ public class PipelinedSubpartition extends ResultSubpartition
             notifyDataAvailable = !isBlocked && isDataAvailableInUnfinishedBuffer;
             flushRequested = buffers.size() > 1 || isDataAvailableInUnfinishedBuffer;
         }
+
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释：
+         */
         if (notifyDataAvailable) {
             notifyDataAvailable();
         }
@@ -566,9 +561,7 @@ public class PipelinedSubpartition extends ResultSubpartition
             return 0;
         }
 
-        if (flushRequested
-                || isFinished
-                || !checkNotNull(buffers.peekLast()).getBufferConsumer().isBuffer()) {
+        if (flushRequested || isFinished || !checkNotNull(buffers.peekLast()).getBufferConsumer().isBuffer()) {
             return buffersInBacklog;
         } else {
             return Math.max(buffersInBacklog - 1, 0);
@@ -578,15 +571,17 @@ public class PipelinedSubpartition extends ResultSubpartition
     @GuardedBy("buffers")
     private boolean shouldNotifyDataAvailable() {
         // Notify only when we added first finished buffer.
-        return readView != null
-                && !flushRequested
-                && !isBlocked
-                && getNumberOfFinishedBuffers() == 1;
+        return readView != null && !flushRequested && !isBlocked && getNumberOfFinishedBuffers() == 1;
     }
 
     private void notifyDataAvailable() {
+        // TODO_MA 马中华 注释：
         final PipelinedSubpartitionView readView = this.readView;
         if (readView != null) {
+            /*************************************************
+             * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+             *  注释：
+             */
             readView.notifyDataAvailable();
         }
     }

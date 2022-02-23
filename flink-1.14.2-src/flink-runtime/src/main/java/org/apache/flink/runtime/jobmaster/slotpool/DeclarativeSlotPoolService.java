@@ -85,11 +85,12 @@ public class DeclarativeSlotPoolService implements SlotPoolService {
         this.rpcTimeout = rpcTimeout;
         this.registeredTaskManagers = new HashSet<>();
 
-        this.declarativeSlotPool = declarativeSlotPoolFactory.create(jobId,
-                this::declareResourceRequirements,
-                idleSlotTimeout,
-                rpcTimeout
-        );
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释： accept()  = this::declareResourceRequirements()
+         */
+        this.declarativeSlotPool = declarativeSlotPoolFactory.create(jobId, this::declareResourceRequirements, idleSlotTimeout,
+                rpcTimeout);
     }
 
     protected DeclarativeSlotPool getDeclarativeSlotPool() {
@@ -105,7 +106,6 @@ public class DeclarativeSlotPoolService implements SlotPoolService {
         if (clazz.isAssignableFrom(declarativeSlotPool.getClass())) {
             return Optional.of(clazz.cast(declarativeSlotPool));
         }
-
         return Optional.empty();
     }
 
@@ -118,12 +118,14 @@ public class DeclarativeSlotPoolService implements SlotPoolService {
         this.jobMasterId = Preconditions.checkNotNull(jobMasterId);
         this.jobManagerAddress = Preconditions.checkNotNull(address);
 
+        // TODO_MA 马中华 注释： DefaultDeclareResourceRequirementServiceConnectionManager
+        // TODO_MA 马中华 注释： 专门用来做资源申请的
         this.resourceRequirementServiceConnectionManager = DefaultDeclareResourceRequirementServiceConnectionManager.create(
                 mainThreadExecutor);
 
         /*************************************************
          * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-         *  注释：
+         *  注释： 启动两个定时任务
          */
         onStart(mainThreadExecutor);
 
@@ -180,11 +182,7 @@ public class DeclarativeSlotPoolService implements SlotPoolService {
          * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
          *  注释：
          */
-        return declarativeSlotPool.offerSlots(offers,
-                taskManagerLocation,
-                taskManagerGateway,
-                clock.relativeTimeMillis()
-        );
+        return declarativeSlotPool.offerSlots(offers, taskManagerLocation, taskManagerGateway, clock.relativeTimeMillis());
     }
 
     boolean isTaskManagerRegistered(ResourceID taskManagerId) {
@@ -198,8 +196,7 @@ public class DeclarativeSlotPoolService implements SlotPoolService {
         assertHasBeenStarted();
         Preconditions.checkNotNull(allocationId);
         Preconditions.checkNotNull(taskManagerId,
-                "This slot pool only supports failAllocation calls coming from the TaskExecutor."
-        );
+                "This slot pool only supports failAllocation calls coming from the TaskExecutor.");
 
         final ResourceCounter previouslyFulfilledRequirements = declarativeSlotPool.releaseSlot(allocationId, cause);
 
@@ -230,7 +227,8 @@ public class DeclarativeSlotPoolService implements SlotPoolService {
     }
 
     @Override
-    public boolean releaseTaskManager(ResourceID taskManagerId, Exception cause) {
+    public boolean releaseTaskManager(ResourceID taskManagerId,
+                                      Exception cause) {
         assertHasBeenStarted();
 
         if (registeredTaskManagers.remove(taskManagerId)) {
@@ -249,7 +247,8 @@ public class DeclarativeSlotPoolService implements SlotPoolService {
         registeredTaskManagers.clear();
     }
 
-    private void internalReleaseTaskManager(ResourceID taskManagerId, Exception cause) {
+    private void internalReleaseTaskManager(ResourceID taskManagerId,
+                                            Exception cause) {
         assertHasBeenStarted();
 
         final ResourceCounter previouslyFulfilledRequirement = declarativeSlotPool.releaseSlots(taskManagerId, cause);
@@ -274,22 +273,35 @@ public class DeclarativeSlotPoolService implements SlotPoolService {
          * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
          *  注释：
          */
-        resourceRequirementServiceConnectionManager.connect(resourceRequirements -> resourceManagerGateway.declareRequiredResources(
-                jobMasterId,
-                resourceRequirements,
-                rpcTimeout
-        ));
+        resourceRequirementServiceConnectionManager.connect(
 
+                /*************************************************
+                 * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+                 *  注释： 这个地方，就是 JobMaster 发送 RPC 请求给 ResourceManager 申请资源
+                 */
+                resourceRequirements -> resourceManagerGateway.declareRequiredResources(jobMasterId, resourceRequirements,
+                        rpcTimeout));
+
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释：
+         */
         declareResourceRequirements(declarativeSlotPool.getResourceRequirements());
     }
 
+    /*************************************************
+     * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+     *  注释： 开始申请资源
+     */
     private void declareResourceRequirements(Collection<ResourceRequirement> resourceRequirements) {
         assertHasBeenStarted();
 
-        resourceRequirementServiceConnectionManager.declareResourceRequirements(ResourceRequirements.create(jobId,
-                jobManagerAddress,
-                resourceRequirements
-        ));
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释： 开始 声明式 资源申请了。
+         */
+        resourceRequirementServiceConnectionManager.declareResourceRequirements(
+                ResourceRequirements.create(jobId, jobManagerAddress, resourceRequirements));
     }
 
     @Override
@@ -307,9 +319,7 @@ public class DeclarativeSlotPoolService implements SlotPoolService {
 
         for (SlotInfo slotInfo : declarativeSlotPool.getAllSlotsInformation()) {
             if (slotInfo.getTaskManagerLocation().getResourceID().equals(taskManagerId)) {
-                allocatedSlotInfos.add(new AllocatedSlotInfo(slotInfo.getPhysicalSlotNumber(),
-                        slotInfo.getAllocationId()
-                ));
+                allocatedSlotInfos.add(new AllocatedSlotInfo(slotInfo.getPhysicalSlotNumber(), slotInfo.getAllocationId()));
             }
         }
         return new AllocatedSlotReport(jobId, allocatedSlotInfos);
@@ -322,10 +332,7 @@ public class DeclarativeSlotPoolService implements SlotPoolService {
     }
 
     protected String getSlotServiceStatus() {
-        return String.format("Registered TMs: %d, registered slots: %d free slots: %d",
-                registeredTaskManagers.size(),
-                declarativeSlotPool.getAllSlotsInformation().size(),
-                declarativeSlotPool.getFreeSlotsInformation().size()
-        );
+        return String.format("Registered TMs: %d, registered slots: %d free slots: %d", registeredTaskManagers.size(),
+                declarativeSlotPool.getAllSlotsInformation().size(), declarativeSlotPool.getFreeSlotsInformation().size());
     }
 }

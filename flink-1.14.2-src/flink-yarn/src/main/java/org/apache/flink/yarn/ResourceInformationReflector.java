@@ -43,23 +43,27 @@ class ResourceInformationReflector {
     static final ResourceInformationReflector INSTANCE = new ResourceInformationReflector();
 
     /** Class used to set the extended resource. */
-    private static final String RESOURCE_INFO_CLASS =
-            "org.apache.hadoop.yarn.api.records.ResourceInformation";
+    private static final String RESOURCE_INFO_CLASS = "org.apache.hadoop.yarn.api.records.ResourceInformation";
 
     /** Could be Null iff isYarnResourceTypesAvailable is false. */
-    @Nullable private final Method resourceSetResourceInformationMethod;
+    @Nullable
+    private final Method resourceSetResourceInformationMethod;
 
     /** Could be Null iff isYarnResourceTypesAvailable is false. */
-    @Nullable private final Method resourceGetResourcesMethod;
+    @Nullable
+    private final Method resourceGetResourcesMethod;
 
     /** Could be Null iff isYarnResourceTypesAvailable is false. */
-    @Nullable private final Method resourceInformationGetNameMethod;
+    @Nullable
+    private final Method resourceInformationGetNameMethod;
 
     /** Could be Null iff isYarnResourceTypesAvailable is false. */
-    @Nullable private final Method resourceInformationGetValueMethod;
+    @Nullable
+    private final Method resourceInformationGetValueMethod;
 
     /** Could be Null iff isYarnResourceTypesAvailable is false. */
-    @Nullable private final Method resourceInformationNewInstanceMethod;
+    @Nullable
+    private final Method resourceInformationNewInstanceMethod;
 
     private final boolean isYarnResourceTypesAvailable;
 
@@ -78,14 +82,14 @@ class ResourceInformationReflector {
         try {
             final Class<?> resourceClass = Class.forName(resourceClassName);
             final Class<?> resourceInfoClass = Class.forName(resourceInfoClassName);
-            resourceSetResourceInformationMethod =
-                    resourceClass.getMethod(
-                            "setResourceInformation", String.class, resourceInfoClass);
+            resourceSetResourceInformationMethod = resourceClass.getMethod("setResourceInformation",
+                    String.class,
+                    resourceInfoClass
+            );
             resourceGetResourcesMethod = resourceClass.getMethod("getResources");
             resourceInformationGetNameMethod = resourceInfoClass.getMethod("getName");
             resourceInformationGetValueMethod = resourceInfoClass.getMethod("getValue");
-            resourceInformationNewInstanceMethod =
-                    resourceInfoClass.getMethod("newInstance", String.class, long.class);
+            resourceInformationNewInstanceMethod = resourceInfoClass.getMethod("newInstance", String.class, long.class);
             isYarnResourceTypesAvailable = true;
         } catch (Exception e) {
             LOG.debug("The underlying Yarn version does not support external resources.", e);
@@ -111,21 +115,21 @@ class ResourceInformationReflector {
     @VisibleForTesting
     void setResourceInformationUnSafe(Object resource, String resourceName, long amount) {
         if (!isYarnResourceTypesAvailable) {
-            LOG.info(
-                    "Will not request extended resource {} because the used YARN version does not support it.",
-                    resourceName);
+            LOG.info("Will not request extended resource {} because the used YARN version does not support it.",
+                    resourceName
+            );
             return;
         }
         try {
-            resourceSetResourceInformationMethod.invoke(
-                    resource,
+            resourceSetResourceInformationMethod.invoke(resource,
                     resourceName,
-                    resourceInformationNewInstanceMethod.invoke(null, resourceName, amount));
+                    resourceInformationNewInstanceMethod.invoke(null, resourceName, amount)
+            );
         } catch (Exception e) {
-            LOG.warn(
-                    "Error in setting the external resource {}. Will not request this resource from YARN.",
+            LOG.warn("Error in setting the external resource {}. Will not request this resource from YARN.",
                     resourceName,
-                    e);
+                    e
+            );
         }
     }
 
@@ -150,10 +154,8 @@ class ResourceInformationReflector {
             externalResourcesInfo = (Object[]) resourceGetResourcesMethod.invoke(resource);
             // The first two element would be cpu and mem.
             for (int i = 2; i < externalResourcesInfo.length; i++) {
-                final String name =
-                        (String) resourceInformationGetNameMethod.invoke(externalResourcesInfo[i]);
-                final long value =
-                        (long) resourceInformationGetValueMethod.invoke(externalResourcesInfo[i]);
+                final String name = (String) resourceInformationGetNameMethod.invoke(externalResourcesInfo[i]);
+                final long value = (long) resourceInformationGetValueMethod.invoke(externalResourcesInfo[i]);
                 externalResources.put(name, value);
             }
         } catch (Exception e) {
@@ -175,10 +177,8 @@ class ResourceInformationReflector {
         try {
             externalResourcesInfo = (Object[]) resourceGetResourcesMethod.invoke(resource);
             for (int i = 0; i < externalResourcesInfo.length; i++) {
-                final String name =
-                        (String) resourceInformationGetNameMethod.invoke(externalResourcesInfo[i]);
-                final long value =
-                        (long) resourceInformationGetValueMethod.invoke(externalResourcesInfo[i]);
+                final String name = (String) resourceInformationGetNameMethod.invoke(externalResourcesInfo[i]);
+                final long value = (long) resourceInformationGetValueMethod.invoke(externalResourcesInfo[i]);
                 externalResources.put(name, value);
             }
         } catch (Exception e) {

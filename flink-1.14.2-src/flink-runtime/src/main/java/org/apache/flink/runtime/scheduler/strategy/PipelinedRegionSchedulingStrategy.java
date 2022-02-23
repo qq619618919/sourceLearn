@@ -56,7 +56,8 @@ public class PipelinedRegionSchedulingStrategy implements SchedulingStrategy {
     private final Map<SchedulingPipelinedRegion, List<ExecutionVertexID>> regionVerticesSorted = new IdentityHashMap<>();
 
     /** The ConsumedPartitionGroups which are produced by multiple regions. */
-    private final Set<ConsumedPartitionGroup> crossRegionConsumedPartitionGroups = Collections.newSetFromMap(new IdentityHashMap<>());
+    private final Set<ConsumedPartitionGroup> crossRegionConsumedPartitionGroups = Collections.newSetFromMap(
+            new IdentityHashMap<>());
 
     public PipelinedRegionSchedulingStrategy(final SchedulerOperations schedulerOperations,
                                              final SchedulingTopology schedulingTopology) {
@@ -147,12 +148,18 @@ public class PipelinedRegionSchedulingStrategy implements SchedulingStrategy {
         }
     }
 
+    /*************************************************
+     * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+     *  注释：
+     *  1、Set<SchedulingPipelinedRegion> sourceRegions = schedulingTopology.getAllPipelinedRegions()
+     *  2、maybeScheduleRegions(sourceRegions);
+     */
     @Override
     public void startScheduling() {
 
         /*************************************************
          * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-         *  注释：
+         *  注释： 首先获取 血缘区域
          */
         final Set<SchedulingPipelinedRegion> sourceRegions = IterableUtils
                 .toStream(schedulingTopology.getAllPipelinedRegions())
@@ -161,7 +168,7 @@ public class PipelinedRegionSchedulingStrategy implements SchedulingStrategy {
 
         /*************************************************
          * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-         *  注释：
+         *  注释： 开始按照 血缘区域 调度
          */
         maybeScheduleRegions(sourceRegions);
     }
@@ -184,11 +191,17 @@ public class PipelinedRegionSchedulingStrategy implements SchedulingStrategy {
                 .stream()
                 .map(schedulingTopology::getPipelinedRegionOfVertex)
                 .collect(Collectors.toSet());
+
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释：
+         */
         maybeScheduleRegions(regionsToRestart);
     }
 
     @Override
-    public void onExecutionStateChange(final ExecutionVertexID executionVertexId, final ExecutionState executionState) {
+    public void onExecutionStateChange(final ExecutionVertexID executionVertexId,
+                                       final ExecutionState executionState) {
         if (executionState == ExecutionState.FINISHED) {
             final Set<ConsumedPartitionGroup> finishedConsumedPartitionGroups = IterableUtils
                     .toStream(schedulingTopology.getVertex(executionVertexId).getProducedResults())
@@ -207,6 +220,9 @@ public class PipelinedRegionSchedulingStrategy implements SchedulingStrategy {
 
             maybeScheduleRegions(consumerRegions);
         }
+        else {
+
+        }
     }
 
     @Override
@@ -215,7 +231,10 @@ public class PipelinedRegionSchedulingStrategy implements SchedulingStrategy {
 
     private void maybeScheduleRegions(final Set<SchedulingPipelinedRegion> regions) {
 
-        // TODO_MA 马中华 注释：
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释： 对于 PiplineRegion 做拓扑排序
+         */
         final List<SchedulingPipelinedRegion> regionsSorted = SchedulingStrategyUtils.sortPipelinedRegionsInTopologicalOrder(
                 schedulingTopology,
                 regions
@@ -223,7 +242,7 @@ public class PipelinedRegionSchedulingStrategy implements SchedulingStrategy {
 
         final Map<ConsumedPartitionGroup, Boolean> consumableStatusCache = new HashMap<>();
 
-        // TODO_MA 马中华 注释：
+        // TODO_MA 马中华 注释： 顺序调度
         for (SchedulingPipelinedRegion region : regionsSorted) {
             /*************************************************
              * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
@@ -250,7 +269,9 @@ public class PipelinedRegionSchedulingStrategy implements SchedulingStrategy {
 
         /*************************************************
          * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-         *  注释：
+         *  注释： 这是 JobMaster 调度和部署的起点：
+         *  1、allocateSlots()   申请这个 Job 所需要的所有的 slot
+         *  2、Deploy()  申请到了 slot 之后，执行 Task 的部署
          */
         schedulerOperations.allocateSlotsAndDeploy(vertexDeploymentOptions);
     }

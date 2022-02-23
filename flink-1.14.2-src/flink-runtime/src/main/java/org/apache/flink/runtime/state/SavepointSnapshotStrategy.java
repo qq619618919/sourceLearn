@@ -37,8 +37,7 @@ import java.io.IOException;
  *
  * @see org.apache.flink.runtime.state.restore.FullSnapshotRestoreOperation
  */
-public class SavepointSnapshotStrategy<K>
-        implements SnapshotStrategy<KeyedStateHandle, FullSnapshotResources<K>> {
+public class SavepointSnapshotStrategy<K> implements SnapshotStrategy<KeyedStateHandle, FullSnapshotResources<K>> {
 
     private static final Logger LOG = LoggerFactory.getLogger(SavepointSnapshotStrategy.class);
 
@@ -58,36 +57,38 @@ public class SavepointSnapshotStrategy<K>
     }
 
     @Override
-    public SnapshotResultSupplier<KeyedStateHandle> asyncSnapshot(
-            FullSnapshotResources<K> savepointResources,
-            long checkpointId,
-            long timestamp,
-            @Nonnull CheckpointStreamFactory streamFactory,
-            @Nonnull CheckpointOptions checkpointOptions) {
+    public SnapshotResultSupplier<KeyedStateHandle> asyncSnapshot(FullSnapshotResources<K> savepointResources,
+                                                                  long checkpointId,
+                                                                  long timestamp,
+                                                                  @Nonnull CheckpointStreamFactory streamFactory,
+                                                                  @Nonnull CheckpointOptions checkpointOptions) {
 
         if (savepointResources.getMetaInfoSnapshots().isEmpty()) {
             if (LOG.isDebugEnabled()) {
-                LOG.debug(
-                        "Asynchronous savepoint performed on empty keyed state at {}. Returning null.",
-                        timestamp);
+                LOG.debug("Asynchronous savepoint performed on empty keyed state at {}. Returning null.", timestamp);
             }
             return registry -> SnapshotResult.empty();
         }
 
-        final SupplierWithException<CheckpointStreamWithResultProvider, Exception>
-                checkpointStreamSupplier = () -> createSimpleStream(streamFactory);
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释：
+         */
+        final SupplierWithException<CheckpointStreamWithResultProvider, Exception> checkpointStreamSupplier = () -> createSimpleStream(
+                streamFactory);
 
-        return new FullSnapshotAsyncWriter<>(
-                CheckpointType.SAVEPOINT, checkpointStreamSupplier, savepointResources);
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释：
+         */
+        return new FullSnapshotAsyncWriter<>(CheckpointType.SAVEPOINT, checkpointStreamSupplier, savepointResources);
     }
 
     @Nonnull
-    static CheckpointStreamWithResultProvider createSimpleStream(
-            @Nonnull CheckpointStreamFactory primaryStreamFactory) throws IOException {
+    static CheckpointStreamWithResultProvider createSimpleStream(@Nonnull CheckpointStreamFactory primaryStreamFactory) throws IOException {
 
-        CheckpointStreamFactory.CheckpointStateOutputStream primaryOut =
-                primaryStreamFactory.createCheckpointStateOutputStream(
-                        CheckpointedStateScope.EXCLUSIVE);
+        CheckpointStreamFactory.CheckpointStateOutputStream primaryOut = primaryStreamFactory.createCheckpointStateOutputStream(
+                CheckpointedStateScope.EXCLUSIVE);
 
         return new CheckpointStreamWithResultProvider.PrimaryStreamOnly(primaryOut);
     }

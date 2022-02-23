@@ -36,20 +36,18 @@ public abstract class AbstractManagedMemoryStateBackend extends AbstractStateBac
     private static final long serialVersionUID = 1L;
 
     @Override
-    public abstract <K> AbstractKeyedStateBackend<K> createKeyedStateBackend(
-            Environment env,
-            JobID jobID,
-            String operatorIdentifier,
-            TypeSerializer<K> keySerializer,
-            int numberOfKeyGroups,
-            KeyGroupRange keyGroupRange,
-            TaskKvStateRegistry kvStateRegistry,
-            TtlTimeProvider ttlTimeProvider,
-            MetricGroup metricGroup,
-            @Nonnull Collection<KeyedStateHandle> stateHandles,
-            CloseableRegistry cancelStreamRegistry,
-            double managedMemoryFraction)
-            throws Exception;
+    public abstract <K> AbstractKeyedStateBackend<K> createKeyedStateBackend(Environment env,
+                                                                             JobID jobID,
+                                                                             String operatorIdentifier,
+                                                                             TypeSerializer<K> keySerializer,
+                                                                             int numberOfKeyGroups,
+                                                                             KeyGroupRange keyGroupRange,
+                                                                             TaskKvStateRegistry kvStateRegistry,
+                                                                             TtlTimeProvider ttlTimeProvider,
+                                                                             MetricGroup metricGroup,
+                                                                             @Nonnull Collection<KeyedStateHandle> stateHandles,
+                                                                             CloseableRegistry cancelStreamRegistry,
+                                                                             double managedMemoryFraction) throws Exception;
 
     @Override
     public boolean useManagedMemory() {

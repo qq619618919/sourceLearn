@@ -167,7 +167,8 @@ public class DefaultDispatcherResourceManagerComponentFactory implements Dispatc
 
             /*************************************************
              * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-             *  注释： 第一个重要组件
+             *  注释： Step1:  创建第一个重要组件： WebMonitorEndpoint
+             *  DispatcherRestEndpoint -> WebMonitorEndpoint -> RestServerEndpoint
              */
             webMonitorEndpoint = restEndpointFactory.createRestEndpoint(configuration,
                     dispatcherGatewayRetriever,
@@ -182,7 +183,7 @@ public class DefaultDispatcherResourceManagerComponentFactory implements Dispatc
             log.debug("Starting Dispatcher REST endpoint.");
             /*************************************************
              * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-             *  注释： 启动
+             *  注释： Step2:  启动第一个重要组件： WebMonitorEndpoint
              */
             webMonitorEndpoint.start();
 
@@ -190,7 +191,8 @@ public class DefaultDispatcherResourceManagerComponentFactory implements Dispatc
 
             /*************************************************
              * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-             *  注释： 第二个重要组件
+             *  注释： Step3:  创建第二个重要组件： ResourceManagerService
+             *  创建了， ResourceManagerServiceImpl， 保存了 resourceManagerFactory
              */
             resourceManagerService = ResourceManagerServiceImpl.create(resourceManagerFactory,
                     configuration,
@@ -228,7 +230,14 @@ public class DefaultDispatcherResourceManagerComponentFactory implements Dispatc
 
             /*************************************************
              * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-             *  注释： 第三个重要组件
+             *  注释： Step4:  创建第三个重要组件： DefaultDispatcherRunner, 包装了 Dispatcher
+             *      1、创建了 Dispatcher
+             *      2、启动了 Dispatcher
+             *  相对来说，最容易。先分析清楚这个组件的大致工作机制：
+             *  1、 维护 job 状态
+             *  2、 执行 job 的注册
+             *  3、 恢复 job 的执行
+             *  4、 为 job 拉起 JobMaster
              */
             dispatcherRunner = dispatcherRunnerFactory.createDispatcherRunner(highAvailabilityServices.getDispatcherLeaderElectionService(),
                     fatalErrorHandler,
@@ -242,7 +251,7 @@ public class DefaultDispatcherResourceManagerComponentFactory implements Dispatc
 
             /*************************************************
              * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-             *  注释： 第二个重要组件启动
+             *  注释： Step5:  启动第二个重要组件： ResourceManagerService
              */
             resourceManagerService.start();
 
@@ -260,18 +269,27 @@ public class DefaultDispatcherResourceManagerComponentFactory implements Dispatc
 
             /*************************************************
              * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-             *  注释： 封装创建的相关重要工作组件
+             *  注释： 构造最后的返回值，其实就是 包含了各种工作组件的 组件抽象： XXXComponent
+             *  事实上，就是通过 ComponentFactory 创建的 Component
+             *  封装创建的相关重要工作组件
              */
             return new DispatcherResourceManagerComponent(
-                    // dispatcherRunner 负责启动
+                    // TODO_MA 马中华 注释： DispatcherRunner， 负责启动 Dispatcher
                     dispatcherRunner,
-                    //
+                    // TODO_MA 马中华 注释： ResourceManagerService 负责启动 ResourceManager
                     resourceManagerService,
+                    // TODO_MA 马中华 注释： Dispatcher 的检索服务： LeaderRetrievalService
                     dispatcherLeaderRetrievalService,
+                    // TODO_MA 马中华 注释： ResourceManager 的检索服务： LeaderRetrievalService
                     resourceManagerRetrievalService,
+                    // TODO_MA 马中华 注释： WebMonitorEndpoint 组件： 启动了一个 NettyServer
                     webMonitorEndpoint,
+                    // TODO_MA 马中华 注释： 异常处理器： fatalErrorHandler.onFatalError() 致命异常
                     fatalErrorHandler
             );
+
+            // TODO_MA 马中华 注释： 讲过一个流程： 不是启动顺序，而是工作顺序
+            // TODO_MA 马中华 注释：
 
         } catch (Exception exception) {
             // clean up all started components
@@ -317,6 +335,10 @@ public class DefaultDispatcherResourceManagerComponentFactory implements Dispatc
         }
     }
 
+    /*************************************************
+     * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+     *  注释：
+     */
     public static DefaultDispatcherResourceManagerComponentFactory createSessionComponentFactory(ResourceManagerFactory<?> resourceManagerFactory) {
 
         /*************************************************
@@ -325,20 +347,29 @@ public class DefaultDispatcherResourceManagerComponentFactory implements Dispatc
          */
         return new DefaultDispatcherResourceManagerComponentFactory(
                 // TODO_MA 马中华 注释： 参数 SessionDispatcherFactory
-                // TODO_MA 马中华 注释： DefaultDispatcherRunnerFactory
+                // TODO_MA 马中华 注释： A2 = DefaultDispatcherRunnerFactory
                 DefaultDispatcherRunnerFactory.createSessionRunner(SessionDispatcherFactory.INSTANCE),
 
-                // TODO_MA 马中华 注释： StandaloneResourceManagerFactory
+                // TODO_MA 马中华 注释： A1 = StandaloneResourceManagerFactory
                 resourceManagerFactory,
 
-                // TODO_MA 马中华 注释： SessionRestEndpointFactory
+                // TODO_MA 马中华 注释： A3 = SessionRestEndpointFactory
                 SessionRestEndpointFactory.INSTANCE
         );
     }
 
     public static DefaultDispatcherResourceManagerComponentFactory createJobComponentFactory(ResourceManagerFactory<?> resourceManagerFactory,
                                                                                              JobGraphRetriever jobGraphRetriever) {
-        return new DefaultDispatcherResourceManagerComponentFactory(DefaultDispatcherRunnerFactory.createJobRunner(
-                jobGraphRetriever), resourceManagerFactory, JobRestEndpointFactory.INSTANCE);
+        return new DefaultDispatcherResourceManagerComponentFactory(
+
+                // TODO_MA 马中华 注释： DefaultDispatcherRunnerFactory
+                DefaultDispatcherRunnerFactory.createJobRunner(jobGraphRetriever),
+
+                // TODO_MA 马中华 注释： YarnResourceManagerFactory
+                resourceManagerFactory,
+
+                // TODO_MA 马中华 注释：
+                JobRestEndpointFactory.INSTANCE
+        );
     }
 }

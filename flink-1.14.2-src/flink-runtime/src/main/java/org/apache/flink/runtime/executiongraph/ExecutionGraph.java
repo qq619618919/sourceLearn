@@ -80,15 +80,14 @@ public interface ExecutionGraph extends AccessExecutionGraph {
 
     SchedulingTopology getSchedulingTopology();
 
-    void enableCheckpointing(
-            CheckpointCoordinatorConfiguration chkConfig,
-            List<MasterTriggerRestoreHook<?>> masterHooks,
-            CheckpointIDCounter checkpointIDCounter,
-            CompletedCheckpointStore checkpointStore,
-            StateBackend checkpointStateBackend,
-            CheckpointStorage checkpointStorage,
-            CheckpointStatsTracker statsTracker,
-            CheckpointsCleaner checkpointsCleaner);
+    void enableCheckpointing(CheckpointCoordinatorConfiguration chkConfig,
+                             List<MasterTriggerRestoreHook<?>> masterHooks,
+                             CheckpointIDCounter checkpointIDCounter,
+                             CompletedCheckpointStore checkpointStore,
+                             StateBackend checkpointStateBackend,
+                             CheckpointStorage checkpointStorage,
+                             CheckpointStatsTracker statsTracker,
+                             CheckpointsCleaner checkpointsCleaner);
 
     @Nullable
     CheckpointCoordinator getCheckpointCoordinator();
@@ -188,8 +187,9 @@ public interface ExecutionGraph extends AccessExecutionGraph {
      * "FINISHED", this also updates the accumulators.
      *
      * @param state The state update.
+     *
      * @return True, if the task update was properly applied, false, if the execution attempt was
-     *     not found.
+     *         not found.
      */
     boolean updateState(TaskExecutionStateTransition state);
 

@@ -102,39 +102,22 @@ public class DefaultExecutionGraphFactory implements ExecutionGraphFactory {
 
         /*************************************************
          * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-         *  注释：
+         *  注释： 将 JobGraph 变成 ExecutionGraph
          */
-        final ExecutionGraph newExecutionGraph = DefaultExecutionGraphBuilder.buildGraph(jobGraph,
-                configuration,
-                futureExecutor,
-                ioExecutor,
-                userCodeClassLoader,
-                completedCheckpointStore,
-                checkpointsCleaner,
-                checkpointIdCounter,
-                rpcTimeout,
-                jobManagerJobMetricGroup,
-                blobWriter,
-                log,
-                shuffleMaster,
-                jobMasterPartitionTracker,
-                partitionLocationConstraint,
-                executionDeploymentListener,
-                executionStateUpdateListener,
-                initializationTimestamp,
-                vertexAttemptNumberStore,
-                vertexParallelismStore
-        );
+        final ExecutionGraph newExecutionGraph = DefaultExecutionGraphBuilder.buildGraph(jobGraph, configuration, futureExecutor,
+                ioExecutor, userCodeClassLoader, completedCheckpointStore, checkpointsCleaner, checkpointIdCounter, rpcTimeout,
+                jobManagerJobMetricGroup, blobWriter, log, shuffleMaster, jobMasterPartitionTracker, partitionLocationConstraint,
+                executionDeploymentListener, executionStateUpdateListener, initializationTimestamp, vertexAttemptNumberStore,
+                vertexParallelismStore);
 
         final CheckpointCoordinator checkpointCoordinator = newExecutionGraph.getCheckpointCoordinator();
 
         if (checkpointCoordinator != null) {
             // check whether we find a valid checkpoint
-            if (!checkpointCoordinator.restoreInitialCheckpointIfPresent(new HashSet<>(newExecutionGraph
-                    .getAllVertices()
-                    .values()))) {
-
+            if (!checkpointCoordinator.restoreInitialCheckpointIfPresent(
+                    new HashSet<>(newExecutionGraph.getAllVertices().values()))) {
                 // check whether we can restore from a savepoint
+                // TODO_MA 马中华 注释： 从 savepoint 恢复得到 ExecutionGraph
                 tryRestoreExecutionGraphFromSavepoint(newExecutionGraph, jobGraph.getSavepointRestoreSettings());
             }
         }
@@ -158,10 +141,8 @@ public class DefaultExecutionGraphFactory implements ExecutionGraphFactory {
             final CheckpointCoordinator checkpointCoordinator = executionGraphToRestore.getCheckpointCoordinator();
             if (checkpointCoordinator != null) {
                 checkpointCoordinator.restoreSavepoint(savepointRestoreSettings.getRestorePath(),
-                        savepointRestoreSettings.allowNonRestoredState(),
-                        executionGraphToRestore.getAllVertices(),
-                        userCodeClassLoader
-                );
+                        savepointRestoreSettings.allowNonRestoredState(), executionGraphToRestore.getAllVertices(),
+                        userCodeClassLoader);
             }
         }
     }

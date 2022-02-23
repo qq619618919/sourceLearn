@@ -99,8 +99,7 @@ public class NetworkBuffer extends AbstractReferenceCountedByteBuf implements Bu
      * @param dataType the {@link DataType} this buffer represents
      * @param size current size of data in the buffer, i.e. the writer index to set
      */
-    public NetworkBuffer(
-            MemorySegment memorySegment, BufferRecycler recycler, DataType dataType, int size) {
+    public NetworkBuffer(MemorySegment memorySegment, BufferRecycler recycler, DataType dataType, int size) {
         this(memorySegment, recycler, dataType, false, size);
     }
 
@@ -114,12 +113,11 @@ public class NetworkBuffer extends AbstractReferenceCountedByteBuf implements Bu
      * @param size current size of data in the buffer, i.e. the writer index to set
      * @param isCompressed whether the buffer is compressed or not
      */
-    public NetworkBuffer(
-            MemorySegment memorySegment,
-            BufferRecycler recycler,
-            DataType dataType,
-            boolean isCompressed,
-            int size) {
+    public NetworkBuffer(MemorySegment memorySegment,
+                         BufferRecycler recycler,
+                         DataType dataType,
+                         boolean isCompressed,
+                         int size) {
         super(memorySegment.size());
         this.memorySegment = checkNotNull(memorySegment);
         this.recycler = checkNotNull(recycler);
@@ -200,17 +198,13 @@ public class NetworkBuffer extends AbstractReferenceCountedByteBuf implements Bu
     @Override
     protected int _getUnsignedMedium(int index) {
         // from UnpooledDirectByteBuf:
-        return (getByte(index) & 0xff) << 16
-                | (getByte(index + 1) & 0xff) << 8
-                | getByte(index + 2) & 0xff;
+        return (getByte(index) & 0xff) << 16 | (getByte(index + 1) & 0xff) << 8 | getByte(index + 2) & 0xff;
     }
 
     @Override
     protected int _getUnsignedMediumLE(int index) {
         // from UnpooledDirectByteBuf:
-        return getByte(index) & 255
-                | (getByte(index + 1) & 255) << 8
-                | (getByte(index + 2) & 255) << 16;
+        return getByte(index) & 255 | (getByte(index + 1) & 255) << 8 | (getByte(index + 2) & 255) << 16;
     }
 
     @Override
@@ -320,11 +314,7 @@ public class NetworkBuffer extends AbstractReferenceCountedByteBuf implements Bu
 
         if (newCapacity < 0 || newCapacity > maxCapacity()) {
             throw new IllegalArgumentException(
-                    "Size of buffer must be >= 0 and <= "
-                            + memorySegment.size()
-                            + ", but was "
-                            + newCapacity
-                            + ".");
+                    "Size of buffer must be >= 0 and <= " + memorySegment.size() + ", but was " + newCapacity + ".");
         }
 
         this.currentSize = newCapacity;
@@ -569,7 +559,7 @@ public class NetworkBuffer extends AbstractReferenceCountedByteBuf implements Bu
 
     @Override
     public ByteBuffer[] nioBuffers(int index, int length) {
-        return new ByteBuffer[] {nioBuffer(index, length)};
+        return new ByteBuffer[]{nioBuffer(index, length)};
     }
 
     @Override
@@ -605,16 +595,15 @@ public class NetworkBuffer extends AbstractReferenceCountedByteBuf implements Bu
             return String.format("Buffer %s (freed)", hashCode());
         }
 
-        StringBuilder buf =
-                new StringBuilder()
-                        .append("Buffer ")
-                        .append(hashCode())
-                        .append(" (ridx: ")
-                        .append(readerIndex())
-                        .append(", widx: ")
-                        .append(writerIndex())
-                        .append(", cap: ")
-                        .append(capacity());
+        StringBuilder buf = new StringBuilder()
+                .append("Buffer ")
+                .append(hashCode())
+                .append(" (ridx: ")
+                .append(readerIndex())
+                .append(", widx: ")
+                .append(writerIndex())
+                .append(", cap: ")
+                .append(capacity());
         if (maxCapacity() != Integer.MAX_VALUE) {
             buf.append('/').append(maxCapacity());
         }

@@ -50,11 +50,7 @@ import static org.apache.flink.util.Preconditions.checkNotNull;
  *
  * @param <K> Type of the key by which state is keyed.
  */
-public abstract class AbstractKeyedStateBackend<K>
-        implements CheckpointableKeyedStateBackend<K>,
-                CheckpointListener,
-                TestableKeyedStateBackend<K>,
-                InternalKeyContext<K> {
+public abstract class AbstractKeyedStateBackend<K> implements CheckpointableKeyedStateBackend<K>, CheckpointListener, TestableKeyedStateBackend<K>, InternalKeyContext<K> {
 
     /** The key serializer. */
     protected final TypeSerializer<K> keySerializer;
@@ -100,17 +96,15 @@ public abstract class AbstractKeyedStateBackend<K>
     /** The key context for this backend. */
     protected final InternalKeyContext<K> keyContext;
 
-    public AbstractKeyedStateBackend(
-            TaskKvStateRegistry kvStateRegistry,
-            TypeSerializer<K> keySerializer,
-            ClassLoader userCodeClassLoader,
-            ExecutionConfig executionConfig,
-            TtlTimeProvider ttlTimeProvider,
-            LatencyTrackingStateConfig latencyTrackingStateConfig,
-            CloseableRegistry cancelStreamRegistry,
-            InternalKeyContext<K> keyContext) {
-        this(
-                kvStateRegistry,
+    public AbstractKeyedStateBackend(TaskKvStateRegistry kvStateRegistry,
+                                     TypeSerializer<K> keySerializer,
+                                     ClassLoader userCodeClassLoader,
+                                     ExecutionConfig executionConfig,
+                                     TtlTimeProvider ttlTimeProvider,
+                                     LatencyTrackingStateConfig latencyTrackingStateConfig,
+                                     CloseableRegistry cancelStreamRegistry,
+                                     InternalKeyContext<K> keyContext) {
+        this(kvStateRegistry,
                 keySerializer,
                 userCodeClassLoader,
                 executionConfig,
@@ -118,30 +112,29 @@ public abstract class AbstractKeyedStateBackend<K>
                 latencyTrackingStateConfig,
                 cancelStreamRegistry,
                 determineStreamCompression(executionConfig),
-                keyContext);
+                keyContext
+        );
     }
 
-    public AbstractKeyedStateBackend(
-            TaskKvStateRegistry kvStateRegistry,
-            TypeSerializer<K> keySerializer,
-            ClassLoader userCodeClassLoader,
-            ExecutionConfig executionConfig,
-            TtlTimeProvider ttlTimeProvider,
-            LatencyTrackingStateConfig latencyTrackingStateConfig,
-            CloseableRegistry cancelStreamRegistry,
-            StreamCompressionDecorator keyGroupCompressionDecorator,
-            InternalKeyContext<K> keyContext) {
+    public AbstractKeyedStateBackend(TaskKvStateRegistry kvStateRegistry,
+                                     TypeSerializer<K> keySerializer,
+                                     ClassLoader userCodeClassLoader,
+                                     ExecutionConfig executionConfig,
+                                     TtlTimeProvider ttlTimeProvider,
+                                     LatencyTrackingStateConfig latencyTrackingStateConfig,
+                                     CloseableRegistry cancelStreamRegistry,
+                                     StreamCompressionDecorator keyGroupCompressionDecorator,
+                                     InternalKeyContext<K> keyContext) {
         this.keyContext = Preconditions.checkNotNull(keyContext);
         this.numberOfKeyGroups = keyContext.getNumberOfKeyGroups();
         this.keyGroupRange = Preconditions.checkNotNull(keyContext.getKeyGroupRange());
-        Preconditions.checkArgument(
-                numberOfKeyGroups >= 1, "NumberOfKeyGroups must be a positive number");
-        Preconditions.checkArgument(
-                numberOfKeyGroups >= keyGroupRange.getNumberOfKeyGroups(),
+        Preconditions.checkArgument(numberOfKeyGroups >= 1, "NumberOfKeyGroups must be a positive number");
+        Preconditions.checkArgument(numberOfKeyGroups >= keyGroupRange.getNumberOfKeyGroups(),
                 "The total number of key groups must be at least the number in the key group range assigned to this backend. "
                         + "The total number of key groups: %s, the number in key groups in range: %s",
                 numberOfKeyGroups,
-                keyGroupRange.getNumberOfKeyGroups());
+                keyGroupRange.getNumberOfKeyGroups()
+        );
 
         this.kvStateRegistry = kvStateRegistry;
         this.keySerializer = keySerializer;
@@ -155,8 +148,7 @@ public abstract class AbstractKeyedStateBackend<K>
         this.keySelectionListeners = new ArrayList<>(1);
     }
 
-    private static StreamCompressionDecorator determineStreamCompression(
-            ExecutionConfig executionConfig) {
+    private static StreamCompressionDecorator determineStreamCompression(ExecutionConfig executionConfig) {
         if (executionConfig != null && executionConfig.isUseSnapshotCompression()) {
             return SnappyStreamCompressionDecorator.INSTANCE;
         } else {
@@ -187,8 +179,7 @@ public abstract class AbstractKeyedStateBackend<K>
     public void setCurrentKey(K newKey) {
         notifyKeySelected(newKey);
         this.keyContext.setCurrentKey(newKey);
-        this.keyContext.setCurrentKeyGroupIndex(
-                KeyGroupRangeAssignment.assignToKeyGroup(newKey, numberOfKeyGroups));
+        this.keyContext.setCurrentKeyGroupIndex(KeyGroupRangeAssignment.assignToKeyGroup(newKey, numberOfKeyGroups));
     }
 
     private void notifyKeySelected(K newKey) {
@@ -238,79 +229,67 @@ public abstract class AbstractKeyedStateBackend<K>
 
     /** @see KeyedStateBackend */
     @Override
-    public <N, S extends State, T> void applyToAllKeys(
-            final N namespace,
-            final TypeSerializer<N> namespaceSerializer,
-            final StateDescriptor<S, T> stateDescriptor,
-            final KeyedStateFunction<K, S> function)
-            throws Exception {
+    public <N, S extends State, T> void applyToAllKeys(final N namespace,
+                                                       final TypeSerializer<N> namespaceSerializer,
+                                                       final StateDescriptor<S, T> stateDescriptor,
+                                                       final KeyedStateFunction<K, S> function) throws Exception {
 
-        applyToAllKeys(
-                namespace,
-                namespaceSerializer,
-                stateDescriptor,
-                function,
-                this::getPartitionedState);
+        applyToAllKeys(namespace, namespaceSerializer, stateDescriptor, function, this::getPartitionedState);
     }
 
-    public <N, S extends State, T> void applyToAllKeys(
-            final N namespace,
-            final TypeSerializer<N> namespaceSerializer,
-            final StateDescriptor<S, T> stateDescriptor,
-            final KeyedStateFunction<K, S> function,
-            final PartitionStateFactory partitionStateFactory)
-            throws Exception {
+    public <N, S extends State, T> void applyToAllKeys(final N namespace,
+                                                       final TypeSerializer<N> namespaceSerializer,
+                                                       final StateDescriptor<S, T> stateDescriptor,
+                                                       final KeyedStateFunction<K, S> function,
+                                                       final PartitionStateFactory partitionStateFactory) throws Exception {
 
         try (Stream<K> keyStream = getKeys(stateDescriptor.getName(), namespace)) {
 
-            final S state =
-                    partitionStateFactory.get(namespace, namespaceSerializer, stateDescriptor);
+            final S state = partitionStateFactory.get(namespace, namespaceSerializer, stateDescriptor);
 
-            keyStream.forEach(
-                    (K key) -> {
-                        setCurrentKey(key);
-                        try {
-                            function.process(key, state);
-                        } catch (Throwable e) {
-                            // we wrap the checked exception in an unchecked
-                            // one and catch it (and re-throw it) later.
-                            throw new RuntimeException(e);
-                        }
-                    });
+            keyStream.forEach((K key) -> {
+                setCurrentKey(key);
+                try {
+                    function.process(key, state);
+                } catch (Throwable e) {
+                    // we wrap the checked exception in an unchecked
+                    // one and catch it (and re-throw it) later.
+                    throw new RuntimeException(e);
+                }
+            });
         }
     }
 
     /** @see KeyedStateBackend */
     @Override
     @SuppressWarnings("unchecked")
-    public <N, S extends State, V> S getOrCreateKeyedState(
-            final TypeSerializer<N> namespaceSerializer, StateDescriptor<S, V> stateDescriptor)
-            throws Exception {
+    public <N, S extends State, V> S getOrCreateKeyedState(final TypeSerializer<N> namespaceSerializer,
+                                                           StateDescriptor<S, V> stateDescriptor) throws Exception {
         checkNotNull(namespaceSerializer, "Namespace serializer");
-        checkNotNull(
-                keySerializer,
+        checkNotNull(keySerializer,
                 "State key serializer has not been configured in the config. "
-                        + "This operation cannot use partitioned state.");
+                        + "This operation cannot use partitioned state."
+        );
 
         InternalKvState<K, ?, ?> kvState = keyValueStatesByName.get(stateDescriptor.getName());
         if (kvState == null) {
             if (!stateDescriptor.isSerializerInitialized()) {
                 stateDescriptor.initializeSerializerUnlessSet(executionConfig);
             }
-            kvState =
-                    LatencyTrackingStateFactory.createStateAndWrapWithLatencyTrackingIfEnabled(
-                            TtlStateFactory.createStateAndWrapWithTtlIfEnabled(
-                                    namespaceSerializer, stateDescriptor, this, ttlTimeProvider),
-                            stateDescriptor,
-                            latencyTrackingStateConfig);
+            kvState = LatencyTrackingStateFactory.createStateAndWrapWithLatencyTrackingIfEnabled(TtlStateFactory.createStateAndWrapWithTtlIfEnabled(
+                    namespaceSerializer,
+                    stateDescriptor,
+                    this,
+                    ttlTimeProvider
+            ), stateDescriptor, latencyTrackingStateConfig);
             keyValueStatesByName.put(stateDescriptor.getName(), kvState);
             publishQueryableStateIfEnabled(stateDescriptor, kvState);
         }
         return (S) kvState;
     }
 
-    public void publishQueryableStateIfEnabled(
-            StateDescriptor<?, ?> stateDescriptor, InternalKvState<?, ?, ?> kvState) {
+    public void publishQueryableStateIfEnabled(StateDescriptor<?, ?> stateDescriptor,
+                                               InternalKvState<?, ?, ?> kvState) {
         if (stateDescriptor.isQueryable()) {
             if (kvStateRegistry == null) {
                 throw new IllegalStateException("State backend has not been initialized for job.");
@@ -329,11 +308,9 @@ public abstract class AbstractKeyedStateBackend<K>
      */
     @SuppressWarnings("unchecked")
     @Override
-    public <N, S extends State> S getPartitionedState(
-            final N namespace,
-            final TypeSerializer<N> namespaceSerializer,
-            final StateDescriptor<S, ?> stateDescriptor)
-            throws Exception {
+    public <N, S extends State> S getPartitionedState(final N namespace,
+                                                      final TypeSerializer<N> namespaceSerializer,
+                                                      final StateDescriptor<S, ?> stateDescriptor) throws Exception {
 
         checkNotNull(namespace, "Namespace");
 
@@ -350,7 +327,12 @@ public abstract class AbstractKeyedStateBackend<K>
             return (S) previous;
         }
 
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释：
+         */
         final S state = getOrCreateKeyedState(namespaceSerializer, stateDescriptor);
+
         final InternalKvState<K, N, ?> kvState = (InternalKvState<K, N, ?>) state;
 
         lastName = stateDescriptor.getName();
@@ -389,11 +371,9 @@ public abstract class AbstractKeyedStateBackend<K>
     }
 
     public interface PartitionStateFactory {
-        <N, S extends State> S get(
-                final N namespace,
-                final TypeSerializer<N> namespaceSerializer,
-                final StateDescriptor<S, ?> stateDescriptor)
-                throws Exception;
+        <N, S extends State> S get(final N namespace,
+                                   final TypeSerializer<N> namespaceSerializer,
+                                   final StateDescriptor<S, ?> stateDescriptor) throws Exception;
     }
 
     @Override

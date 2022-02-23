@@ -40,33 +40,59 @@ public class NettyConnectionManager implements ConnectionManager {
 
     private final NettyProtocol nettyProtocol;
 
-    public NettyConnectionManager(
-            ResultPartitionProvider partitionProvider,
-            TaskEventPublisher taskEventPublisher,
-            NettyConfig nettyConfig) {
+    public NettyConnectionManager(ResultPartitionProvider partitionProvider,
+                                  TaskEventPublisher taskEventPublisher,
+                                  NettyConfig nettyConfig) {
 
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释： Netty 服务端和客户端
+         */
         this.server = new NettyServer(nettyConfig);
         this.client = new NettyClient(nettyConfig);
+
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释： PooledByteBufAllocator 的子类，用来管理内存
+         */
         this.bufferPool = new NettyBufferPool(nettyConfig.getNumberOfArenas());
 
-        this.partitionRequestClientFactory =
-                new PartitionRequestClientFactory(client, nettyConfig.getNetworkRetries());
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释： 用来 创建数据传输客户端的 工厂实例
+         */
+        this.partitionRequestClientFactory = new PartitionRequestClientFactory(client, nettyConfig.getNetworkRetries());
 
-        this.nettyProtocol =
-                new NettyProtocol(
-                        checkNotNull(partitionProvider), checkNotNull(taskEventPublisher));
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释： 上下游 TaskExecutor 之间交换数据的通信协议
+         */
+        this.nettyProtocol = new NettyProtocol(checkNotNull(partitionProvider), checkNotNull(taskEventPublisher));
     }
 
     @Override
     public int start() throws IOException {
+
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释： NettyClient 启动
+         */
         client.init(nettyProtocol, bufferPool);
 
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释： NettyServer 启动
+         */
         return server.init(nettyProtocol, bufferPool);
     }
 
     @Override
-    public PartitionRequestClient createPartitionRequestClient(ConnectionID connectionId)
-            throws IOException, InterruptedException {
+    public PartitionRequestClient createPartitionRequestClient(ConnectionID connectionId) throws IOException, InterruptedException {
+
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释：
+         */
         return partitionRequestClientFactory.createPartitionRequestClient(connectionId);
     }
 

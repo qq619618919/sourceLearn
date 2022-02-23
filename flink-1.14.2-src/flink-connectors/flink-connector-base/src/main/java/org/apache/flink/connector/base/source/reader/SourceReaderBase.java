@@ -59,14 +59,13 @@ import static org.apache.flink.util.Preconditions.checkState;
  * </ul>
  *
  * @param <E> The rich element type that contains information for split state update or timestamp
- *     extraction.
+ *         extraction.
  * @param <T> The final element type to emit.
  * @param <SplitT> the immutable split type.
  * @param <SplitStateT> the mutable type of split state.
  */
 @PublicEvolving
-public abstract class SourceReaderBase<E, T, SplitT extends SourceSplit, SplitStateT>
-        implements SourceReader<T, SplitT> {
+public abstract class SourceReaderBase<E, T, SplitT extends SourceSplit, SplitStateT> implements SourceReader<T, SplitT> {
     private static final Logger LOG = LoggerFactory.getLogger(SourceReaderBase.class);
 
     /** A queue to buffer the elements fetched by the fetcher thread. */
@@ -93,20 +92,22 @@ public abstract class SourceReaderBase<E, T, SplitT extends SourceSplit, SplitSt
     protected SourceReaderContext context;
 
     /** The latest fetched batch of records-by-split from the split reader. */
-    @Nullable private RecordsWithSplitIds<E> currentFetch;
+    @Nullable
+    private RecordsWithSplitIds<E> currentFetch;
 
-    @Nullable private SplitContext<T, SplitStateT> currentSplitContext;
-    @Nullable private SourceOutput<T> currentSplitOutput;
+    @Nullable
+    private SplitContext<T, SplitStateT> currentSplitContext;
+    @Nullable
+    private SourceOutput<T> currentSplitOutput;
 
     /** Indicating whether the SourceReader will be assigned more splits or not. */
     private boolean noMoreSplitsAssignment;
 
-    public SourceReaderBase(
-            FutureCompletingBlockingQueue<RecordsWithSplitIds<E>> elementsQueue,
-            SplitFetcherManager<E, SplitT> splitFetcherManager,
-            RecordEmitter<E, T, SplitStateT> recordEmitter,
-            Configuration config,
-            SourceReaderContext context) {
+    public SourceReaderBase(FutureCompletingBlockingQueue<RecordsWithSplitIds<E>> elementsQueue,
+                            SplitFetcherManager<E, SplitT> splitFetcherManager,
+                            RecordEmitter<E, T, SplitStateT> recordEmitter,
+                            Configuration config,
+                            SourceReaderContext context) {
         this.elementsQueue = elementsQueue;
         this.splitFetcherManager = splitFetcherManager;
         this.recordEmitter = recordEmitter;
@@ -120,7 +121,8 @@ public abstract class SourceReaderBase<E, T, SplitT extends SourceSplit, SplitSt
     }
 
     @Override
-    public void start() {}
+    public void start() {
+    }
 
     @Override
     public InputStatus pollNext(ReaderOutput<T> output) throws Exception {
@@ -179,8 +181,7 @@ public abstract class SourceReaderBase<E, T, SplitT extends SourceSplit, SplitSt
         return recordsWithSplitId;
     }
 
-    private void finishCurrentFetch(
-            final RecordsWithSplitIds<E> fetch, final ReaderOutput<T> output) {
+    private void finishCurrentFetch(final RecordsWithSplitIds<E> fetch, final ReaderOutput<T> output) {
         currentFetch = null;
         currentSplitContext = null;
         currentSplitOutput = null;
@@ -190,8 +191,7 @@ public abstract class SourceReaderBase<E, T, SplitT extends SourceSplit, SplitSt
             LOG.info("Finished reading split(s) {}", finishedSplits);
             Map<String, SplitStateT> stateOfFinishedSplits = new HashMap<>();
             for (String finishedSplitId : finishedSplits) {
-                stateOfFinishedSplits.put(
-                        finishedSplitId, splitStates.remove(finishedSplitId).state);
+                stateOfFinishedSplits.put(finishedSplitId, splitStates.remove(finishedSplitId).state);
                 output.releaseOutputForSplit(finishedSplitId);
             }
             onSplitFinished(stateOfFinishedSplits);
@@ -200,8 +200,7 @@ public abstract class SourceReaderBase<E, T, SplitT extends SourceSplit, SplitSt
         fetch.recycle();
     }
 
-    private boolean moveToNextSplit(
-            RecordsWithSplitIds<E> recordsWithSplitIds, ReaderOutput<T> output) {
+    private boolean moveToNextSplit(RecordsWithSplitIds<E> recordsWithSplitIds, ReaderOutput<T> output) {
         final String nextSplitId = recordsWithSplitIds.nextSplit();
         if (nextSplitId == null) {
             LOG.trace("Current fetch is finished.");
@@ -218,9 +217,7 @@ public abstract class SourceReaderBase<E, T, SplitT extends SourceSplit, SplitSt
 
     @Override
     public CompletableFuture<Void> isAvailable() {
-        return currentFetch != null
-                ? FutureCompletingBlockingQueue.AVAILABLE
-                : elementsQueue.getAvailabilityFuture();
+        return currentFetch != null ? FutureCompletingBlockingQueue.AVAILABLE : elementsQueue.getAvailabilityFuture();
     }
 
     @Override
@@ -234,10 +231,7 @@ public abstract class SourceReaderBase<E, T, SplitT extends SourceSplit, SplitSt
     public void addSplits(List<SplitT> splits) {
         LOG.info("Adding split(s) to reader: {}", splits);
         // Initialize the state for each split.
-        splits.forEach(
-                s ->
-                        splitStates.put(
-                                s.splitId(), new SplitContext<>(s.splitId(), initializedState(s))));
+        splits.forEach(s -> splitStates.put(s.splitId(), new SplitContext<>(s.splitId(), initializedState(s))));
         // Hand over the splits to the split fetcher to start fetch.
         splitFetcherManager.addSplits(splits);
     }
@@ -272,6 +266,7 @@ public abstract class SourceReaderBase<E, T, SplitT extends SourceSplit, SplitSt
     }
 
     // -------------------- Abstract method to allow different implementations ------------------
+
     /** Handles the finished splits to clean the state if needed. */
     protected abstract void onSplitFinished(Map<String, SplitStateT> finishedSplitIds);
 
@@ -286,6 +281,7 @@ public abstract class SourceReaderBase<E, T, SplitT extends SourceSplit, SplitSt
      * Convert a mutable SplitStateT to immutable SplitT.
      *
      * @param splitState splitState.
+     *
      * @return an immutable Split state.
      */
     protected abstract SplitT toSplitType(String splitId, SplitStateT splitState);

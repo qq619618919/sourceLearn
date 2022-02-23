@@ -73,7 +73,8 @@ public class StreamConfig implements Serializable {
     //  Config Keys
     // ------------------------------------------------------------------------
 
-    @VisibleForTesting public static final String SERIALIZEDUDF = "serializedUDF";
+    @VisibleForTesting
+    public static final String SERIALIZEDUDF = "serializedUDF";
 
     private static final String NUMBER_OF_OUTPUTS = "numberOfOutputs";
     private static final String NUMBER_OF_NETWORK_INPUTS = "numberOfNetworkInputs";
@@ -110,19 +111,17 @@ public class StreamConfig implements Serializable {
     private static final String TIME_CHARACTERISTIC = "timechar";
 
     private static final String MANAGED_MEMORY_FRACTION_PREFIX = "managedMemFraction.";
-    private static final ConfigOption<Boolean> STATE_BACKEND_USE_MANAGED_MEMORY =
-            ConfigOptions.key("statebackend.useManagedMemory")
-                    .booleanType()
-                    .noDefaultValue()
-                    .withDescription(
-                            "If state backend is specified, whether it uses managed memory.");
+    private static final ConfigOption<Boolean> STATE_BACKEND_USE_MANAGED_MEMORY = ConfigOptions
+            .key("statebackend.useManagedMemory")
+            .booleanType()
+            .noDefaultValue()
+            .withDescription("If state backend is specified, whether it uses managed memory.");
 
     // ------------------------------------------------------------------------
     //  Default Values
     // ------------------------------------------------------------------------
 
-    private static final CheckpointingMode DEFAULT_CHECKPOINTING_MODE =
-            CheckpointingMode.EXACTLY_ONCE;
+    private static final CheckpointingMode DEFAULT_CHECKPOINTING_MODE = CheckpointingMode.EXACTLY_ONCE;
 
     private static final double DEFAULT_MANAGED_MEMORY_FRACTION = 0.0;
 
@@ -153,16 +152,12 @@ public class StreamConfig implements Serializable {
     }
 
     /** Fraction of managed memory reserved for the given use case that this operator should use. */
-    public void setManagedMemoryFractionOperatorOfUseCase(
-            ManagedMemoryUseCase managedMemoryUseCase, double fraction) {
-        final ConfigOption<Double> configOption =
-                getManagedMemoryFractionConfigOption(managedMemoryUseCase);
+    public void setManagedMemoryFractionOperatorOfUseCase(ManagedMemoryUseCase managedMemoryUseCase, double fraction) {
+        final ConfigOption<Double> configOption = getManagedMemoryFractionConfigOption(managedMemoryUseCase);
 
-        checkArgument(
-                fraction >= 0.0 && fraction <= 1.0,
-                String.format(
-                        "%s should be in range [0.0, 1.0], but was: %s",
-                        configOption.key(), fraction));
+        checkArgument(fraction >= 0.0 && fraction <= 1.0,
+                String.format("%s should be in range [0.0, 1.0], but was: %s", configOption.key(), fraction)
+        );
 
         config.setDouble(configOption, fraction);
     }
@@ -171,34 +166,31 @@ public class StreamConfig implements Serializable {
      * Fraction of total managed memory in the slot that this operator should use for the given use
      * case.
      */
-    public double getManagedMemoryFractionOperatorUseCaseOfSlot(
-            ManagedMemoryUseCase managedMemoryUseCase,
-            Configuration taskManagerConfig,
-            ClassLoader cl) {
-        return ManagedMemoryUtils.convertToFractionOfSlot(
-                managedMemoryUseCase,
+    public double getManagedMemoryFractionOperatorUseCaseOfSlot(ManagedMemoryUseCase managedMemoryUseCase,
+                                                                Configuration taskManagerConfig,
+                                                                ClassLoader cl) {
+        return ManagedMemoryUtils.convertToFractionOfSlot(managedMemoryUseCase,
                 config.getDouble(getManagedMemoryFractionConfigOption(managedMemoryUseCase)),
                 getAllManagedMemoryUseCases(),
                 taskManagerConfig,
                 config.getOptional(STATE_BACKEND_USE_MANAGED_MEMORY),
-                cl);
+                cl
+        );
     }
 
-    private static ConfigOption<Double> getManagedMemoryFractionConfigOption(
-            ManagedMemoryUseCase managedMemoryUseCase) {
-        return ConfigOptions.key(
-                        MANAGED_MEMORY_FRACTION_PREFIX + checkNotNull(managedMemoryUseCase))
+    private static ConfigOption<Double> getManagedMemoryFractionConfigOption(ManagedMemoryUseCase managedMemoryUseCase) {
+        return ConfigOptions
+                .key(MANAGED_MEMORY_FRACTION_PREFIX + checkNotNull(managedMemoryUseCase))
                 .doubleType()
                 .defaultValue(DEFAULT_MANAGED_MEMORY_FRACTION);
     }
 
     private Set<ManagedMemoryUseCase> getAllManagedMemoryUseCases() {
-        return config.keySet().stream()
+        return config
+                .keySet()
+                .stream()
                 .filter((key) -> key.startsWith(MANAGED_MEMORY_FRACTION_PREFIX))
-                .map(
-                        (key) ->
-                                ManagedMemoryUseCase.valueOf(
-                                        key.replaceFirst(MANAGED_MEMORY_FRACTION_PREFIX, "")))
+                .map((key) -> ManagedMemoryUseCase.valueOf(key.replaceFirst(MANAGED_MEMORY_FRACTION_PREFIX, "")))
                 .collect(Collectors.toSet());
     }
 
@@ -242,8 +234,10 @@ public class StreamConfig implements Serializable {
     public <T> TypeSerializer<T> getTypeSerializerSideOut(OutputTag<?> outputTag, ClassLoader cl) {
         Preconditions.checkNotNull(outputTag, "Side output id must not be null.");
         try {
-            return InstantiationUtil.readObjectFromConfig(
-                    this.config, TYPE_SERIALIZER_SIDEOUT_PREFIX + outputTag.getId(), cl);
+            return InstantiationUtil.readObjectFromConfig(this.config,
+                    TYPE_SERIALIZER_SIDEOUT_PREFIX + outputTag.getId(),
+                    cl
+            );
         } catch (Exception e) {
             throw new StreamTaskException("Could not instantiate serializer.", e);
         }
@@ -290,10 +284,7 @@ public class StreamConfig implements Serializable {
     public <T> TypeSerializer<T> getTypeSerializerIn(int index, ClassLoader cl) {
         InputConfig[] inputs = getInputs(cl);
         checkState(index < inputs.length);
-        checkState(
-                inputs[index] instanceof NetworkInputConfig,
-                "Input [%s] was assumed to be network input",
-                index);
+        checkState(inputs[index] instanceof NetworkInputConfig, "Input [%s] was assumed to be network input", index);
         return (TypeSerializer<T>) ((NetworkInputConfig) inputs[index]).typeSerializer;
     }
 
@@ -307,8 +298,7 @@ public class StreamConfig implements Serializable {
             try {
                 InstantiationUtil.writeObjectToConfig(factory, this.config, SERIALIZEDUDF);
             } catch (IOException e) {
-                throw new StreamTaskException(
-                        "Cannot serialize operator object " + factory.getClass() + ".", e);
+                throw new StreamTaskException("Cannot serialize operator object " + factory.getClass() + ".", e);
             }
         }
     }
@@ -327,13 +317,8 @@ public class StreamConfig implements Serializable {
             boolean loadableDoubleCheck = ClassLoaderUtil.validateClassLoadable(e, cl);
 
             String exceptionMessage =
-                    "Cannot load user class: "
-                            + e.getMessage()
-                            + "\nClassLoader info: "
-                            + classLoaderInfo
-                            + (loadableDoubleCheck
-                                    ? "\nClass was actually found in classloader - deserialization issue."
-                                    : "\nClass not resolvable through given classloader.");
+                    "Cannot load user class: " + e.getMessage() + "\nClassLoader info: " + classLoaderInfo
+                            + (loadableDoubleCheck ? "\nClass was actually found in classloader - deserialization issue." : "\nClass not resolvable through given classloader.");
 
             throw new StreamTaskException(exceptionMessage, e);
         } catch (Exception e) {
@@ -383,8 +368,10 @@ public class StreamConfig implements Serializable {
 
     public List<StreamEdge> getNonChainedOutputs(ClassLoader cl) {
         try {
-            List<StreamEdge> nonChainedOutputs =
-                    InstantiationUtil.readObjectFromConfig(this.config, NONCHAINED_OUTPUTS, cl);
+            List<StreamEdge> nonChainedOutputs = InstantiationUtil.readObjectFromConfig(this.config,
+                    NONCHAINED_OUTPUTS,
+                    cl
+            );
             return nonChainedOutputs == null ? new ArrayList<StreamEdge>() : nonChainedOutputs;
         } catch (Exception e) {
             throw new StreamTaskException("Could not instantiate non chained outputs.", e);
@@ -401,8 +388,7 @@ public class StreamConfig implements Serializable {
 
     public List<StreamEdge> getChainedOutputs(ClassLoader cl) {
         try {
-            List<StreamEdge> chainedOutputs =
-                    InstantiationUtil.readObjectFromConfig(this.config, CHAINED_OUTPUTS, cl);
+            List<StreamEdge> chainedOutputs = InstantiationUtil.readObjectFromConfig(this.config, CHAINED_OUTPUTS, cl);
             return chainedOutputs == null ? new ArrayList<StreamEdge>() : chainedOutputs;
         } catch (Exception e) {
             throw new StreamTaskException("Could not instantiate chained outputs.", e);
@@ -419,8 +405,7 @@ public class StreamConfig implements Serializable {
 
     public List<StreamEdge> getInPhysicalEdges(ClassLoader cl) {
         try {
-            List<StreamEdge> inEdges =
-                    InstantiationUtil.readObjectFromConfig(this.config, IN_STREAM_EDGES, cl);
+            List<StreamEdge> inEdges = InstantiationUtil.readObjectFromConfig(this.config, IN_STREAM_EDGES, cl);
             return inEdges == null ? new ArrayList<StreamEdge>() : inEdges;
         } catch (Exception e) {
             throw new StreamTaskException("Could not instantiate inputs.", e);
@@ -467,8 +452,7 @@ public class StreamConfig implements Serializable {
     }
 
     public void setAlignedCheckpointTimeout(Duration alignedCheckpointTimeout) {
-        config.set(
-                ExecutionCheckpointingOptions.ALIGNED_CHECKPOINT_TIMEOUT, alignedCheckpointTimeout);
+        config.set(ExecutionCheckpointingOptions.ALIGNED_CHECKPOINT_TIMEOUT, alignedCheckpointTimeout);
     }
 
     public void setOutEdgesInOrder(List<StreamEdge> outEdgeList) {
@@ -481,8 +465,7 @@ public class StreamConfig implements Serializable {
 
     public List<StreamEdge> getOutEdgesInOrder(ClassLoader cl) {
         try {
-            List<StreamEdge> outEdgesInOrder =
-                    InstantiationUtil.readObjectFromConfig(this.config, EDGES_IN_ORDER, cl);
+            List<StreamEdge> outEdgesInOrder = InstantiationUtil.readObjectFromConfig(this.config, EDGES_IN_ORDER, cl);
             return outEdgesInOrder == null ? new ArrayList<StreamEdge>() : outEdgesInOrder;
         } catch (Exception e) {
             throw new StreamTaskException("Could not instantiate outputs in order.", e);
@@ -492,8 +475,7 @@ public class StreamConfig implements Serializable {
     public void setTransitiveChainedTaskConfigs(Map<Integer, StreamConfig> chainedTaskConfigs) {
 
         try {
-            InstantiationUtil.writeObjectToConfig(
-                    chainedTaskConfigs, this.config, CHAINED_TASK_CONFIG);
+            InstantiationUtil.writeObjectToConfig(chainedTaskConfigs, this.config, CHAINED_TASK_CONFIG);
         } catch (IOException e) {
             throw new StreamTaskException("Could not serialize configuration.", e);
         }
@@ -501,8 +483,10 @@ public class StreamConfig implements Serializable {
 
     public Map<Integer, StreamConfig> getTransitiveChainedTaskConfigs(ClassLoader cl) {
         try {
-            Map<Integer, StreamConfig> confs =
-                    InstantiationUtil.readObjectFromConfig(this.config, CHAINED_TASK_CONFIG, cl);
+            Map<Integer, StreamConfig> confs = InstantiationUtil.readObjectFromConfig(this.config,
+                    CHAINED_TASK_CONFIG,
+                    cl
+            );
             return confs == null ? new HashMap<Integer, StreamConfig>() : confs;
         } catch (Exception e) {
             throw new StreamTaskException("Could not instantiate configuration.", e);
@@ -558,11 +542,9 @@ public class StreamConfig implements Serializable {
 
     public void setChangelogStateBackendEnabled(TernaryBoolean enabled) {
         try {
-            InstantiationUtil.writeObjectToConfig(
-                    enabled, this.config, ENABLE_CHANGE_LOG_STATE_BACKEND);
+            InstantiationUtil.writeObjectToConfig(enabled, this.config, ENABLE_CHANGE_LOG_STATE_BACKEND);
         } catch (Exception e) {
-            throw new StreamTaskException(
-                    "Could not serialize change log state backend enable flag.", e);
+            throw new StreamTaskException("Could not serialize change log state backend enable flag.", e);
         }
     }
 
@@ -581,11 +563,9 @@ public class StreamConfig implements Serializable {
 
     public TernaryBoolean isChangelogStateBackendEnabled(ClassLoader cl) {
         try {
-            return InstantiationUtil.readObjectFromConfig(
-                    this.config, ENABLE_CHANGE_LOG_STATE_BACKEND, cl);
+            return InstantiationUtil.readObjectFromConfig(this.config, ENABLE_CHANGE_LOG_STATE_BACKEND, cl);
         } catch (Exception e) {
-            throw new StreamTaskException(
-                    "Could not instantiate change log state backend enable flag.", e);
+            throw new StreamTaskException("Could not instantiate change log state backend enable flag.", e);
         }
     }
 
@@ -619,6 +599,7 @@ public class StreamConfig implements Serializable {
 
     public CheckpointStorage getCheckpointStorage(ClassLoader cl) {
         try {
+            // TODO_MA 马中华 注释： checkpointstorage
             return InstantiationUtil.readObjectFromConfig(this.config, CHECKPOINT_STORAGE, cl);
         } catch (Exception e) {
             throw new StreamTaskException("Could not instantiate checkpoint storage.", e);
@@ -628,8 +609,7 @@ public class StreamConfig implements Serializable {
     public void setTimerServiceProvider(InternalTimeServiceManager.Provider timerServiceProvider) {
         if (timerServiceProvider != null) {
             try {
-                InstantiationUtil.writeObjectToConfig(
-                        timerServiceProvider, this.config, TIMER_SERVICE_PROVIDER);
+                InstantiationUtil.writeObjectToConfig(timerServiceProvider, this.config, TIMER_SERVICE_PROVIDER);
             } catch (Exception e) {
                 throw new StreamTaskException("Could not serialize timer service provider.", e);
             }
@@ -646,18 +626,15 @@ public class StreamConfig implements Serializable {
 
     public void setStatePartitioner(int input, KeySelector<?, ?> partitioner) {
         try {
-            InstantiationUtil.writeObjectToConfig(
-                    partitioner, this.config, STATE_PARTITIONER + input);
+            InstantiationUtil.writeObjectToConfig(partitioner, this.config, STATE_PARTITIONER + input);
         } catch (IOException e) {
             throw new StreamTaskException("Could not serialize state partitioner.", e);
         }
     }
 
-    public <IN, K extends Serializable> KeySelector<IN, K> getStatePartitioner(
-            int input, ClassLoader cl) {
+    public <IN, K extends Serializable> KeySelector<IN, K> getStatePartitioner(int input, ClassLoader cl) {
         try {
-            return InstantiationUtil.readObjectFromConfig(
-                    this.config, STATE_PARTITIONER + input, cl);
+            return InstantiationUtil.readObjectFromConfig(this.config, STATE_PARTITIONER + input, cl);
         } catch (Exception e) {
             throw new StreamTaskException("Could not instantiate state partitioner.", e);
         }
@@ -675,8 +652,7 @@ public class StreamConfig implements Serializable {
         try {
             return InstantiationUtil.readObjectFromConfig(this.config, STATE_KEY_SERIALIZER, cl);
         } catch (Exception e) {
-            throw new StreamTaskException(
-                    "Could not instantiate state key serializer from task config.", e);
+            throw new StreamTaskException("Could not instantiate state key serializer from task config.", e);
         }
     }
 
@@ -721,15 +697,13 @@ public class StreamConfig implements Serializable {
         builder.append("\nChained subtasks: ").append(getChainedOutputs(cl));
 
         try {
-            builder.append("\nOperator: ")
-                    .append(getStreamOperatorFactory(cl).getClass().getSimpleName());
+            builder.append("\nOperator: ").append(getStreamOperatorFactory(cl).getClass().getSimpleName());
         } catch (Exception e) {
             builder.append("\nOperator: Missing");
         }
         builder.append("\nState Monitoring: ").append(isCheckpointingEnabled());
         if (isChainStart() && getChainedOutputs(cl).size() > 0) {
-            builder.append(
-                    "\n\n\n---------------------\nChained task configs\n---------------------\n");
+            builder.append("\n\n\n---------------------\nChained task configs\n---------------------\n");
             builder.append(getTransitiveChainedTaskConfigs(cl));
         }
 
@@ -768,7 +742,8 @@ public class StreamConfig implements Serializable {
     }
 
     /** Interface representing chained inputs. */
-    public interface InputConfig extends Serializable {}
+    public interface InputConfig extends Serializable {
+    }
 
     /** A representation of a Network {@link InputConfig}. */
     public static class NetworkInputConfig implements InputConfig {
@@ -781,10 +756,9 @@ public class StreamConfig implements Serializable {
             this(typeSerializer, inputGateIndex, InputRequirement.PASS_THROUGH);
         }
 
-        public NetworkInputConfig(
-                TypeSerializer<?> typeSerializer,
-                int inputGateIndex,
-                InputRequirement inputRequirement) {
+        public NetworkInputConfig(TypeSerializer<?> typeSerializer,
+                                  int inputGateIndex,
+                                  InputRequirement inputRequirement) {
             this.typeSerializer = typeSerializer;
             this.inputGateIndex = inputGateIndex;
             this.inputRequirement = inputRequirement;
@@ -841,6 +815,6 @@ public class StreamConfig implements Serializable {
     public static boolean requiresSorting(StreamConfig.InputConfig inputConfig) {
         return inputConfig instanceof StreamConfig.NetworkInputConfig
                 && ((StreamConfig.NetworkInputConfig) inputConfig).getInputRequirement()
-                        == StreamConfig.InputRequirement.SORTED;
+                == StreamConfig.InputRequirement.SORTED;
     }
 }

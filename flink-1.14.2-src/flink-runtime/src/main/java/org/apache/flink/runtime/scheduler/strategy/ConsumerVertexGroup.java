@@ -23,6 +23,8 @@ import java.util.Iterator;
 import java.util.List;
 
 /** Group of consumer {@link ExecutionVertexID}s. */
+// TODO_MA 马中华 注释： 对于全连接边，由于其所有下游节点都是同构的，我们可以将这些下游节点划分为一组，
+// TODO_MA 马中华 注释： 称为节点组 (ConsumerVertexGroup)，全连接边相连的所有上游分区都与这个组连接。
 public class ConsumerVertexGroup implements Iterable<ExecutionVertexID> {
 
     /*************************************************

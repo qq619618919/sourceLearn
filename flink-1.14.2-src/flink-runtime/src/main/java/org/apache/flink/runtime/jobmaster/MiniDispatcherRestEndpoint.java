@@ -35,7 +35,9 @@ import org.apache.flink.util.ConfigurationException;
 import java.io.IOException;
 import java.util.concurrent.ScheduledExecutorService;
 
-/** REST endpoint for the {@link JobClusterEntrypoint}. */
+/**
+ * REST endpoint for the {@link JobClusterEntrypoint}.
+ */
 public class MiniDispatcherRestEndpoint extends WebMonitorEndpoint<RestfulGateway> {
 
     public MiniDispatcherRestEndpoint(GatewayRetriever<? extends RestfulGateway> leaderRetriever,

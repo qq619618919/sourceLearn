@@ -72,7 +72,8 @@ public class DefaultSchedulerFactory implements SchedulerNGFactory {
 
         /*************************************************
          * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-         *  注释：
+         *  注释： 存在于 JobMaster 中用来管理 JobMaster 申请到的 资源的， 负责申请 slot
+         *  类似于 池子 的概念： 要用 slot ，就问 SlotPool 用，用完了，就还回来。
          */
         final SlotPool slotPool = slotPoolService
                 .castInto(SlotPool.class)
@@ -89,14 +90,21 @@ public class DefaultSchedulerFactory implements SchedulerNGFactory {
                 slotRequestTimeout
         );
 
-        // TODO_MA 马中华 注释：
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释： Flink Job 重启策略
+         *  1、RestartStrategy  重启策略
+         *  2、FailoverStatragy  故障转移策略
+         *  -
+         *  调度： pipline 区域划分， slot 共享
+         */
         final RestartBackoffTimeStrategy restartBackoffTimeStrategy = RestartBackoffTimeStrategyFactoryLoader
                 .createRestartBackoffTimeStrategyFactory(jobGraph
                         .getSerializedExecutionConfig()
                         .deserializeValue(userCodeLoader)
                         .getRestartStrategy(), jobMasterConfiguration, jobGraph.isCheckpointingEnabled())
                 .create();
-        
+
         log.info("Using restart back off time strategy {} for {} ({}).",
                 restartBackoffTimeStrategy,
                 jobGraph.getName(),

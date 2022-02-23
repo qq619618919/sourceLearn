@@ -60,6 +60,7 @@ import static org.apache.flink.core.memory.MemorySegmentFactory.allocateOffHeapU
 public class MemoryManager {
 
     private static final Logger LOG = LoggerFactory.getLogger(MemoryManager.class);
+
     /** The default memory page size. Currently set to 32 KiBytes. */
     public static final int DEFAULT_PAGE_SIZE = 32 * 1024;
 
@@ -102,29 +103,20 @@ public class MemoryManager {
         this.sharedResources = new SharedResources();
         verifyIntTotalNumberOfPages(memorySize, totalNumberOfPages);
 
-        LOG.debug(
-                "Initialized MemoryManager with total memory size {} and page size {}.",
-                memorySize,
-                pageSize);
+        LOG.debug("Initialized MemoryManager with total memory size {} and page size {}.", memorySize, pageSize);
     }
 
     private static void sanityCheck(long memorySize, int pageSize) {
         Preconditions.checkArgument(memorySize >= 0L, "Size of total memory must be non-negative.");
-        Preconditions.checkArgument(
-                pageSize >= MIN_PAGE_SIZE,
-                "The page size must be at least %d bytes.",
-                MIN_PAGE_SIZE);
-        Preconditions.checkArgument(
-                MathUtils.isPowerOf2(pageSize), "The given page size is not a power of two.");
+        Preconditions.checkArgument(pageSize >= MIN_PAGE_SIZE, "The page size must be at least %d bytes.", MIN_PAGE_SIZE);
+        Preconditions.checkArgument(MathUtils.isPowerOf2(pageSize), "The given page size is not a power of two.");
     }
 
     private static void verifyIntTotalNumberOfPages(long memorySize, long numberOfPagesLong) {
-        Preconditions.checkArgument(
-                numberOfPagesLong <= Integer.MAX_VALUE,
-                "The given number of memory bytes (%d) corresponds to more than MAX_INT pages (%d > %d).",
-                memorySize,
-                numberOfPagesLong,
-                Integer.MAX_VALUE);
+        Preconditions.checkArgument(numberOfPagesLong <= Integer.MAX_VALUE,
+                "The given number of memory bytes (%d) corresponds to more than MAX_INT pages (%d > %d).", memorySize,
+                numberOfPagesLong, Integer.MAX_VALUE
+        );
     }
 
     // ------------------------------------------------------------------------
@@ -190,8 +182,7 @@ public class MemoryManager {
      * @throws MemoryAllocationException Thrown, if this memory manager does not have the requested
      *     amount of memory pages any more.
      */
-    public List<MemorySegment> allocatePages(Object owner, int numPages)
-            throws MemoryAllocationException {
+    public List<MemorySegment> allocatePages(Object owner, int numPages) throws MemoryAllocationException {
         List<MemorySegment> segments = new ArrayList<>(numPages);
         allocatePages(owner, segments, numPages);
         return segments;
@@ -208,16 +199,13 @@ public class MemoryManager {
      * @throws MemoryAllocationException Thrown, if this memory manager does not have the requested
      *     amount of memory pages any more.
      */
-    public void allocatePages(Object owner, Collection<MemorySegment> target, int numberOfPages)
-            throws MemoryAllocationException {
+    public void allocatePages(Object owner, Collection<MemorySegment> target, int numberOfPages) throws MemoryAllocationException {
         // sanity check
         Preconditions.checkNotNull(owner, "The memory owner must not be null.");
         Preconditions.checkState(!isShutDown, "Memory manager has been shut down.");
-        Preconditions.checkArgument(
-                numberOfPages <= totalNumberOfPages,
-                "Cannot allocate more segments %s than the max number %s",
-                numberOfPages,
-                totalNumberOfPages);
+        Preconditions.checkArgument(numberOfPages <= totalNumberOfPages, "Cannot allocate more segments %s than the max number %s",
+                numberOfPages, totalNumberOfPages
+        );
 
         // reserve array space, if applicable
         if (target instanceof ArrayList) {
@@ -228,26 +216,20 @@ public class MemoryManager {
         try {
             memoryBudget.reserveMemory(memoryToReserve);
         } catch (MemoryReservationException e) {
-            throw new MemoryAllocationException(
-                    String.format("Could not allocate %d pages", numberOfPages), e);
+            throw new MemoryAllocationException(String.format("Could not allocate %d pages", numberOfPages), e);
         }
 
         Runnable pageCleanup = this::releasePage;
-        allocatedSegments.compute(
-                owner,
-                (o, currentSegmentsForOwner) -> {
-                    Set<MemorySegment> segmentsForOwner =
-                            currentSegmentsForOwner == null
-                                    ? new HashSet<>(numberOfPages)
-                                    : currentSegmentsForOwner;
-                    for (long i = numberOfPages; i > 0; i--) {
-                        MemorySegment segment =
-                                allocateOffHeapUnsafeMemory(getPageSize(), owner, pageCleanup);
-                        target.add(segment);
-                        segmentsForOwner.add(segment);
-                    }
-                    return segmentsForOwner;
-                });
+        allocatedSegments.compute(owner, (o, currentSegmentsForOwner) -> {
+            Set<MemorySegment> segmentsForOwner = currentSegmentsForOwner == null ? new HashSet<>(
+                    numberOfPages) : currentSegmentsForOwner;
+            for (long i = numberOfPages; i > 0; i--) {
+                MemorySegment segment = allocateOffHeapUnsafeMemory(getPageSize(), owner, pageCleanup);
+                target.add(segment);
+                segmentsForOwner.add(segment);
+            }
+            return segmentsForOwner;
+        });
 
         Preconditions.checkState(!isShutDown, "Memory manager has been concurrently shut down.");
     }
@@ -276,15 +258,12 @@ public class MemoryManager {
 
         // remove the reference in the map for the owner
         try {
-            allocatedSegments.computeIfPresent(
-                    segment.getOwner(),
-                    (o, segsForOwner) -> {
-                        freeSegment(segment, segsForOwner);
-                        return segsForOwner.isEmpty() ? null : segsForOwner;
-                    });
+            allocatedSegments.computeIfPresent(segment.getOwner(), (o, segsForOwner) -> {
+                freeSegment(segment, segsForOwner);
+                return segsForOwner.isEmpty() ? null : segsForOwner;
+            });
         } catch (Throwable t) {
-            throw new RuntimeException(
-                    "Error removing book-keeping reference to allocated memory segment.", t);
+            throw new RuntimeException("Error removing book-keeping reference to allocated memory segment.", t);
         }
     }
 
@@ -335,39 +314,33 @@ public class MemoryManager {
         } while (!successfullyReleased);
     }
 
-    private MemorySegment releaseSegmentsForOwnerUntilNextOwner(
-            MemorySegment firstSeg, Iterator<MemorySegment> segmentsIterator) {
+    private MemorySegment releaseSegmentsForOwnerUntilNextOwner(MemorySegment firstSeg, Iterator<MemorySegment> segmentsIterator) {
         AtomicReference<MemorySegment> nextOwnerMemorySegment = new AtomicReference<>();
         Object owner = firstSeg.getOwner();
-        allocatedSegments.computeIfPresent(
-                owner,
-                (o, segsForOwner) -> {
-                    freeSegment(firstSeg, segsForOwner);
-                    while (segmentsIterator.hasNext()) {
-                        MemorySegment segment = segmentsIterator.next();
-                        try {
-                            if (segment == null) {
-                                continue;
-                            }
-                            Object nextOwner = segment.getOwner();
-                            if (nextOwner != owner) {
-                                nextOwnerMemorySegment.set(segment);
-                                break;
-                            }
-                            freeSegment(segment, segsForOwner);
-                        } catch (Throwable t) {
-                            throw new RuntimeException(
-                                    "Error removing book-keeping reference to allocated memory segment.",
-                                    t);
-                        }
+        allocatedSegments.computeIfPresent(owner, (o, segsForOwner) -> {
+            freeSegment(firstSeg, segsForOwner);
+            while (segmentsIterator.hasNext()) {
+                MemorySegment segment = segmentsIterator.next();
+                try {
+                    if (segment == null) {
+                        continue;
                     }
-                    return segsForOwner.isEmpty() ? null : segsForOwner;
-                });
+                    Object nextOwner = segment.getOwner();
+                    if (nextOwner != owner) {
+                        nextOwnerMemorySegment.set(segment);
+                        break;
+                    }
+                    freeSegment(segment, segsForOwner);
+                } catch (Throwable t) {
+                    throw new RuntimeException("Error removing book-keeping reference to allocated memory segment.", t);
+                }
+            }
+            return segsForOwner.isEmpty() ? null : segsForOwner;
+        });
         return nextOwnerMemorySegment.get();
     }
 
-    private static void freeSegment(
-            MemorySegment segment, @Nonnull Collection<MemorySegment> segments) {
+    private static void freeSegment(MemorySegment segment, @Nonnull Collection<MemorySegment> segments) {
         if (segments.remove(segment)) {
             segment.free();
         }
@@ -417,10 +390,9 @@ public class MemoryManager {
 
         memoryBudget.reserveMemory(size);
 
-        reservedMemory.compute(
-                owner,
-                (o, memoryReservedForOwner) ->
-                        memoryReservedForOwner == null ? size : memoryReservedForOwner + size);
+        reservedMemory.compute(owner,
+                (o, memoryReservedForOwner) -> memoryReservedForOwner == null ? size : memoryReservedForOwner + size
+        );
 
         Preconditions.checkState(!isShutDown, "Memory manager has been concurrently shut down.");
     }
@@ -437,25 +409,20 @@ public class MemoryManager {
             return;
         }
 
-        reservedMemory.compute(
-                owner,
-                (o, currentlyReserved) -> {
-                    long newReservedMemory = 0;
-                    if (currentlyReserved != null) {
-                        if (currentlyReserved < size) {
-                            LOG.warn(
-                                    "Trying to release more memory {} than it was reserved {} so far for the owner {}",
-                                    size,
-                                    currentlyReserved,
-                                    owner);
-                        }
+        reservedMemory.compute(owner, (o, currentlyReserved) -> {
+            long newReservedMemory = 0;
+            if (currentlyReserved != null) {
+                if (currentlyReserved < size) {
+                    LOG.warn("Trying to release more memory {} than it was reserved {} so far for the owner {}", size,
+                            currentlyReserved, owner
+                    );
+                }
 
-                        newReservedMemory =
-                                releaseAndCalculateReservedMemory(size, currentlyReserved);
-                    }
+                newReservedMemory = releaseAndCalculateReservedMemory(size, currentlyReserved);
+            }
 
-                    return newReservedMemory == 0 ? null : newReservedMemory;
-                });
+            return newReservedMemory == 0 ? null : newReservedMemory;
+        });
     }
 
     private long releaseAndCalculateReservedMemory(long memoryToFree, long currentlyReserved) {
@@ -468,8 +435,7 @@ public class MemoryManager {
     private void checkMemoryReservationPreconditions(Object owner, long size) {
         Preconditions.checkNotNull(owner, "The memory owner must not be null.");
         Preconditions.checkState(!isShutDown, "Memory manager has been shut down.");
-        Preconditions.checkArgument(
-                size >= 0L, "The memory size (%s) has to have non-negative size", size);
+        Preconditions.checkArgument(size >= 0L, "The memory size (%s) has to have non-negative size", size);
     }
 
     /**
@@ -509,12 +475,9 @@ public class MemoryManager {
      * indicates that native memory was not released and the process might thus have a memory leak,
      * the caller can decide to kill the process as a result.
      */
-    public <T extends AutoCloseable>
-            OpaqueMemoryResource<T> getSharedMemoryResourceForManagedMemory(
-                    String type,
-                    LongFunctionWithException<T, Exception> initializer,
-                    double fractionToInitializeWith)
-                    throws Exception {
+    public <T extends AutoCloseable> OpaqueMemoryResource<T> getSharedMemoryResourceForManagedMemory(String type,
+                                                                                                     LongFunctionWithException<T, Exception> initializer,
+                                                                                                     double fractionToInitializeWith) throws Exception {
 
         // if we need to allocate the resource (no shared resource allocated, yet), this would be
         // the size to use
@@ -523,25 +486,23 @@ public class MemoryManager {
         // initializer and releaser as functions that are pushed into the SharedResources,
         // so that the SharedResources can decide in (thread-safely execute) when initialization
         // and release should happen
-        final LongFunctionWithException<T, Exception> reserveAndInitialize =
-                (size) -> {
-                    try {
-                        reserveMemory(type, size);
-                    } catch (MemoryReservationException e) {
-                        throw new MemoryAllocationException(
-                                "Could not created the shared memory resource of size "
-                                        + size
-                                        + ". Not enough memory left to reserve from the slot's managed memory.",
-                                e);
-                    }
+        final LongFunctionWithException<T, Exception> reserveAndInitialize = (size) -> {
+            try {
+                reserveMemory(type, size);
+            } catch (MemoryReservationException e) {
+                throw new MemoryAllocationException(
+                        "Could not created the shared memory resource of size " + size + ". Not enough memory left to reserve from the slot's managed memory.",
+                        e
+                );
+            }
 
-                    try {
-                        return initializer.apply(size);
-                    } catch (Throwable t) {
-                        releaseMemory(type, size);
-                        throw t;
-                    }
-                };
+            try {
+                return initializer.apply(size);
+            } catch (Throwable t) {
+                releaseMemory(type, size);
+                throw t;
+            }
+        };
 
         final Consumer<Long> releaser = (size) -> releaseMemory(type, size);
 
@@ -551,9 +512,9 @@ public class MemoryManager {
         // counter.
         final Object leaseHolder = new Object();
 
-        final SharedResources.ResourceAndSize<T> resource =
-                sharedResources.getOrAllocateSharedResource(
-                        type, leaseHolder, reserveAndInitialize, numBytes);
+        final SharedResources.ResourceAndSize<T> resource = sharedResources.getOrAllocateSharedResource(type, leaseHolder,
+                reserveAndInitialize, numBytes
+        );
 
         // the actual size may theoretically be different from what we requested, if allocated it
         // was by
@@ -561,8 +522,7 @@ public class MemoryManager {
         // though).
         final long size = resource.size();
 
-        final ThrowingRunnable<Exception> disposer =
-                () -> sharedResources.release(type, leaseHolder, releaser);
+        final ThrowingRunnable<Exception> disposer = () -> sharedResources.release(type, leaseHolder, releaser);
 
         return new OpaqueMemoryResource<>(resource.resourceHandle(), size, disposer);
     }
@@ -577,9 +537,9 @@ public class MemoryManager {
      * <p>The OpaqueMemoryResource object returned from this method must be closed once not used any
      * further. Once all acquisitions have closed the object, the resource itself is closed.
      */
-    public <T extends AutoCloseable> OpaqueMemoryResource<T> getExternalSharedMemoryResource(
-            String type, LongFunctionWithException<T, Exception> initializer, long numBytes)
-            throws Exception {
+    public <T extends AutoCloseable> OpaqueMemoryResource<T> getExternalSharedMemoryResource(String type,
+                                                                                             LongFunctionWithException<T, Exception> initializer,
+                                                                                             long numBytes) throws Exception {
 
         // This object identifies the lease in this request. It is used only to identify the release
         // operation.
@@ -587,12 +547,11 @@ public class MemoryManager {
         // counter.
         final Object leaseHolder = new Object();
 
-        final SharedResources.ResourceAndSize<T> resource =
-                sharedResources.getOrAllocateSharedResource(
-                        type, leaseHolder, initializer, numBytes);
+        final SharedResources.ResourceAndSize<T> resource = sharedResources.getOrAllocateSharedResource(type, leaseHolder,
+                initializer, numBytes
+        );
 
-        final ThrowingRunnable<Exception> disposer =
-                () -> sharedResources.release(type, leaseHolder);
+        final ThrowingRunnable<Exception> disposer = () -> sharedResources.release(type, leaseHolder);
 
         return new OpaqueMemoryResource<>(resource.resourceHandle(), resource.size(), disposer);
     }
@@ -665,18 +624,21 @@ public class MemoryManager {
      * @param pageSize The size of the pages handed out by the memory manager.
      */
     public static MemoryManager create(long memorySize, int pageSize) {
+
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释：
+         */
         return new MemoryManager(memorySize, pageSize);
     }
 
     private static void validateFraction(double fraction) {
-        Preconditions.checkArgument(
-                fraction != 0,
-                "The fraction of memory to allocate should not be 0. Please make sure that all types of"
-                        + " managed memory consumers contained in the job are configured with a non-negative weight via `%s`.",
-                TaskManagerOptions.MANAGED_MEMORY_CONSUMER_WEIGHTS.key());
-        Preconditions.checkArgument(
-                fraction > 0 && fraction <= 1,
-                "The fraction of memory to allocate must within (0, 1], was: %s.",
-                fraction);
+        Preconditions.checkArgument(fraction != 0,
+                "The fraction of memory to allocate should not be 0. Please make sure that all types of" + " managed memory consumers contained in the job are configured with a non-negative weight via `%s`.",
+                TaskManagerOptions.MANAGED_MEMORY_CONSUMER_WEIGHTS.key()
+        );
+        Preconditions.checkArgument(fraction > 0 && fraction <= 1,
+                "The fraction of memory to allocate must within (0, 1], was: %s.", fraction
+        );
     }
 }

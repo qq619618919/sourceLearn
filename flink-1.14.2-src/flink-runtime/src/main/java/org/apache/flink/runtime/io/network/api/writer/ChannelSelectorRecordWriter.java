@@ -51,6 +51,11 @@ public final class ChannelSelectorRecordWriter<T extends IOReadableWritable>
 
     @Override
     public void emit(T record) throws IOException {
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释：
+         *  1、channelSelector.selectChannel(record) 进行分区选择
+         */
         emit(record, channelSelector.selectChannel(record));
     }
 

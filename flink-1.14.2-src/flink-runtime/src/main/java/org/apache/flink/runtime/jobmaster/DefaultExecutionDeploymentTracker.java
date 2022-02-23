@@ -36,7 +36,8 @@ public class DefaultExecutionDeploymentTracker implements ExecutionDeploymentTra
 
     @Override
     public void startTrackingPendingDeploymentOf(
-            ExecutionAttemptID executionAttemptId, ResourceID host) {
+            ExecutionAttemptID executionAttemptId,
+            ResourceID host) {
         pendingDeployments.add(executionAttemptId);
         hostByExecution.put(executionAttemptId, host);
         executionsByHost.computeIfAbsent(host, ignored -> new HashSet<>()).add(executionAttemptId);

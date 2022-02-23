@@ -86,7 +86,7 @@ public abstract class AbstractFsCheckpointStorageAccess implements CheckpointSto
     public static final String METADATA_FILE_NAME = "_metadata";
 
     /** The magic number that is put in front of any reference. */
-    private static final byte[] REFERENCE_MAGIC_NUMBER = new byte[] {0x05, 0x5F, 0x3F, 0x18};
+    private static final byte[] REFERENCE_MAGIC_NUMBER = new byte[]{0x05, 0x5F, 0x3F, 0x18};
 
     // ------------------------------------------------------------------------
     //  Fields and properties
@@ -96,17 +96,17 @@ public abstract class AbstractFsCheckpointStorageAccess implements CheckpointSto
     private final JobID jobId;
 
     /** The default location for savepoints. Null, if none is configured. */
-    @Nullable private final Path defaultSavepointDirectory;
+    @Nullable
+    private final Path defaultSavepointDirectory;
 
     /**
      * Creates a new checkpoint storage.
      *
      * @param jobId The ID of the job that writes the checkpoints.
      * @param defaultSavepointDirectory The default location for savepoints, or null, if none is
-     *     set.
+     *         set.
      */
-    protected AbstractFsCheckpointStorageAccess(
-            JobID jobId, @Nullable Path defaultSavepointDirectory) {
+    protected AbstractFsCheckpointStorageAccess(JobID jobId, @Nullable Path defaultSavepointDirectory) {
 
         this.jobId = checkNotNull(jobId);
         this.defaultSavepointDirectory = defaultSavepointDirectory;
@@ -131,8 +131,7 @@ public abstract class AbstractFsCheckpointStorageAccess implements CheckpointSto
     }
 
     @Override
-    public CompletedCheckpointStorageLocation resolveCheckpoint(String checkpointPointer)
-            throws IOException {
+    public CompletedCheckpointStorageLocation resolveCheckpoint(String checkpointPointer) throws IOException {
         return resolveCheckpointPointer(checkpointPointer);
     }
 
@@ -144,15 +143,16 @@ public abstract class AbstractFsCheckpointStorageAccess implements CheckpointSto
      * how to name and initialize the savepoint directory.
      *
      * @param externalLocationPointer The target location pointer for the savepoint. Must be a valid
-     *     URI. Null, if not supplied.
+     *         URI. Null, if not supplied.
      * @param checkpointId The checkpoint ID of the savepoint.
+     *
      * @return The checkpoint storage location for the savepoint.
+     *
      * @throws IOException Thrown if the target directory could not be created.
      */
     @Override
-    public CheckpointStorageLocation initializeLocationForSavepoint(
-            @SuppressWarnings("unused") long checkpointId, @Nullable String externalLocationPointer)
-            throws IOException {
+    public CheckpointStorageLocation initializeLocationForSavepoint(@SuppressWarnings("unused") long checkpointId,
+                                                                    @Nullable String externalLocationPointer) throws IOException {
 
         // determine where to write the savepoint to
 
@@ -162,8 +162,7 @@ public abstract class AbstractFsCheckpointStorageAccess implements CheckpointSto
         } else if (defaultSavepointDirectory != null) {
             savepointBasePath = defaultSavepointDirectory;
         } else {
-            throw new IllegalArgumentException(
-                    "No savepoint location given and no default location configured.");
+            throw new IllegalArgumentException("No savepoint location given and no default location configured.");
         }
 
         // generate the savepoint directory
@@ -172,10 +171,18 @@ public abstract class AbstractFsCheckpointStorageAccess implements CheckpointSto
         final String prefix = "savepoint-" + jobId.toString().substring(0, 6) + '-';
 
         Exception latestException = null;
+
         for (int attempt = 0; attempt < 10; attempt++) {
+
+            // TODO_MA 马中华 注释： savepoint 路径
             final Path path = new Path(savepointBasePath, FileUtils.getRandomFilename(prefix));
 
             try {
+
+                /*************************************************
+                 * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+                 *  注释： 创建文件夹
+                 */
                 if (fs.mkdirs(path)) {
                     // we make the path qualified, to make it independent of default schemes and
                     // authorities
@@ -188,12 +195,11 @@ public abstract class AbstractFsCheckpointStorageAccess implements CheckpointSto
             }
         }
 
-        throw new IOException(
-                "Failed to create savepoint directory at " + savepointBasePath, latestException);
+        throw new IOException("Failed to create savepoint directory at " + savepointBasePath, latestException);
     }
 
-    protected abstract CheckpointStorageLocation createSavepointLocation(
-            FileSystem fs, Path location) throws IOException;
+    protected abstract CheckpointStorageLocation createSavepointLocation(FileSystem fs,
+                                                                         Path location) throws IOException;
 
     // ------------------------------------------------------------------------
     //  Creating and resolving paths
@@ -207,7 +213,9 @@ public abstract class AbstractFsCheckpointStorageAccess implements CheckpointSto
      * method fails with an exception.
      *
      * @param jobId The ID of the job
+     *
      * @return The job's checkpoint directory, re
+     *
      * @throws UnsupportedOperationException Thrown, if no base checkpoint directory has been set.
      */
     protected static Path getCheckpointDirectoryForJob(Path baseCheckpointPath, JobID jobId) {
@@ -229,13 +237,14 @@ public abstract class AbstractFsCheckpointStorageAccess implements CheckpointSto
      * status for the checkpoint's metadata file.
      *
      * @param checkpointPointer The pointer to resolve.
+     *
      * @return A state handle to checkpoint/savepoint's metadata.
+     *
      * @throws IOException Thrown, if the pointer cannot be resolved, the file system not accessed,
-     *     or the pointer points to a location that does not seem to be a checkpoint/savepoint.
+     *         or the pointer points to a location that does not seem to be a checkpoint/savepoint.
      */
     @Internal
-    public static FsCompletedCheckpointStorageLocation resolveCheckpointPointer(
-            String checkpointPointer) throws IOException {
+    public static FsCompletedCheckpointStorageLocation resolveCheckpointPointer(String checkpointPointer) throws IOException {
         checkNotNull(checkpointPointer, "checkpointPointer");
         checkArgument(!checkpointPointer.isEmpty(), "empty checkpoint pointer");
 
@@ -244,11 +253,8 @@ public abstract class AbstractFsCheckpointStorageAccess implements CheckpointSto
         try {
             path = new Path(checkpointPointer);
         } catch (Exception e) {
-            throw new IOException(
-                    "Checkpoint/savepoint path '"
-                            + checkpointPointer
-                            + "' is not a valid file URI. "
-                            + "Either the pointer path is invalid, or the checkpoint was created by a different state backend.");
+            throw new IOException("Checkpoint/savepoint path '" + checkpointPointer + "' is not a valid file URI. "
+                    + "Either the pointer path is invalid, or the checkpoint was created by a different state backend.");
         }
 
         // check if the file system can be accessed
@@ -257,10 +263,7 @@ public abstract class AbstractFsCheckpointStorageAccess implements CheckpointSto
             fs = path.getFileSystem();
         } catch (IOException e) {
             throw new IOException(
-                    "Cannot access file system for checkpoint/savepoint path '"
-                            + checkpointPointer
-                            + "'.",
-                    e);
+                    "Cannot access file system for checkpoint/savepoint path '" + checkpointPointer + "'.", e);
         }
 
         final FileStatus status;
@@ -268,12 +271,8 @@ public abstract class AbstractFsCheckpointStorageAccess implements CheckpointSto
             status = fs.getFileStatus(path);
         } catch (FileNotFoundException e) {
             throw new FileNotFoundException(
-                    "Cannot find checkpoint or savepoint "
-                            + "file/directory '"
-                            + checkpointPointer
-                            + "' on file system '"
-                            + fs.getUri().getScheme()
-                            + "'.");
+                    "Cannot find checkpoint or savepoint " + "file/directory '" + checkpointPointer
+                            + "' on file system '" + fs.getUri().getScheme() + "'.");
         }
 
         // if we are here, the file / directory exists
@@ -288,10 +287,7 @@ public abstract class AbstractFsCheckpointStorageAccess implements CheckpointSto
                 metadataFileStatus = fs.getFileStatus(metadataFilePath);
             } catch (FileNotFoundException e) {
                 throw new FileNotFoundException(
-                        "Cannot find meta data file '"
-                                + METADATA_FILE_NAME
-                                + "' in directory '"
-                                + path
+                        "Cannot find meta data file '" + METADATA_FILE_NAME + "' in directory '" + path
                                 + "'. Please try to load the checkpoint/savepoint "
                                 + "directly from the metadata file instead of the directory.");
             }
@@ -302,13 +298,13 @@ public abstract class AbstractFsCheckpointStorageAccess implements CheckpointSto
             checkpointDir = status.getPath().getParent();
         }
 
-        final FileStateHandle metaDataFileHandle =
-                new FileStateHandle(metadataFileStatus.getPath(), metadataFileStatus.getLen());
+        final FileStateHandle metaDataFileHandle = new FileStateHandle(metadataFileStatus.getPath(),
+                metadataFileStatus.getLen()
+        );
 
         final String pointer = checkpointDir.makeQualified(fs).toString();
 
-        return new FsCompletedCheckpointStorageLocation(
-                fs, checkpointDir, metaDataFileHandle, pointer);
+        return new FsCompletedCheckpointStorageLocation(fs, checkpointDir, metaDataFileHandle, pointer);
     }
 
     // ------------------------------------------------------------------------
@@ -320,6 +316,7 @@ public abstract class AbstractFsCheckpointStorageAccess implements CheckpointSto
      * prepended as a magic number.
      *
      * @param path The path to encode.
+     *
      * @return The location reference.
      */
     public static CheckpointStorageLocationReference encodePathAsReference(Path path) {
@@ -338,7 +335,9 @@ public abstract class AbstractFsCheckpointStorageAccess implements CheckpointSto
      * converts the remaining bytes back to a proper path.
      *
      * @param reference The bytes representing the reference.
+     *
      * @return The path decoded from the reference.
+     *
      * @throws IllegalArgumentException Thrown, if the bytes do not represent a proper reference.
      */
     public static Path decodePathFromReference(CheckpointStorageLocationReference reference) {
@@ -353,19 +352,13 @@ public abstract class AbstractFsCheckpointStorageAccess implements CheckpointSto
             // compare magic number
             for (int i = 0; i < headerLen; i++) {
                 if (bytes[i] != REFERENCE_MAGIC_NUMBER[i]) {
-                    throw new IllegalArgumentException(
-                            "Reference starts with the wrong magic number");
+                    throw new IllegalArgumentException("Reference starts with the wrong magic number");
                 }
             }
 
             // covert to string and path
             try {
-                return new Path(
-                        new String(
-                                bytes,
-                                headerLen,
-                                bytes.length - headerLen,
-                                StandardCharsets.UTF_8));
+                return new Path(new String(bytes, headerLen, bytes.length - headerLen, StandardCharsets.UTF_8));
             } catch (Exception e) {
                 throw new IllegalArgumentException("Reference cannot be decoded to a path", e);
             }

@@ -68,22 +68,19 @@ public class TaskDeploymentDescriptorFactory {
     private final PartitionLocationConstraint partitionDeploymentConstraint;
     private final int subtaskIndex;
     private final List<ConsumedPartitionGroup> consumedPartitionGroups;
-    private final Function<IntermediateResultPartitionID, IntermediateResultPartition>
-            resultPartitionRetriever;
+    private final Function<IntermediateResultPartitionID, IntermediateResultPartition> resultPartitionRetriever;
     private final BlobWriter blobWriter;
 
-    private TaskDeploymentDescriptorFactory(
-            ExecutionAttemptID executionId,
-            int attemptNumber,
-            MaybeOffloaded<JobInformation> serializedJobInformation,
-            MaybeOffloaded<TaskInformation> taskInfo,
-            JobID jobID,
-            PartitionLocationConstraint partitionDeploymentConstraint,
-            int subtaskIndex,
-            List<ConsumedPartitionGroup> consumedPartitionGroups,
-            Function<IntermediateResultPartitionID, IntermediateResultPartition>
-                    resultPartitionRetriever,
-            BlobWriter blobWriter) {
+    private TaskDeploymentDescriptorFactory(ExecutionAttemptID executionId,
+                                            int attemptNumber,
+                                            MaybeOffloaded<JobInformation> serializedJobInformation,
+                                            MaybeOffloaded<TaskInformation> taskInfo,
+                                            JobID jobID,
+                                            PartitionLocationConstraint partitionDeploymentConstraint,
+                                            int subtaskIndex,
+                                            List<ConsumedPartitionGroup> consumedPartitionGroups,
+                                            Function<IntermediateResultPartitionID, IntermediateResultPartition> resultPartitionRetriever,
+                                            BlobWriter blobWriter) {
         this.executionId = executionId;
         this.attemptNumber = attemptNumber;
         this.serializedJobInformation = serializedJobInformation;
@@ -96,13 +93,18 @@ public class TaskDeploymentDescriptorFactory {
         this.blobWriter = blobWriter;
     }
 
-    public TaskDeploymentDescriptor createDeploymentDescriptor(
-            AllocationID allocationID,
-            @Nullable JobManagerTaskRestore taskRestore,
-            Collection<ResultPartitionDeploymentDescriptor> producedPartitions)
-            throws IOException {
-        return new TaskDeploymentDescriptor(
-                jobID,
+    /*************************************************
+     * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+     *  注释：
+     */
+    public TaskDeploymentDescriptor createDeploymentDescriptor(AllocationID allocationID,
+                                                               @Nullable JobManagerTaskRestore taskRestore,
+                                                               Collection<ResultPartitionDeploymentDescriptor> producedPartitions) throws IOException {
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释： 生成一个 TDD 对象
+         */
+        return new TaskDeploymentDescriptor(jobID,
                 serializedJobInformation,
                 taskInfo,
                 executionId,
@@ -110,21 +112,29 @@ public class TaskDeploymentDescriptorFactory {
                 subtaskIndex,
                 attemptNumber,
                 taskRestore,
+
+                /*************************************************
+                 * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+                 *  注释： ResultPartition 的 DeploymentDescriptor 对象
+                 */
                 new ArrayList<>(producedPartitions),
-                createInputGateDeploymentDescriptors());
+
+                /*************************************************
+                 * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+                 *  注释： InputGate 的 DeploymentDescriptor 对象
+                 */
+                createInputGateDeploymentDescriptors()
+        );
     }
 
-    private List<InputGateDeploymentDescriptor> createInputGateDeploymentDescriptors()
-            throws IOException {
-        List<InputGateDeploymentDescriptor> inputGates =
-                new ArrayList<>(consumedPartitionGroups.size());
+    private List<InputGateDeploymentDescriptor> createInputGateDeploymentDescriptors() throws IOException {
+        List<InputGateDeploymentDescriptor> inputGates = new ArrayList<>(consumedPartitionGroups.size());
 
         for (ConsumedPartitionGroup consumedPartitionGroup : consumedPartitionGroups) {
             // If the produced partition has multiple consumers registered, we
             // need to request the one matching our sub task index.
             // TODO Refactor after removing the consumers from the intermediate result partitions
-            IntermediateResultPartition resultPartition =
-                    resultPartitionRetriever.apply(consumedPartitionGroup.getFirst());
+            IntermediateResultPartition resultPartition = resultPartitionRetriever.apply(consumedPartitionGroup.getFirst());
 
             int numConsumers = resultPartition.getConsumerVertexGroups().get(0).size();
 
@@ -133,57 +143,50 @@ public class TaskDeploymentDescriptorFactory {
             IntermediateDataSetID resultId = consumedIntermediateResult.getId();
             ResultPartitionType partitionType = consumedIntermediateResult.getResultType();
 
-            inputGates.add(
-                    new InputGateDeploymentDescriptor(
-                            resultId,
-                            partitionType,
-                            queueToRequest,
-                            getConsumedPartitionShuffleDescriptors(
-                                    consumedIntermediateResult, consumedPartitionGroup)));
+            inputGates.add(new InputGateDeploymentDescriptor(resultId,
+                    partitionType,
+                    queueToRequest,
+                    getConsumedPartitionShuffleDescriptors(consumedIntermediateResult, consumedPartitionGroup)
+            ));
         }
 
         return inputGates;
     }
 
-    private MaybeOffloaded<ShuffleDescriptor[]> getConsumedPartitionShuffleDescriptors(
-            IntermediateResult intermediateResult, ConsumedPartitionGroup consumedPartitionGroup)
-            throws IOException {
-        MaybeOffloaded<ShuffleDescriptor[]> serializedShuffleDescriptors =
-                intermediateResult.getCachedShuffleDescriptors(consumedPartitionGroup);
+    private MaybeOffloaded<ShuffleDescriptor[]> getConsumedPartitionShuffleDescriptors(IntermediateResult intermediateResult,
+                                                                                       ConsumedPartitionGroup consumedPartitionGroup) throws IOException {
+        MaybeOffloaded<ShuffleDescriptor[]> serializedShuffleDescriptors = intermediateResult.getCachedShuffleDescriptors(
+                consumedPartitionGroup);
         if (serializedShuffleDescriptors == null) {
-            serializedShuffleDescriptors =
-                    computeConsumedPartitionShuffleDescriptors(consumedPartitionGroup);
-            intermediateResult.cacheShuffleDescriptors(
-                    consumedPartitionGroup, serializedShuffleDescriptors);
+            serializedShuffleDescriptors = computeConsumedPartitionShuffleDescriptors(consumedPartitionGroup);
+            intermediateResult.cacheShuffleDescriptors(consumedPartitionGroup, serializedShuffleDescriptors);
         }
         return serializedShuffleDescriptors;
     }
 
-    private MaybeOffloaded<ShuffleDescriptor[]> computeConsumedPartitionShuffleDescriptors(
-            ConsumedPartitionGroup consumedPartitionGroup) throws IOException {
+    private MaybeOffloaded<ShuffleDescriptor[]> computeConsumedPartitionShuffleDescriptors(ConsumedPartitionGroup consumedPartitionGroup) throws IOException {
 
-        ShuffleDescriptor[] shuffleDescriptors =
-                new ShuffleDescriptor[consumedPartitionGroup.size()];
+        ShuffleDescriptor[] shuffleDescriptors = new ShuffleDescriptor[consumedPartitionGroup.size()];
         // Each edge is connected to a different result partition
         int i = 0;
         for (IntermediateResultPartitionID partitionId : consumedPartitionGroup) {
-            shuffleDescriptors[i++] =
-                    getConsumedPartitionShuffleDescriptor(
-                            resultPartitionRetriever.apply(partitionId),
-                            partitionDeploymentConstraint);
+            shuffleDescriptors[i++] = getConsumedPartitionShuffleDescriptor(resultPartitionRetriever.apply(partitionId),
+                    partitionDeploymentConstraint
+            );
         }
         return serializeAndTryOffloadShuffleDescriptors(shuffleDescriptors);
     }
 
-    private MaybeOffloaded<ShuffleDescriptor[]> serializeAndTryOffloadShuffleDescriptors(
-            ShuffleDescriptor[] shuffleDescriptors) throws IOException {
+    private MaybeOffloaded<ShuffleDescriptor[]> serializeAndTryOffloadShuffleDescriptors(ShuffleDescriptor[] shuffleDescriptors) throws IOException {
 
-        final CompressedSerializedValue<ShuffleDescriptor[]> compressedSerializedValue =
-                CompressedSerializedValue.fromObject(shuffleDescriptors);
+        final CompressedSerializedValue<ShuffleDescriptor[]> compressedSerializedValue = CompressedSerializedValue.fromObject(
+                shuffleDescriptors);
 
-        final Either<SerializedValue<ShuffleDescriptor[]>, PermanentBlobKey>
-                serializedValueOrBlobKey =
-                        BlobWriter.tryOffload(compressedSerializedValue, jobID, blobWriter);
+        final Either<SerializedValue<ShuffleDescriptor[]>, PermanentBlobKey> serializedValueOrBlobKey = BlobWriter.tryOffload(
+                compressedSerializedValue,
+                jobID,
+                blobWriter
+        );
 
         if (serializedValueOrBlobKey.isLeft()) {
             return new TaskDeploymentDescriptor.NonOffloaded<>(serializedValueOrBlobKey.left());
@@ -192,29 +195,33 @@ public class TaskDeploymentDescriptorFactory {
         }
     }
 
-    public static TaskDeploymentDescriptorFactory fromExecutionVertex(
-            ExecutionVertex executionVertex, int attemptNumber) throws IOException {
-        InternalExecutionGraphAccessor internalExecutionGraphAccessor =
-                executionVertex.getExecutionGraphAccessor();
+    public static TaskDeploymentDescriptorFactory fromExecutionVertex(ExecutionVertex executionVertex,
+                                                                      int attemptNumber) throws IOException {
 
-        return new TaskDeploymentDescriptorFactory(
-                executionVertex.getCurrentExecutionAttempt().getAttemptId(),
+        // TODO_MA 马中华 注释： 获取 JobGraph 的 InternalExecutionGraphAccessor
+        InternalExecutionGraphAccessor internalExecutionGraphAccessor = executionVertex.getExecutionGraphAccessor();
+
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释： 构建一个用于创建 TDD 的 Factory
+         */
+        return new TaskDeploymentDescriptorFactory(executionVertex.getCurrentExecutionAttempt().getAttemptId(),
                 attemptNumber,
+                // TODO_MA 马中华 注释： job 信息
                 getSerializedJobInformation(internalExecutionGraphAccessor),
-                getSerializedTaskInformation(
-                        executionVertex.getJobVertex().getTaskInformationOrBlobKey()),
+                // TODO_MA 马中华 注释： Task 信息
+                getSerializedTaskInformation(executionVertex.getJobVertex().getTaskInformationOrBlobKey()),
                 internalExecutionGraphAccessor.getJobID(),
                 internalExecutionGraphAccessor.getPartitionLocationConstraint(),
                 executionVertex.getParallelSubtaskIndex(),
                 executionVertex.getAllConsumedPartitionGroups(),
                 internalExecutionGraphAccessor::getResultPartitionOrThrow,
-                internalExecutionGraphAccessor.getBlobWriter());
+                internalExecutionGraphAccessor.getBlobWriter()
+        );
     }
 
-    private static MaybeOffloaded<JobInformation> getSerializedJobInformation(
-            InternalExecutionGraphAccessor internalExecutionGraphAccessor) {
-        Either<SerializedValue<JobInformation>, PermanentBlobKey> jobInformationOrBlobKey =
-                internalExecutionGraphAccessor.getJobInformationOrBlobKey();
+    private static MaybeOffloaded<JobInformation> getSerializedJobInformation(InternalExecutionGraphAccessor internalExecutionGraphAccessor) {
+        Either<SerializedValue<JobInformation>, PermanentBlobKey> jobInformationOrBlobKey = internalExecutionGraphAccessor.getJobInformationOrBlobKey();
         if (jobInformationOrBlobKey.isLeft()) {
             return new TaskDeploymentDescriptor.NonOffloaded<>(jobInformationOrBlobKey.left());
         } else {
@@ -222,45 +229,41 @@ public class TaskDeploymentDescriptorFactory {
         }
     }
 
-    private static MaybeOffloaded<TaskInformation> getSerializedTaskInformation(
-            Either<SerializedValue<TaskInformation>, PermanentBlobKey> taskInfo) {
-        return taskInfo.isLeft()
-                ? new TaskDeploymentDescriptor.NonOffloaded<>(taskInfo.left())
-                : new TaskDeploymentDescriptor.Offloaded<>(taskInfo.right());
+    private static MaybeOffloaded<TaskInformation> getSerializedTaskInformation(Either<SerializedValue<TaskInformation>, PermanentBlobKey> taskInfo) {
+        return taskInfo.isLeft() ? new TaskDeploymentDescriptor.NonOffloaded<>(taskInfo.left()) : new TaskDeploymentDescriptor.Offloaded<>(
+                taskInfo.right());
     }
 
-    public static ShuffleDescriptor getConsumedPartitionShuffleDescriptor(
-            IntermediateResultPartition consumedPartition,
-            PartitionLocationConstraint partitionDeploymentConstraint) {
+    public static ShuffleDescriptor getConsumedPartitionShuffleDescriptor(IntermediateResultPartition consumedPartition,
+                                                                          PartitionLocationConstraint partitionDeploymentConstraint) {
         Execution producer = consumedPartition.getProducer().getCurrentExecutionAttempt();
 
         ExecutionState producerState = producer.getState();
-        Optional<ResultPartitionDeploymentDescriptor> consumedPartitionDescriptor =
-                producer.getResultPartitionDeploymentDescriptor(consumedPartition.getPartitionId());
+        Optional<ResultPartitionDeploymentDescriptor> consumedPartitionDescriptor = producer.getResultPartitionDeploymentDescriptor(
+                consumedPartition.getPartitionId());
 
-        ResultPartitionID consumedPartitionId =
-                new ResultPartitionID(consumedPartition.getPartitionId(), producer.getAttemptId());
+        ResultPartitionID consumedPartitionId = new ResultPartitionID(consumedPartition.getPartitionId(),
+                producer.getAttemptId()
+        );
 
-        return getConsumedPartitionShuffleDescriptor(
-                consumedPartitionId,
+        return getConsumedPartitionShuffleDescriptor(consumedPartitionId,
                 consumedPartition.getResultType(),
                 consumedPartition.isConsumable(),
                 producerState,
                 partitionDeploymentConstraint,
-                consumedPartitionDescriptor.orElse(null));
+                consumedPartitionDescriptor.orElse(null)
+        );
     }
 
     @VisibleForTesting
-    static ShuffleDescriptor getConsumedPartitionShuffleDescriptor(
-            ResultPartitionID consumedPartitionId,
-            ResultPartitionType resultPartitionType,
-            boolean isConsumable,
-            ExecutionState producerState,
-            PartitionLocationConstraint partitionDeploymentConstraint,
-            @Nullable ResultPartitionDeploymentDescriptor consumedPartitionDescriptor) {
+    static ShuffleDescriptor getConsumedPartitionShuffleDescriptor(ResultPartitionID consumedPartitionId,
+                                                                   ResultPartitionType resultPartitionType,
+                                                                   boolean isConsumable,
+                                                                   ExecutionState producerState,
+                                                                   PartitionLocationConstraint partitionDeploymentConstraint,
+                                                                   @Nullable ResultPartitionDeploymentDescriptor consumedPartitionDescriptor) {
         // The producing task needs to be RUNNING or already FINISHED
-        if ((resultPartitionType.isPipelined() || isConsumable)
-                && consumedPartitionDescriptor != null
+        if ((resultPartitionType.isPipelined() || isConsumable) && consumedPartitionDescriptor != null
                 && isProducerAvailable(producerState)) {
             // partition is already registered
             return consumedPartitionDescriptor.getShuffleDescriptor();
@@ -275,44 +278,42 @@ public class TaskDeploymentDescriptorFactory {
             return new UnknownShuffleDescriptor(consumedPartitionId);
         } else {
             // throw respective exceptions
-            throw handleConsumedPartitionShuffleDescriptorErrors(
-                    consumedPartitionId, resultPartitionType, isConsumable, producerState);
+            throw handleConsumedPartitionShuffleDescriptorErrors(consumedPartitionId,
+                    resultPartitionType,
+                    isConsumable,
+                    producerState
+            );
         }
     }
 
-    private static RuntimeException handleConsumedPartitionShuffleDescriptorErrors(
-            ResultPartitionID consumedPartitionId,
-            ResultPartitionType resultPartitionType,
-            boolean isConsumable,
-            ExecutionState producerState) {
+    private static RuntimeException handleConsumedPartitionShuffleDescriptorErrors(ResultPartitionID consumedPartitionId,
+                                                                                   ResultPartitionType resultPartitionType,
+                                                                                   boolean isConsumable,
+                                                                                   ExecutionState producerState) {
         String msg;
         if (isProducerFailedOrCanceled(producerState)) {
-            msg =
-                    "Trying to consume an input partition whose producer has been canceled or failed. "
-                            + "The producer is in state "
-                            + producerState
-                            + ".";
+            msg = "Trying to consume an input partition whose producer has been canceled or failed. "
+                    + "The producer is in state " + producerState + ".";
         } else {
-            msg =
-                    String.format(
-                            "Trying to consume an input partition whose producer "
-                                    + "is not ready (result type: %s, partition consumable: %s, producer state: %s, partition id: %s).",
-                            resultPartitionType, isConsumable, producerState, consumedPartitionId);
+            msg = String.format("Trying to consume an input partition whose producer "
+                            + "is not ready (result type: %s, partition consumable: %s, producer state: %s, partition id: %s).",
+                    resultPartitionType,
+                    isConsumable,
+                    producerState,
+                    consumedPartitionId
+            );
         }
         return new IllegalStateException(msg);
     }
 
     private static boolean isProducerAvailable(ExecutionState producerState) {
-        return producerState == ExecutionState.RUNNING
-                || producerState == ExecutionState.INITIALIZING
-                || producerState == ExecutionState.FINISHED
-                || producerState == ExecutionState.SCHEDULED
+        return producerState == ExecutionState.RUNNING || producerState == ExecutionState.INITIALIZING
+                || producerState == ExecutionState.FINISHED || producerState == ExecutionState.SCHEDULED
                 || producerState == ExecutionState.DEPLOYING;
     }
 
     private static boolean isProducerFailedOrCanceled(ExecutionState producerState) {
-        return producerState == ExecutionState.CANCELING
-                || producerState == ExecutionState.CANCELED
+        return producerState == ExecutionState.CANCELING || producerState == ExecutionState.CANCELED
                 || producerState == ExecutionState.FAILED;
     }
 
@@ -331,10 +332,10 @@ public class TaskDeploymentDescriptorFactory {
                 case STREAMING:
                     return MUST_BE_KNOWN;
                 default:
-                    throw new IllegalArgumentException(
-                            String.format(
-                                    "Unknown JobType %s. Cannot derive partition location constraint for it.",
-                                    jobType));
+                    throw new IllegalArgumentException(String.format(
+                            "Unknown JobType %s. Cannot derive partition location constraint for it.",
+                            jobType
+                    ));
             }
         }
     }

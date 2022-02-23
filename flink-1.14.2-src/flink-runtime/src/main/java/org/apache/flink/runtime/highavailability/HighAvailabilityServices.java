@@ -34,16 +34,16 @@ import java.util.UUID;
  * distributed counters and leader election.
  *
  * <ul>
- *   <li>ResourceManager leader election and leader retrieval    retrieval: 监听
+ *   <li>ResourceManager leader election and leader retrieval
  *   <li>JobManager leader election and leader retrieval
  *   <li>Persistence for checkpoint metadata
  *   <li>Registering the latest completed checkpoint(s)
  *   <li>Persistence for the BLOB store
- *   <li>Registry that marks a job's status    Registry：持久化
+ *   <li>Registry that marks a job's status
  *   <li>Naming of RPC endpoints
  * </ul>
  *
- * // TODO_MA 马中华 注释： 本职工作，有点脱离 HA 的实际概念
+ * // TODO_MA 马中华 注释： 本质工作，有点脱离 HA 的实际概念
  * // TODO_MA 马中华 注释： 其实，类似于一个登记， 检索的工作
  * // TODO_MA 马中华 注释： 有一个基于 ZK 的实现
  * // TODO_MA 马中华 注释： 内部，其实是为了一个 ZooKeeper 的客户端：基于 Curator 的一个实现

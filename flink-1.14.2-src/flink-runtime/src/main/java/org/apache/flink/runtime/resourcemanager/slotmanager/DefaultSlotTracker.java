@@ -77,11 +77,18 @@ public class DefaultSlotTracker implements SlotTracker {
             removeSlot(slotId);
         }
 
+        // TODO_MA 马中华 注释：
         DeclarativeTaskManagerSlot slot = new DeclarativeTaskManagerSlot(slotId,
                 resourceProfile,
                 taskManagerConnection
         );
+
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释： 完成 Slot 注册
+         */
         slots.put(slotId, slot);
+
         freeSlots.put(slotId, slot);
         slotStatusStateReconciler.executeStateTransition(slot, assignedJob);
     }
@@ -90,6 +97,10 @@ public class DefaultSlotTracker implements SlotTracker {
     public void removeSlots(Iterable<SlotID> slotsToRemove) {
         Preconditions.checkNotNull(slotsToRemove);
 
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释：
+         */
         for (SlotID slotId : slotsToRemove) {
             removeSlot(slotId);
         }

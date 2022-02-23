@@ -20,8 +20,12 @@ package org.apache.flink.runtime.jobgraph;
 
 /** Enum to distinguish JobGraphs between batch and streaming, currently used by the scheduler. */
 public enum JobType {
+
+    // TODO_MA 马中华 注释： 批处理 job
     /** Batch jobs are finite jobs, potentially consisting of multiple pipelined regions. */
     BATCH,
+
+    // TODO_MA 马中华 注释： 流处理 job
     /**
      * Streaming jobs are infinite jobs, consisting of one large pipelined region, not separated by
      * any blocking data exchanges.

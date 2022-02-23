@@ -36,35 +36,28 @@ public interface ChannelStateWriter extends Closeable {
     /** Channel state write result. */
     class ChannelStateWriteResult {
         final CompletableFuture<Collection<InputChannelStateHandle>> inputChannelStateHandles;
-        final CompletableFuture<Collection<ResultSubpartitionStateHandle>>
-                resultSubpartitionStateHandles;
+        final CompletableFuture<Collection<ResultSubpartitionStateHandle>> resultSubpartitionStateHandles;
 
         ChannelStateWriteResult() {
             this(new CompletableFuture<>(), new CompletableFuture<>());
         }
 
-        ChannelStateWriteResult(
-                CompletableFuture<Collection<InputChannelStateHandle>> inputChannelStateHandles,
-                CompletableFuture<Collection<ResultSubpartitionStateHandle>>
-                        resultSubpartitionStateHandles) {
+        ChannelStateWriteResult(CompletableFuture<Collection<InputChannelStateHandle>> inputChannelStateHandles,
+                                CompletableFuture<Collection<ResultSubpartitionStateHandle>> resultSubpartitionStateHandles) {
             this.inputChannelStateHandles = inputChannelStateHandles;
             this.resultSubpartitionStateHandles = resultSubpartitionStateHandles;
         }
 
-        public CompletableFuture<Collection<InputChannelStateHandle>>
-                getInputChannelStateHandles() {
+        public CompletableFuture<Collection<InputChannelStateHandle>> getInputChannelStateHandles() {
             return inputChannelStateHandles;
         }
 
-        public CompletableFuture<Collection<ResultSubpartitionStateHandle>>
-                getResultSubpartitionStateHandles() {
+        public CompletableFuture<Collection<ResultSubpartitionStateHandle>> getResultSubpartitionStateHandles() {
             return resultSubpartitionStateHandles;
         }
 
-        public static final ChannelStateWriteResult EMPTY =
-                new ChannelStateWriteResult(
-                        CompletableFuture.completedFuture(Collections.emptyList()),
-                        CompletableFuture.completedFuture(Collections.emptyList()));
+        public static final ChannelStateWriteResult EMPTY = new ChannelStateWriteResult(CompletableFuture.completedFuture(
+                Collections.emptyList()), CompletableFuture.completedFuture(Collections.emptyList()));
 
         public void fail(Throwable e) {
             inputChannelStateHandles.completeExceptionally(e);
@@ -99,16 +92,13 @@ public interface ChannelStateWriter extends Closeable {
      * recycled after they are written or exception occurs.
      *
      * @param startSeqNum sequence number of the 1st passed buffer. It is intended to use for
-     *     incremental snapshots. If no data is passed it is ignored.
+     *         incremental snapshots. If no data is passed it is ignored.
      * @param data zero or more <b>data</b> buffers ordered by their sequence numbers
+     *
      * @see org.apache.flink.runtime.checkpoint.channel.ChannelStateWriter#SEQUENCE_NUMBER_RESTORED
      * @see org.apache.flink.runtime.checkpoint.channel.ChannelStateWriter#SEQUENCE_NUMBER_UNKNOWN
      */
-    void addInputData(
-            long checkpointId,
-            InputChannelInfo info,
-            int startSeqNum,
-            CloseableIterator<Buffer> data);
+    void addInputData(long checkpointId, InputChannelInfo info, int startSeqNum, CloseableIterator<Buffer> data);
 
     /**
      * Add in-flight buffers from the {@link
@@ -117,16 +107,18 @@ public interface ChannelStateWriter extends Closeable {
      * after they are written or exception occurs.
      *
      * @param startSeqNum sequence number of the 1st passed buffer. It is intended to use for
-     *     incremental snapshots. If no data is passed it is ignored.
+     *         incremental snapshots. If no data is passed it is ignored.
      * @param data zero or more <b>data</b> buffers ordered by their sequence numbers
+     *
      * @throws IllegalArgumentException if one or more passed buffers {@link Buffer#isBuffer() isn't
-     *     a buffer}
+     *         a buffer}
      * @see org.apache.flink.runtime.checkpoint.channel.ChannelStateWriter#SEQUENCE_NUMBER_RESTORED
      * @see org.apache.flink.runtime.checkpoint.channel.ChannelStateWriter#SEQUENCE_NUMBER_UNKNOWN
      */
-    void addOutputData(
-            long checkpointId, ResultSubpartitionInfo info, int startSeqNum, Buffer... data)
-            throws IllegalArgumentException;
+    void addOutputData(long checkpointId,
+                       ResultSubpartitionInfo info,
+                       int startSeqNum,
+                       Buffer... data) throws IllegalArgumentException;
 
     /**
      * Finalize write of channel state data for the given checkpoint id. Must be called after {@link
@@ -148,7 +140,7 @@ public interface ChannelStateWriter extends Closeable {
      * Aborts the checkpoint and fails pending result for this checkpoint.
      *
      * @param cleanup true if {@link #getAndRemoveWriteResult(long)} is not supposed to be called
-     *     afterwards.
+     *         afterwards.
      */
     void abort(long checkpointId, Throwable cause, boolean cleanup);
 
@@ -157,44 +149,48 @@ public interface ChannelStateWriter extends Closeable {
      *
      * @throws IllegalArgumentException if the passed checkpointId is not known.
      */
-    ChannelStateWriteResult getAndRemoveWriteResult(long checkpointId)
-            throws IllegalArgumentException;
+    ChannelStateWriteResult getAndRemoveWriteResult(long checkpointId) throws IllegalArgumentException;
 
     ChannelStateWriter NO_OP = new NoOpChannelStateWriter();
 
     /** No-op implementation of {@link ChannelStateWriter}. */
     class NoOpChannelStateWriter implements ChannelStateWriter {
         @Override
-        public void start(long checkpointId, CheckpointOptions checkpointOptions) {}
-
-        @Override
-        public void addInputData(
-                long checkpointId,
-                InputChannelInfo info,
-                int startSeqNum,
-                CloseableIterator<Buffer> data) {}
-
-        @Override
-        public void addOutputData(
-                long checkpointId, ResultSubpartitionInfo info, int startSeqNum, Buffer... data) {}
-
-        @Override
-        public void finishInput(long checkpointId) {}
-
-        @Override
-        public void finishOutput(long checkpointId) {}
-
-        @Override
-        public void abort(long checkpointId, Throwable cause, boolean cleanup) {}
-
-        @Override
-        public ChannelStateWriteResult getAndRemoveWriteResult(long checkpointId) {
-            return new ChannelStateWriteResult(
-                    CompletableFuture.completedFuture(Collections.emptyList()),
-                    CompletableFuture.completedFuture(Collections.emptyList()));
+        public void start(long checkpointId, CheckpointOptions checkpointOptions) {
         }
 
         @Override
-        public void close() {}
+        public void addInputData(long checkpointId,
+                                 InputChannelInfo info,
+                                 int startSeqNum,
+                                 CloseableIterator<Buffer> data) {
+        }
+
+        @Override
+        public void addOutputData(long checkpointId, ResultSubpartitionInfo info, int startSeqNum, Buffer... data) {
+        }
+
+        @Override
+        public void finishInput(long checkpointId) {
+        }
+
+        @Override
+        public void finishOutput(long checkpointId) {
+        }
+
+        @Override
+        public void abort(long checkpointId, Throwable cause, boolean cleanup) {
+        }
+
+        @Override
+        public ChannelStateWriteResult getAndRemoveWriteResult(long checkpointId) {
+            return new ChannelStateWriteResult(CompletableFuture.completedFuture(Collections.emptyList()),
+                    CompletableFuture.completedFuture(Collections.emptyList())
+            );
+        }
+
+        @Override
+        public void close() {
+        }
     }
 }

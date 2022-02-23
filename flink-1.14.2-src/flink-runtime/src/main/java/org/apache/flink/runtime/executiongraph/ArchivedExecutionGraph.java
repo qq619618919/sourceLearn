@@ -286,10 +286,10 @@ public class ArchivedExecutionGraph implements AccessExecutionGraph, Serializabl
      *
      * @return ArchivedExecutionGraph created from the given ExecutionGraph
      */
-    public static ArchivedExecutionGraph createFrom(ExecutionGraph executionGraph, @Nullable JobStatus statusOverride) {
+    public static ArchivedExecutionGraph createFrom(ExecutionGraph executionGraph,
+                                                    @Nullable JobStatus statusOverride) {
         Preconditions.checkArgument(statusOverride == null || !statusOverride.isGloballyTerminalState(),
-                "Status override is only allowed for non-globally-terminal states."
-        );
+                "Status override is only allowed for non-globally-terminal states.");
 
         final int numberVertices = executionGraph.getTotalNumberOfVertices();
 
@@ -317,23 +317,12 @@ public class ArchivedExecutionGraph implements AccessExecutionGraph, Serializabl
             }
         }
 
-        return new ArchivedExecutionGraph(executionGraph.getJobID(),
-                executionGraph.getJobName(),
-                archivedTasks,
-                archivedVerticesInCreationOrder,
-                timestamps,
-                statusOverride == null ? executionGraph.getState() : statusOverride,
-                executionGraph.getFailureInfo(),
-                executionGraph.getJsonPlan(),
-                executionGraph.getAccumulatorResultsStringified(),
-                serializedUserAccumulators,
-                executionGraph.getArchivedExecutionConfig(),
-                executionGraph.isStoppable(),
-                executionGraph.getCheckpointCoordinatorConfiguration(),
-                executionGraph.getCheckpointStatsSnapshot(),
-                executionGraph.getStateBackendName().orElse(null),
-                executionGraph.getCheckpointStorageName().orElse(null)
-        );
+        return new ArchivedExecutionGraph(executionGraph.getJobID(), executionGraph.getJobName(), archivedTasks,
+                archivedVerticesInCreationOrder, timestamps, statusOverride == null ? executionGraph.getState() : statusOverride,
+                executionGraph.getFailureInfo(), executionGraph.getJsonPlan(), executionGraph.getAccumulatorResultsStringified(),
+                serializedUserAccumulators, executionGraph.getArchivedExecutionConfig(), executionGraph.isStoppable(),
+                executionGraph.getCheckpointCoordinatorConfiguration(), executionGraph.getCheckpointStatsSnapshot(),
+                executionGraph.getStateBackendName().orElse(null), executionGraph.getCheckpointStorageName().orElse(null));
     }
 
     /**
@@ -368,22 +357,10 @@ public class ArchivedExecutionGraph implements AccessExecutionGraph, Serializabl
          * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
          *  注释：
          */
-        return new ArchivedExecutionGraph(jobId,
-                jobName,
-                archivedTasks,
-                archivedVerticesInCreationOrder,
-                timestamps,
-                jobStatus,
-                failureInfo,
-                jsonPlan,
-                archivedUserAccumulators,
-                serializedUserAccumulators,
-                new ExecutionConfig().archive(),
-                false,
+        return new ArchivedExecutionGraph(jobId, jobName, archivedTasks, archivedVerticesInCreationOrder, timestamps, jobStatus,
+                failureInfo, jsonPlan, archivedUserAccumulators, serializedUserAccumulators, new ExecutionConfig().archive(), false,
                 checkpointingSettings == null ? null : checkpointingSettings.getCheckpointCoordinatorConfiguration(),
                 checkpointingSettings == null ? null : CheckpointStatsSnapshot.empty(),
-                checkpointingSettings == null ? null : "Unknown",
-                checkpointingSettings == null ? null : "Unknown"
-        );
+                checkpointingSettings == null ? null : "Unknown", checkpointingSettings == null ? null : "Unknown");
     }
 }

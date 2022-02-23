@@ -86,19 +86,12 @@ public class TaskManagerServices {
      * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
      *  注释：
      */
-    TaskManagerServices(UnresolvedTaskManagerLocation unresolvedTaskManagerLocation,
-                        long managedMemorySize,
-                        IOManager ioManager,
-                        ShuffleEnvironment<?, ?> shuffleEnvironment,
-                        KvStateService kvStateService,
-                        BroadcastVariableManager broadcastVariableManager,
-                        TaskSlotTable<Task> taskSlotTable,
-                        JobTable jobTable,
-                        JobLeaderService jobLeaderService,
-                        TaskExecutorLocalStateStoresManager taskManagerStateStore,
+    TaskManagerServices(UnresolvedTaskManagerLocation unresolvedTaskManagerLocation, long managedMemorySize, IOManager ioManager,
+                        ShuffleEnvironment<?, ?> shuffleEnvironment, KvStateService kvStateService,
+                        BroadcastVariableManager broadcastVariableManager, TaskSlotTable<Task> taskSlotTable, JobTable jobTable,
+                        JobLeaderService jobLeaderService, TaskExecutorLocalStateStoresManager taskManagerStateStore,
                         TaskExecutorStateChangelogStoragesManager taskManagerChangelogManager,
-                        TaskEventDispatcher taskEventDispatcher,
-                        ExecutorService ioExecutor,
+                        TaskEventDispatcher taskEventDispatcher, ExecutorService ioExecutor,
                         LibraryCacheManager libraryCacheManager) {
 
         this.unresolvedTaskManagerLocation = Preconditions.checkNotNull(unresolvedTaskManagerLocation);
@@ -266,88 +259,94 @@ public class TaskManagerServices {
      */
     public static TaskManagerServices fromConfiguration(TaskManagerServicesConfiguration taskManagerServicesConfiguration,
                                                         PermanentBlobService permanentBlobService,
-                                                        MetricGroup taskManagerMetricGroup,
-                                                        ExecutorService ioExecutor,
+                                                        MetricGroup taskManagerMetricGroup, ExecutorService ioExecutor,
                                                         FatalErrorHandler fatalErrorHandler) throws Exception {
 
         // pre-start checks
+        // TODO_MA 马中华 注释： 检查 TaskExecutor 会用到的各种临时目录，是否符合要求，能创建，能写等
         checkTempDirs(taskManagerServicesConfiguration.getTmpDirPaths());
 
         /*************************************************
          * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-         *  注释：
+         *  注释： Task 的事件分发器
          */
         final TaskEventDispatcher taskEventDispatcher = new TaskEventDispatcher();
 
         // start the I/O manager, it will create some temp directories.
         /*************************************************
          * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-         *  注释：
+         *  注释： IO 管理器， 内部创建一组 WriterThread 和 ReaderThread 负责读写
+         *  通过 NIO 提供的 异步方式来读写文件
+         *  内部有两组线程： WriterThread  ReaderThread
          */
         final IOManager ioManager = new IOManagerAsync(taskManagerServicesConfiguration.getTmpDirPaths());
 
         /*************************************************
          * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-         *  注释：
+         *  注释： 启动 ShuffleEnvironment 内的 NettyClient 和 NettyServer
+         *  返回结果： NettyShuffleEnvironment
          */
         final ShuffleEnvironment<?, ?> shuffleEnvironment = createShuffleEnvironment(taskManagerServicesConfiguration,
-                taskEventDispatcher,
-                taskManagerMetricGroup,
-                ioExecutor
-        );
+                taskEventDispatcher, taskManagerMetricGroup, ioExecutor);
+
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释： NettyShuffleEnvironment 启动， 就是启动内部的 NettyClient 和 NettyServer
+         */
         final int listeningDataPort = shuffleEnvironment.start();
 
         /*************************************************
          * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-         *  注释：
+         *  注释： KvState 服务
          */
         final KvStateService kvStateService = KvStateService.fromConfiguration(taskManagerServicesConfiguration);
         kvStateService.start();
 
-        /*************************************************
-         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-         *  注释：
-         */
         final UnresolvedTaskManagerLocation unresolvedTaskManagerLocation = new UnresolvedTaskManagerLocation(
-                taskManagerServicesConfiguration.getResourceID(),
-                taskManagerServicesConfiguration.getExternalAddress(),
+                taskManagerServicesConfiguration.getResourceID(), taskManagerServicesConfiguration.getExternalAddress(),
                 // we expose the task manager location with the listening port
                 // iff the external data port is not explicitly defined
-                taskManagerServicesConfiguration.getExternalDataPort()
-                        > 0 ? taskManagerServicesConfiguration.getExternalDataPort() : listeningDataPort
-        );
+                taskManagerServicesConfiguration.getExternalDataPort() > 0 ? taskManagerServicesConfiguration.getExternalDataPort() : listeningDataPort);
 
         /*************************************************
          * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-         *  注释：
+         *  注释： 广播变量管理器
          */
         final BroadcastVariableManager broadcastVariableManager = new BroadcastVariableManager();
 
         /*************************************************
          * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-         *  注释：
+         *  注释： TaskExecutor 中用来管理 Slot 的组件： TaskSlotTable
+         *  TaskSlotTable 是 TaskExecutor 中最为重要的一个组件
+         *  TaskManager ---> TaskExecutor(管理slot，接受Task执行) --->  TaskSlotTable管理slot和task
+         *  -
+         *  当前这个从节点的所有的资源，按照 NumberOfSlots 全部均分
+         *  64 / 8 = 8/slot
+         *  network memory = 1200M， 每个 slot 分到的是： 1200M / 8 = 150M
          */
-        final TaskSlotTable<Task> taskSlotTable = createTaskSlotTable(taskManagerServicesConfiguration.getNumberOfSlots(),
+        final TaskSlotTable<Task> taskSlotTable = createTaskSlotTable(
+                // TODO_MA 马中华 注释： 总 slot 数量
+                taskManagerServicesConfiguration.getNumberOfSlots(),
+                // TODO_MA 马中华 注释： 从节点的资源配置
                 taskManagerServicesConfiguration.getTaskExecutorResourceSpec(),
-                taskManagerServicesConfiguration.getTimerServiceShutdownTimeout(),
-                taskManagerServicesConfiguration.getPageSize(),
-                ioExecutor
-        );
+                taskManagerServicesConfiguration.getTimerServiceShutdownTimeout(), taskManagerServicesConfiguration.getPageSize(),
+                ioExecutor);
 
         /*************************************************
          * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-         *  注释：
+         *  注释： Job 登记表 = DefaultJobTable = job 的登记表
          */
         final JobTable jobTable = DefaultJobTable.create();
 
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释： JobMaster 管理组件
+         */
         final JobLeaderService jobLeaderService = new DefaultJobLeaderService(unresolvedTaskManagerLocation,
-                taskManagerServicesConfiguration.getRetryingRegistrationConfiguration()
-        );
+                taskManagerServicesConfiguration.getRetryingRegistrationConfiguration());
 
         final String[] stateRootDirectoryStrings = taskManagerServicesConfiguration.getLocalRecoveryStateRootDirectories();
-
         final File[] stateRootDirectoryFiles = new File[stateRootDirectoryStrings.length];
-
         for (int i = 0; i < stateRootDirectoryStrings.length; ++i) {
             stateRootDirectoryFiles[i] = new File(stateRootDirectoryStrings[i], LOCAL_STATE_SUB_DIRECTORY_ROOT);
         }
@@ -357,18 +356,13 @@ public class TaskManagerServices {
          *  注释：
          */
         final TaskExecutorLocalStateStoresManager taskStateManager = new TaskExecutorLocalStateStoresManager(
-                taskManagerServicesConfiguration.isLocalRecoveryEnabled(),
-                stateRootDirectoryFiles,
-                ioExecutor
-        );
+                taskManagerServicesConfiguration.isLocalRecoveryEnabled(), stateRootDirectoryFiles, ioExecutor);
 
         final TaskExecutorStateChangelogStoragesManager changelogStoragesManager = new TaskExecutorStateChangelogStoragesManager();
 
-        final boolean failOnJvmMetaspaceOomError = taskManagerServicesConfiguration
-                .getConfiguration()
+        final boolean failOnJvmMetaspaceOomError = taskManagerServicesConfiguration.getConfiguration()
                 .getBoolean(CoreOptions.FAIL_ON_USER_CLASS_LOADING_METASPACE_OOM);
-        final boolean checkClassLoaderLeak = taskManagerServicesConfiguration
-                .getConfiguration()
+        final boolean checkClassLoaderLeak = taskManagerServicesConfiguration.getConfiguration()
                 .getBoolean(CoreOptions.CHECK_LEAKED_CLASSLOADER);
 
         /*************************************************
@@ -378,57 +372,51 @@ public class TaskManagerServices {
         final LibraryCacheManager libraryCacheManager = new BlobLibraryCacheManager(permanentBlobService,
                 BlobLibraryCacheManager.defaultClassLoaderFactory(taskManagerServicesConfiguration.getClassLoaderResolveOrder(),
                         taskManagerServicesConfiguration.getAlwaysParentFirstLoaderPatterns(),
-                        failOnJvmMetaspaceOomError ? fatalErrorHandler : null,
-                        checkClassLoaderLeak
-                )
-        );
+                        failOnJvmMetaspaceOomError ? fatalErrorHandler : null, checkClassLoaderLeak));
 
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释： 把从节点上的各种核心服务，包装成一个整体，这个就是 TaskExecutor 在工作的时候所需要的
+         */
+        return new TaskManagerServices(unresolvedTaskManagerLocation,
+                taskManagerServicesConfiguration.getManagedMemorySize().getBytes(), ioManager,          // TODO_MA 马中华 注释：
+                shuffleEnvironment,   // TODO_MA 马中华 注释：
+                kvStateService, broadcastVariableManager, taskSlotTable,   // TODO_MA 马中华 注释：
+                jobTable,  // TODO_MA 马中华 注释：
+                jobLeaderService,   // TODO_MA 马中华 注释：
+                taskStateManager, changelogStoragesManager, taskEventDispatcher, ioExecutor, libraryCacheManager);
+    }
+
+    // TODO_MA 马中华 注释： TaskManager ====> TaskExecutor(TaskManagerServices)  ===> TaskSlotTable
+
+    private static TaskSlotTable<Task> createTaskSlotTable(final int numberOfSlots,
+                                                           final TaskExecutorResourceSpec taskExecutorResourceSpec,
+                                                           final long timerServiceShutdownTimeout, final int pageSize,
+                                                           final Executor memoryVerificationExecutor) {
+        final TimerService<AllocationID> timerService = new TimerService<>(new ScheduledThreadPoolExecutor(1),
+                timerServiceShutdownTimeout);
         /*************************************************
          * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
          *  注释：
          */
-        return new TaskManagerServices(unresolvedTaskManagerLocation,
-                taskManagerServicesConfiguration.getManagedMemorySize().getBytes(),
-                ioManager,
-                shuffleEnvironment,
-                kvStateService,
-                broadcastVariableManager,
-                taskSlotTable,
-                jobTable,
-                jobLeaderService,
-                taskStateManager,
-                changelogStoragesManager,
-                taskEventDispatcher,
-                ioExecutor,
-                libraryCacheManager
-        );
-    }
-
-    private static TaskSlotTable<Task> createTaskSlotTable(final int numberOfSlots,
-                                                           final TaskExecutorResourceSpec taskExecutorResourceSpec,
-                                                           final long timerServiceShutdownTimeout,
-                                                           final int pageSize,
-                                                           final Executor memoryVerificationExecutor) {
-        final TimerService<AllocationID> timerService = new TimerService<>(new ScheduledThreadPoolExecutor(1),
-                timerServiceShutdownTimeout
-        );
-        return new TaskSlotTableImpl<>(numberOfSlots,
+        return new TaskSlotTableImpl<>(
+                // TODO_MA 马中华 注释： 总 slot 数量
+                numberOfSlots,
+                // TODO_MA 马中华 注释： 总资源
                 TaskExecutorResourceUtils.generateTotalAvailableResourceProfile(taskExecutorResourceSpec),
+                // TODO_MA 马中华 注释： slot资源， 根据上述前两个信息，全部平分
                 TaskExecutorResourceUtils.generateDefaultSlotResourceProfile(taskExecutorResourceSpec, numberOfSlots),
-                pageSize,
-                timerService,
-                memoryVerificationExecutor
-        );
+                // TODO_MA 马中华 注释： 每页内存大小
+                pageSize, timerService, memoryVerificationExecutor);
     }
 
-    private static ShuffleEnvironment<?, ?> createShuffleEnvironment(TaskManagerServicesConfiguration taskManagerServicesConfiguration,
-                                                                     TaskEventDispatcher taskEventDispatcher,
-                                                                     MetricGroup taskManagerMetricGroup,
-                                                                     Executor ioExecutor) throws FlinkException {
+    private static ShuffleEnvironment<?, ?> createShuffleEnvironment(
+            TaskManagerServicesConfiguration taskManagerServicesConfiguration, TaskEventDispatcher taskEventDispatcher,
+            MetricGroup taskManagerMetricGroup, Executor ioExecutor) throws FlinkException {
 
         /*************************************************
          * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-         *  注释：
+         *  注释： 创建 ShuffleEnvironmentContext 上下文对象
          */
         final ShuffleEnvironmentContext shuffleEnvironmentContext = new ShuffleEnvironmentContext(
                 taskManagerServicesConfiguration.getConfiguration(),
@@ -436,17 +424,16 @@ public class TaskManagerServices {
                 taskManagerServicesConfiguration.getNetworkMemorySize(),
                 taskManagerServicesConfiguration.isLocalCommunicationOnly(),
                 taskManagerServicesConfiguration.getBindAddress(),
-                taskEventDispatcher,
-                taskManagerMetricGroup,
-                ioExecutor
-        );
+                taskEventDispatcher, taskManagerMetricGroup, ioExecutor);
 
-        return ShuffleServiceLoader
-                .loadShuffleServiceFactory(taskManagerServicesConfiguration.getConfiguration())
+        // TODO_MA 马中华 注释： 通过反射创建 NettyShuffleEnvironmentFactory
+        return ShuffleServiceLoader.loadShuffleServiceFactory(taskManagerServicesConfiguration.getConfiguration())
+                // TODO_MA 马中华 注释： 创建 NettyShuffleEnvironment
                 .createShuffleEnvironment(shuffleEnvironmentContext);
     }
 
     /**
+     * // TODO_MA 马中华 注释： 验证字符串表示的所有目录确实存在或可以创建，是正确的目录（不是文件），并且是可写的。
      * Validates that all the directories denoted by the strings do actually exist or can be
      * created, are proper directories (not files), and are writable.
      *
@@ -456,19 +443,27 @@ public class TaskManagerServices {
      *         is not writable or is a file, rather than a directory.
      */
     private static void checkTempDirs(String[] tmpDirs) throws IOException {
+
+        // TODO_MA 马中华 注释： 遍历每个目录
         for (String dir : tmpDirs) {
+
+            // TODO_MA 马中华 注释： 不是 空
             if (dir != null && !dir.equals("")) {
                 File file = new File(dir);
+
+                // TODO_MA 马中华 注释： 不存在，则创建，创建不成功，则报错
                 if (!file.exists()) {
                     if (!file.mkdirs()) {
-                        throw new IOException("Temporary file directory " + file.getAbsolutePath()
-                                + " does not exist and could not be created.");
+                        throw new IOException(
+                                "Temporary file directory " + file.getAbsolutePath() + " does not exist and could not be created.");
                     }
                 }
+
+                // TODO_MA 马中华 注释： 不是文件夹
                 if (!file.isDirectory()) {
-                    throw new IOException(
-                            "Temporary file directory " + file.getAbsolutePath() + " is not a directory.");
+                    throw new IOException("Temporary file directory " + file.getAbsolutePath() + " is not a directory.");
                 }
+                // TODO_MA 马中华 注释： 不能写
                 if (!file.canWrite()) {
                     throw new IOException("Temporary file directory " + file.getAbsolutePath() + " is not writable.");
                 }
@@ -478,13 +473,8 @@ public class TaskManagerServices {
                     long usableSpaceGb = file.getUsableSpace() >> 30;
                     double usablePercentage = (double) usableSpaceGb / totalSpaceGb * 100;
                     String path = file.getAbsolutePath();
-                    LOG.info(String.format(
-                            "Temporary file directory '%s': total %d GB, " + "usable %d GB (%.2f%% usable)",
-                            path,
-                            totalSpaceGb,
-                            usableSpaceGb,
-                            usablePercentage
-                    ));
+                    LOG.info(String.format("Temporary file directory '%s': total %d GB, " + "usable %d GB (%.2f%% usable)", path,
+                            totalSpaceGb, usableSpaceGb, usablePercentage));
                 }
             } else {
                 throw new IllegalArgumentException("Temporary file directory #$id is null.");

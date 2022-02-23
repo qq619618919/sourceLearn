@@ -31,6 +31,7 @@ import java.util.concurrent.atomic.AtomicReference;
 
 /** Retrieves and stores the current leader address. */
 public class LeaderRetriever implements LeaderRetrievalListener {
+
     protected final Logger log = LoggerFactory.getLogger(getClass());
 
     private AtomicReference<CompletableFuture<Tuple2<String, UUID>>> atomicLeaderFuture;
@@ -43,6 +44,7 @@ public class LeaderRetriever implements LeaderRetrievalListener {
      * Returns the current leader information if available. Otherwise it returns an empty optional.
      *
      * @return The current leader information if available. Otherwise it returns an empty optional.
+     *
      * @throws Exception if the leader future has been completed with an exception
      */
     public Optional<Tuple2<String, UUID>> getLeaderNow() throws Exception {
@@ -70,26 +72,28 @@ public class LeaderRetriever implements LeaderRetrievalListener {
         if (isEmptyAddress(leaderAddress)) {
             newLeaderFuture = new CompletableFuture<>();
         } else {
-            newLeaderFuture =
-                    CompletableFuture.completedFuture(Tuple2.of(leaderAddress, leaderSessionID));
+            newLeaderFuture = CompletableFuture.completedFuture(Tuple2.of(leaderAddress, leaderSessionID));
         }
 
         try {
-            final CompletableFuture<Tuple2<String, UUID>> oldLeaderFuture =
-                    atomicLeaderFuture.getAndSet(newLeaderFuture);
+            final CompletableFuture<Tuple2<String, UUID>> oldLeaderFuture = atomicLeaderFuture.getAndSet(newLeaderFuture);
 
             if (!oldLeaderFuture.isDone()) {
-                newLeaderFuture.whenComplete(
-                        (stringUUIDTuple2, throwable) -> {
-                            if (throwable != null) {
-                                oldLeaderFuture.completeExceptionally(throwable);
-                            } else {
-                                oldLeaderFuture.complete(stringUUIDTuple2);
-                            }
-                        });
+                newLeaderFuture.whenComplete((stringUUIDTuple2, throwable) -> {
+                    if (throwable != null) {
+                        oldLeaderFuture.completeExceptionally(throwable);
+                    } else {
+                        oldLeaderFuture.complete(stringUUIDTuple2);
+                    }
+                });
             }
 
+            /*************************************************
+             * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+             *  注释：
+             */
             notifyNewLeaderAddress(newLeaderFuture);
+
         } catch (Exception e) {
             handleError(e);
         }
@@ -106,6 +110,6 @@ public class LeaderRetriever implements LeaderRetrievalListener {
         atomicLeaderFuture.get().completeExceptionally(exception);
     }
 
-    protected void notifyNewLeaderAddress(
-            CompletableFuture<Tuple2<String, UUID>> newLeaderAddressFuture) {}
+    protected void notifyNewLeaderAddress(CompletableFuture<Tuple2<String, UUID>> newLeaderAddressFuture) {
+    }
 }

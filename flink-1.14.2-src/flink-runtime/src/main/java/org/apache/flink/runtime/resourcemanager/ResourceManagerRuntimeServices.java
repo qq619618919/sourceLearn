@@ -65,20 +65,23 @@ public class ResourceManagerRuntimeServices {
 
         /*************************************************
          * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-         *  注释：
+         *  注释： DeclarativeSlotManager
          */
         final SlotManager slotManager = createSlotManager(configuration, scheduledExecutor, slotManagerMetricGroup);
 
         /*************************************************
          * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-         *  注释：
+         *  注释： DefaultJobLeaderIdService
          */
         final JobLeaderIdService jobLeaderIdService = new DefaultJobLeaderIdService(highAvailabilityServices,
                 scheduledExecutor,
                 configuration.getJobTimeout()
         );
 
-        // TODO_MA 马中华 注释：
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释：
+         */
         return new ResourceManagerRuntimeServices(slotManager, jobLeaderIdService);
     }
 
@@ -93,6 +96,8 @@ public class ResourceManagerRuntimeServices {
          *  注释： cluster.fine-grained-resource-management.enabled 默认 false
          */
         if (configuration.isEnableFineGrainedResourceManagement()) {
+
+            // TODO_MA 马中华 注释： FineGrainedSlotManager
             return new FineGrainedSlotManager(scheduledExecutor,
                     slotManagerConfiguration,
                     slotManagerMetricGroup,

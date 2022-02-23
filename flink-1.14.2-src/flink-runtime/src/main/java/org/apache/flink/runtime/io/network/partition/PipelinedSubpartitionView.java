@@ -37,8 +37,8 @@ public class PipelinedSubpartitionView implements ResultSubpartitionView {
     /** Flag indicating whether this view has been released. */
     final AtomicBoolean isReleased;
 
-    public PipelinedSubpartitionView(
-            PipelinedSubpartition parent, BufferAvailabilityListener listener) {
+    public PipelinedSubpartitionView(PipelinedSubpartition parent,
+                                     BufferAvailabilityListener listener) {
         this.parent = checkNotNull(parent);
         this.availabilityListener = checkNotNull(listener);
         this.isReleased = new AtomicBoolean();
@@ -52,6 +52,10 @@ public class PipelinedSubpartitionView implements ResultSubpartitionView {
 
     @Override
     public void notifyDataAvailable() {
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释：
+         */
         availabilityListener.notifyDataAvailable();
     }
 
@@ -111,10 +115,8 @@ public class PipelinedSubpartitionView implements ResultSubpartitionView {
 
     @Override
     public String toString() {
-        return String.format(
-                "%s(index: %d) of ResultPartition %s",
-                this.getClass().getSimpleName(),
-                parent.getSubPartitionIndex(),
+        return String.format("%s(index: %d) of ResultPartition %s", this.getClass()
+                                                                        .getSimpleName(), parent.getSubPartitionIndex(),
                 parent.parent.getPartitionId());
     }
 }

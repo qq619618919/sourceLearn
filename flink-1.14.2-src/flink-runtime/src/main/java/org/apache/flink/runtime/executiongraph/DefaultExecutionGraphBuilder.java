@@ -70,43 +70,42 @@ import static org.apache.flink.util.Preconditions.checkNotNull;
 /**
  * Utility class to encapsulate the logic of building an {@link DefaultExecutionGraph} from a {@link
  * JobGraph}.
+ * // TODO_MA 马中华 注释： DefaultExecutionGraphBuilder 就是一个工具类
  */
 public class DefaultExecutionGraphBuilder {
 
-    public static DefaultExecutionGraph buildGraph(
-            JobGraph jobGraph,
-            Configuration jobManagerConfig,
-            ScheduledExecutorService futureExecutor,
-            Executor ioExecutor,
-            ClassLoader classLoader,
-            CompletedCheckpointStore completedCheckpointStore,
-            CheckpointsCleaner checkpointsCleaner,
-            CheckpointIDCounter checkpointIdCounter,
-            Time rpcTimeout,
-            MetricGroup metrics,
-            BlobWriter blobWriter,
-            Logger log,
-            ShuffleMaster<?> shuffleMaster,
-            JobMasterPartitionTracker partitionTracker,
-            TaskDeploymentDescriptorFactory.PartitionLocationConstraint partitionLocationConstraint,
-            ExecutionDeploymentListener executionDeploymentListener,
-            ExecutionStateUpdateListener executionStateUpdateListener,
-            long initializationTimestamp,
-            VertexAttemptNumberStore vertexAttemptNumberStore,
-            VertexParallelismStore vertexParallelismStore) throws JobExecutionException, JobException {
+    /*************************************************
+     * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+     *  注释： 职责： 把 JobGraph 变成 ExecutionGraph
+     */
+    public static DefaultExecutionGraph buildGraph(JobGraph jobGraph,
+                                                   Configuration jobManagerConfig,
+                                                   ScheduledExecutorService futureExecutor,
+                                                   Executor ioExecutor,
+                                                   ClassLoader classLoader,
+                                                   CompletedCheckpointStore completedCheckpointStore,
+                                                   CheckpointsCleaner checkpointsCleaner,
+                                                   CheckpointIDCounter checkpointIdCounter,
+                                                   Time rpcTimeout,
+                                                   MetricGroup metrics,
+                                                   BlobWriter blobWriter,
+                                                   Logger log,
+                                                   ShuffleMaster<?> shuffleMaster,
+                                                   JobMasterPartitionTracker partitionTracker,
+                                                   TaskDeploymentDescriptorFactory.PartitionLocationConstraint partitionLocationConstraint,
+                                                   ExecutionDeploymentListener executionDeploymentListener,
+                                                   ExecutionStateUpdateListener executionStateUpdateListener,
+                                                   long initializationTimestamp,
+                                                   VertexAttemptNumberStore vertexAttemptNumberStore,
+                                                   VertexParallelismStore vertexParallelismStore) throws JobExecutionException, JobException {
 
         checkNotNull(jobGraph, "job graph cannot be null");
 
         final String jobName = jobGraph.getName();
         final JobID jobId = jobGraph.getJobID();
 
-        final JobInformation jobInformation = new JobInformation(jobId,
-                jobName,
-                jobGraph.getSerializedExecutionConfig(),
-                jobGraph.getJobConfiguration(),
-                jobGraph.getUserJarBlobKeys(),
-                jobGraph.getClasspaths()
-        );
+        final JobInformation jobInformation = new JobInformation(jobId, jobName, jobGraph.getSerializedExecutionConfig(),
+                jobGraph.getJobConfiguration(), jobGraph.getUserJarBlobKeys(), jobGraph.getClasspaths());
 
         final int maxPriorAttemptsHistoryLength = jobManagerConfig.getInteger(JobManagerOptions.MAX_ATTEMPTS_HISTORY_SIZE);
 
@@ -118,35 +117,18 @@ public class DefaultExecutionGraphBuilder {
         try {
             /*************************************************
              * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-             *  注释：
+             *  注释： 首先构造一个 ExecutionGraph 数据结构容器
              */
-            executionGraph = new DefaultExecutionGraph(jobInformation,
-                    futureExecutor,
-                    ioExecutor,
-                    rpcTimeout,
-                    maxPriorAttemptsHistoryLength,
-                    classLoader,
-                    blobWriter,
-                    partitionGroupReleaseStrategyFactory,
-                    shuffleMaster,
-                    partitionTracker,
-                    partitionLocationConstraint,
-                    executionDeploymentListener,
-                    executionStateUpdateListener,
-                    initializationTimestamp,
-                    vertexAttemptNumberStore,
-                    vertexParallelismStore
-            );
+            executionGraph = new DefaultExecutionGraph(jobInformation, futureExecutor, ioExecutor, rpcTimeout,
+                    maxPriorAttemptsHistoryLength, classLoader, blobWriter, partitionGroupReleaseStrategyFactory, shuffleMaster,
+                    partitionTracker, partitionLocationConstraint, executionDeploymentListener, executionStateUpdateListener,
+                    initializationTimestamp, vertexAttemptNumberStore, vertexParallelismStore);
         } catch (IOException e) {
             throw new JobException("Could not create the ExecutionGraph.", e);
         }
 
         // set the basic properties
         try {
-            /*************************************************
-             * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-             *  注释：
-             */
             executionGraph.setJsonPlan(JsonPlanGenerator.generatePlan(jobGraph));
         } catch (Throwable t) {
             log.warn("Cannot create JSON plan for job", t);
@@ -164,23 +146,17 @@ public class DefaultExecutionGraphBuilder {
             String executableClass = vertex.getInvokableClassName();
             if (executableClass == null || executableClass.isEmpty()) {
                 throw new JobSubmissionException(jobId,
-                        "The vertex " + vertex.getID() + " (" + vertex.getName() + ") has no invokable class."
-                );
+                        "The vertex " + vertex.getID() + " (" + vertex.getName() + ") has no invokable class.");
             }
 
             try {
                 vertex.initializeOnMaster(classLoader);
             } catch (Throwable t) {
-                throw new JobExecutionException(jobId,
-                        "Cannot initialize task '" + vertex.getName() + "': " + t.getMessage(),
-                        t
-                );
+                throw new JobExecutionException(jobId, "Cannot initialize task '" + vertex.getName() + "': " + t.getMessage(), t);
             }
         }
 
-        log.info("Successfully ran initialization on master in {} ms.",
-                (System.nanoTime() - initMasterStart) / 1_000_000
-        );
+        log.info("Successfully ran initialization on master in {} ms.", (System.nanoTime() - initMasterStart) / 1_000_000);
 
         // topologically sort the job vertices and attach the graph to the existing one
         List<JobVertex> sortedTopology = jobGraph.getVerticesSortedTopologicallyFromSources();
@@ -190,7 +166,8 @@ public class DefaultExecutionGraphBuilder {
 
         /*************************************************
          * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-         *  注释：
+         *  注释： 重点
+         *  完成 JobGraph 到 ExecutionGraph 的构建
          */
         executionGraph.attachJobGraph(sortedTopology);
 
@@ -198,6 +175,10 @@ public class DefaultExecutionGraphBuilder {
             log.debug("Successfully created execution graph from job graph {} ({}).", jobName, jobId);
         }
 
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释： checkpoint 配置的相关处理
+         */
         // configure the state checkpointing
         if (isCheckpointingEnabled(jobGraph)) {
             JobCheckpointingSettings snapshotSettings = jobGraph.getCheckpointingSettings();
@@ -206,9 +187,7 @@ public class DefaultExecutionGraphBuilder {
             int historySize = jobManagerConfig.getInteger(WebOptions.CHECKPOINTS_HISTORY_SIZE);
 
             CheckpointStatsTracker checkpointStatsTracker = new CheckpointStatsTracker(historySize,
-                    snapshotSettings.getCheckpointCoordinatorConfiguration(),
-                    metrics
-            );
+                    snapshotSettings.getCheckpointCoordinatorConfiguration(), metrics);
 
             // load the state backend from the application settings
             final StateBackend applicationConfiguredBackend;
@@ -220,21 +199,14 @@ public class DefaultExecutionGraphBuilder {
                 try {
                     applicationConfiguredBackend = serializedAppConfigured.deserializeValue(classLoader);
                 } catch (IOException | ClassNotFoundException e) {
-                    throw new JobExecutionException(jobId,
-                            "Could not deserialize application-defined state backend.",
-                            e
-                    );
+                    throw new JobExecutionException(jobId, "Could not deserialize application-defined state backend.", e);
                 }
             }
 
             final StateBackend rootBackend;
             try {
                 rootBackend = StateBackendLoader.fromApplicationOrConfigOrDefault(applicationConfiguredBackend,
-                        snapshotSettings.isChangelogStateBackendEnabled(),
-                        jobManagerConfig,
-                        classLoader,
-                        log
-                );
+                        snapshotSettings.isChangelogStateBackendEnabled(), jobManagerConfig, classLoader, log);
             } catch (IllegalConfigurationException | IOException | DynamicCodeLoadingException e) {
                 throw new JobExecutionException(jobId, "Could not instantiate configured state backend", e);
             }
@@ -249,22 +221,14 @@ public class DefaultExecutionGraphBuilder {
                 try {
                     applicationConfiguredStorage = serializedAppConfiguredStorage.deserializeValue(classLoader);
                 } catch (IOException | ClassNotFoundException e) {
-                    throw new JobExecutionException(jobId,
-                            "Could not deserialize application-defined checkpoint storage.",
-                            e
-                    );
+                    throw new JobExecutionException(jobId, "Could not deserialize application-defined checkpoint storage.", e);
                 }
             }
 
             final CheckpointStorage rootStorage;
             try {
-                rootStorage = CheckpointStorageLoader.load(applicationConfiguredStorage,
-                        null,
-                        rootBackend,
-                        jobManagerConfig,
-                        classLoader,
-                        log
-                );
+                rootStorage = CheckpointStorageLoader.load(applicationConfiguredStorage, null, rootBackend, jobManagerConfig,
+                        classLoader, log);
             } catch (IllegalConfigurationException | DynamicCodeLoadingException e) {
                 throw new JobExecutionException(jobId, "Could not instantiate configured checkpoint storage", e);
             }
@@ -304,15 +268,8 @@ public class DefaultExecutionGraphBuilder {
              * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
              *  注释：
              */
-            executionGraph.enableCheckpointing(chkConfig,
-                    hooks,
-                    checkpointIdCounter,
-                    completedCheckpointStore,
-                    rootBackend,
-                    rootStorage,
-                    checkpointStatsTracker,
-                    checkpointsCleaner
-            );
+            executionGraph.enableCheckpointing(chkConfig, hooks, checkpointIdCounter, completedCheckpointStore, rootBackend,
+                    rootStorage, checkpointStatsTracker, checkpointsCleaner);
         }
 
         // create all the metrics for the Execution Graph

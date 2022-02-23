@@ -48,11 +48,10 @@ public class ResultPartitionDeploymentDescriptor implements Serializable {
     /** Flag whether the result partition should notify master when its data is available. */
     private final boolean notifyPartitionDataAvailable;
 
-    public ResultPartitionDeploymentDescriptor(
-            PartitionDescriptor partitionDescriptor,
-            ShuffleDescriptor shuffleDescriptor,
-            int maxParallelism,
-            boolean notifyPartitionDataAvailable) {
+    public ResultPartitionDeploymentDescriptor(PartitionDescriptor partitionDescriptor,
+                                               ShuffleDescriptor shuffleDescriptor,
+                                               int maxParallelism,
+                                               boolean notifyPartitionDataAvailable) {
         this.partitionDescriptor = checkNotNull(partitionDescriptor);
         this.shuffleDescriptor = checkNotNull(shuffleDescriptor);
         KeyGroupRangeAssignment.checkParallelismPreconditions(maxParallelism);
@@ -95,8 +94,9 @@ public class ResultPartitionDeploymentDescriptor implements Serializable {
     @Override
     public String toString() {
         return String.format(
-                "ResultPartitionDeploymentDescriptor [PartitionDescriptor: %s, "
-                        + "ShuffleDescriptor: %s]",
-                partitionDescriptor, shuffleDescriptor);
+                "ResultPartitionDeploymentDescriptor [PartitionDescriptor: %s, " + "ShuffleDescriptor: %s]",
+                partitionDescriptor,
+                shuffleDescriptor
+        );
     }
 }

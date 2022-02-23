@@ -41,6 +41,7 @@ import static org.apache.flink.util.Preconditions.checkNotNull;
  * producing and consuming task are running at the same time.
  */
 public class TaskEventDispatcher implements TaskEventPublisher {
+    
     private static final Logger LOG = LoggerFactory.getLogger(TaskEventDispatcher.class);
 
     private final Map<ResultPartitionID, TaskEventHandler> registeredHandlers = new HashMap<>();
@@ -56,11 +57,14 @@ public class TaskEventDispatcher implements TaskEventPublisher {
 
         synchronized (registeredHandlers) {
             LOG.debug("registering {}", partitionId);
+
+            /*************************************************
+             * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+             *  注释： 将 ResultPartition 注册到 TaskEventDispatcher 中
+             */
             if (registeredHandlers.put(partitionId, new TaskEventHandler()) != null) {
                 throw new IllegalStateException(
-                        "Partition "
-                                + partitionId
-                                + " already registered at task event dispatcher.");
+                        "Partition " + partitionId + " already registered at task event dispatcher.");
             }
         }
     }
@@ -87,14 +91,13 @@ public class TaskEventDispatcher implements TaskEventPublisher {
      * Subscribes a listener to this dispatcher for events on a partition.
      *
      * @param partitionId ID of the partition to subscribe for (must be registered via {@link
-     *     #registerPartition(ResultPartitionID)} first!)
+     *         #registerPartition(ResultPartitionID)} first!)
      * @param eventListener the event listener to subscribe
      * @param eventType event type to subscribe to
      */
-    public void subscribeToEvent(
-            ResultPartitionID partitionId,
-            EventListener<TaskEvent> eventListener,
-            Class<? extends TaskEvent> eventType) {
+    public void subscribeToEvent(ResultPartitionID partitionId,
+                                 EventListener<TaskEvent> eventListener,
+                                 Class<? extends TaskEvent> eventType) {
         checkNotNull(partitionId);
         checkNotNull(eventListener);
         checkNotNull(eventType);
@@ -104,8 +107,7 @@ public class TaskEventDispatcher implements TaskEventPublisher {
             taskEventHandler = registeredHandlers.get(partitionId);
         }
         if (taskEventHandler == null) {
-            throw new IllegalStateException(
-                    "Partition " + partitionId + " not registered at task event dispatcher.");
+            throw new IllegalStateException("Partition " + partitionId + " not registered at task event dispatcher.");
         }
         taskEventHandler.subscribe(eventListener, eventType);
     }
@@ -117,7 +119,7 @@ public class TaskEventDispatcher implements TaskEventPublisher {
      * thread on behalf of a {@link RemoteInputChannel}.
      *
      * @return whether the event was published to a registered event handler (initiated via {@link
-     *     #registerPartition(ResultPartitionID)}) or not
+     *         #registerPartition(ResultPartitionID)}) or not
      */
     @Override
     public boolean publish(ResultPartitionID partitionId, TaskEvent event) {

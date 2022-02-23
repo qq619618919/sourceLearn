@@ -84,6 +84,10 @@ public class OneInputStreamOperatorOutput extends OutputBase {
             @SuppressWarnings("unchecked")
             StreamRecord<RowData> castRecord = (StreamRecord<RowData>) record;
 
+            /*************************************************
+             * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+             *  注释：
+             */
             operator.processElement(castRecord);
         } catch (Exception e) {
             throw new ExceptionInMultipleInputOperatorException(e);

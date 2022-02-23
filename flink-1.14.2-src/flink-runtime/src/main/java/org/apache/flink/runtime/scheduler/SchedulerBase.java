@@ -181,13 +181,15 @@ public abstract class SchedulerBase implements SchedulerNG, CheckpointScheduling
                 checkNotNull(checkpointRecoveryFactory),
                 log
         );
+
+        // TODO_MA 马中华 注释： Checkpoint ID 生成器
         this.checkpointIdCounter = SchedulerUtils.createCheckpointIDCounterIfCheckpointingIsEnabled(jobGraph,
                 checkNotNull(checkpointRecoveryFactory)
         );
 
         /*************************************************
          * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-         *  注释：
+         *  注释： 最终： 将  JobGraph 变成 ExecutionGraph 的核心代码！
          */
         this.executionGraph = createAndRestoreExecutionGraph(completedCheckpointStore,
                 checkpointsCleaner,
@@ -196,6 +198,7 @@ public abstract class SchedulerBase implements SchedulerNG, CheckpointScheduling
                 mainThreadExecutor,
                 jobStatusListener
         );
+        // TODO_MA 马中华 注释： runJob 有两种模式
 
         this.schedulingTopology = executionGraph.getSchedulingTopology();
 
@@ -319,6 +322,13 @@ public abstract class SchedulerBase implements SchedulerNG, CheckpointScheduling
         return computeVertexParallelismStore(jobGraph.getVertices());
     }
 
+    /*************************************************
+     * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+     *  注释：
+     *  1、createExecutionGraph()
+     *  2、restoreExecutionGraph()
+     *  通通都是把 JobGraph 转化成 ExecutionGraph
+     */
     private ExecutionGraph createAndRestoreExecutionGraph(CompletedCheckpointStore completedCheckpointStore,
                                                           CheckpointsCleaner checkpointsCleaner,
                                                           CheckpointIDCounter checkpointIdCounter,
@@ -328,7 +338,7 @@ public abstract class SchedulerBase implements SchedulerNG, CheckpointScheduling
 
         /*************************************************
          * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-         *  注释：
+         *  注释： 在 JobMaster 的构造方法里面！
          */
         final ExecutionGraph newExecutionGraph = executionGraphFactory.createAndRestoreExecutionGraph(jobGraph,
                 completedCheckpointStore,
@@ -563,11 +573,6 @@ public abstract class SchedulerBase implements SchedulerNG, CheckpointScheduling
     public final void startScheduling() {
         mainThreadExecutor.assertRunningInMainThread();
         registerJobMetrics();
-
-        /*************************************************
-         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-         *  注释：
-         */
         operatorCoordinatorHandler.startAllOperatorCoordinators();
 
         /*************************************************
@@ -661,6 +666,11 @@ public abstract class SchedulerBase implements SchedulerNG, CheckpointScheduling
             checkState(executionVertexId.isPresent());
 
             if (isNotifiable(executionVertexId.get(), taskExecutionState)) {
+
+                /*************************************************
+                 * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+                 *  注释：
+                 */
                 updateTaskExecutionStateInternal(executionVertexId.get(), taskExecutionState);
             }
             return true;
@@ -718,8 +728,16 @@ public abstract class SchedulerBase implements SchedulerNG, CheckpointScheduling
     public final void notifyPartitionDataAvailable(final ResultPartitionID partitionId) {
         mainThreadExecutor.assertRunningInMainThread();
 
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释：
+         */
         executionGraph.notifyPartitionDataAvailable(partitionId);
 
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释：
+         */
         notifyPartitionDataAvailableInternal(partitionId.getPartitionId());
     }
 
@@ -799,6 +817,7 @@ public abstract class SchedulerBase implements SchedulerNG, CheckpointScheduling
         mainThreadExecutor.assertRunningInMainThread();
 
         final CheckpointCoordinator checkpointCoordinator = executionGraph.getCheckpointCoordinator();
+
         if (checkpointCoordinator == null) {
             throw new IllegalStateException(String.format("Job %s is not a streaming job.", jobGraph.getJobID()));
         } else if (targetDirectory == null && !checkpointCoordinator
@@ -815,13 +834,23 @@ public abstract class SchedulerBase implements SchedulerNG, CheckpointScheduling
 
         log.info("Triggering {}savepoint for job {}.", cancelJob ? "cancel-with-" : "", jobGraph.getJobID());
 
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释： 如果是触发 savepoint 的时候，同时 cancel job 了，则取消定时 checkpoint 的周期任务
+         */
         if (cancelJob) {
             stopCheckpointScheduler();
         }
 
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释： 触发 savepoint
+         */
         return checkpointCoordinator
                 .triggerSavepoint(targetDirectory)
                 .thenApply(CompletedCheckpoint::getExternalPointer)
+
+                // TODO_MA 马中华 注释： 如果 savepoint 没成功，则开启 checkpoint 周期任务
                 .handleAsync((path, throwable) -> {
                     if (throwable != null) {
                         if (cancelJob) {
@@ -847,6 +876,10 @@ public abstract class SchedulerBase implements SchedulerNG, CheckpointScheduling
             log.info(
                     "Periodic checkpoint scheduling could not be stopped due to the CheckpointCoordinator being shutdown.");
         } else {
+            /*************************************************
+             * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+             *  注释：
+             */
             checkpointCoordinator.stopCheckpointScheduler();
         }
     }
@@ -970,6 +1003,7 @@ public abstract class SchedulerBase implements SchedulerNG, CheckpointScheduling
                                                   final OperatorID operatorId,
                                                   final OperatorEvent evt) throws FlinkException {
 
+        // TODO_MA 马中华 注释：
         operatorCoordinatorHandler.deliverOperatorEventToCoordinator(taskExecutionId, operatorId, evt);
     }
 

@@ -47,6 +47,11 @@ import java.util.stream.StreamSupport;
  */
 @Internal
 public final class PrioritizedDeque<T> implements Iterable<T> {
+
+    /*************************************************
+     * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+     *  注释： 真正存储数据的队列
+     */
     private final Deque<T> deque = new ArrayDeque<>();
     private int numPriorityElements;
 
@@ -95,7 +100,9 @@ public final class PrioritizedDeque<T> implements Iterable<T> {
      * @param prioritize flag that hints that the element is already in this deque, potentially as
      *     non-priority element.
      */
-    public void add(T element, boolean priority, boolean prioritize) {
+    public void add(T element,
+                    boolean priority,
+                    boolean prioritize) {
         if (!priority) {
             add(element);
         } else {
@@ -222,7 +229,8 @@ public final class PrioritizedDeque<T> implements Iterable<T> {
 
     /** @return read-only iterator */
     public Iterator<T> iterator() {
-        return Collections.unmodifiableCollection(deque).iterator();
+        return Collections.unmodifiableCollection(deque)
+                          .iterator();
     }
 
     /** Removes all priority and non-priority elements. */

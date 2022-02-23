@@ -162,9 +162,15 @@ public class HighAvailabilityServicesUtils {
                         AddressResolution.TRY_ADDRESS_RESOLUTION
                 );
                 return new StandaloneClientHAServices(webMonitorAddress);
+
+            /*************************************************
+             * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+             *  注释：
+             */
             case ZOOKEEPER:
                 final CuratorFramework client = ZooKeeperUtils.startCuratorFramework(configuration, fatalErrorHandler);
                 return new ZooKeeperClientHAServices(client, configuration);
+                
             case FACTORY_CLASS:
                 return createCustomClientHAServices(configuration);
             default:

@@ -20,8 +20,13 @@
 # Start/stop a Flink daemon.
 USAGE="Usage: flink-daemon.sh (start|stop|stop-all) (taskexecutor|zookeeper|historyserver|standalonesession|standalonejob) [args]"
 
+# TODO_MA 马中华 注释： 动作 = start
 STARTSTOP=$1
+
+# TODO_MA 马中华 注释： 代号 = standalonesession 、 taskexecutor
 DAEMON=$2
+
+# TODO_MA 马中华 注释： 其他参数
 ARGS=("${@:3}") # get remaining arguments as array
 
 bin=`dirname "$0"`
@@ -29,6 +34,7 @@ bin=`cd "$bin"; pwd`
 
 . "$bin"/config.sh
 
+# TODO_MA 马中华 注释： 解析代号，得到具体的启动类
 case $DAEMON in
     (taskexecutor)
         CLASS_TO_RUN=org.apache.flink.runtime.taskexecutor.TaskManagerRunner
@@ -106,6 +112,7 @@ function guaranteed_kill {
   fi
 }
 
+# TODO_MA 马中华 注释： 根据具体的动作来干事
 case $STARTSTOP in
 
     (start)
@@ -130,6 +137,7 @@ case $STARTSTOP in
         # Evaluate user options for local variable expansion
         FLINK_ENV_JAVA_OPTS=$(eval echo ${FLINK_ENV_JAVA_OPTS})
 
+        # TODO_MA 马中华 注释： 通过 java 命令来启动相关的 JVM 进程
         echo "Starting $DAEMON daemon on host $HOSTNAME."
         "$JAVA_RUN" $JVM_ARGS ${FLINK_ENV_JAVA_OPTS} "${log_setting[@]}" -classpath "`manglePathList "$FLINK_TM_CLASSPATH:$INTERNAL_HADOOP_CLASSPATHS"`" ${CLASS_TO_RUN} "${ARGS[@]}" > "$out" 200<&- 2>&1 < /dev/null &
 

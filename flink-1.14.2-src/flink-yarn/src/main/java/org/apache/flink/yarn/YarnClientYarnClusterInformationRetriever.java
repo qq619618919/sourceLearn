@@ -30,8 +30,8 @@ import java.io.IOException;
  * {@link YarnClusterInformationRetriever} implementation which queries the Yarn cluster using a
  * {@link YarnClient} instance.
  */
-public final class YarnClientYarnClusterInformationRetriever
-        implements YarnClusterInformationRetriever {
+public final class YarnClientYarnClusterInformationRetriever implements YarnClusterInformationRetriever {
+
     private final YarnClient yarnClient;
 
     private YarnClientYarnClusterInformationRetriever(YarnClient yarnClient) {
@@ -41,13 +41,14 @@ public final class YarnClientYarnClusterInformationRetriever
     @Override
     public int getMaxVcores() throws FlinkException {
         try {
-            return yarnClient.getNodeReports(NodeState.RUNNING).stream()
+            return yarnClient
+                    .getNodeReports(NodeState.RUNNING)
+                    .stream()
                     .mapToInt(report -> report.getCapability().getVirtualCores())
                     .max()
                     .orElse(0);
         } catch (YarnException | IOException e) {
-            throw new FlinkException(
-                    "Couldn't get cluster description, please check on the YarnConfiguration", e);
+            throw new FlinkException("Couldn't get cluster description, please check on the YarnConfiguration", e);
         }
     }
 

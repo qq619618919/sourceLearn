@@ -36,6 +36,12 @@ import java.util.concurrent.Executor;
  * The rpc is then only executed if the attached fencing token equals the endpoint's own token.
  *
  * @param <F> type of the fencing token
+ *
+ * // TODO_MA 马中华 注释： ResourceManager 是一个 RPC 工作组件
+ * // TODO_MA 马中华 注释： RpcEndpoint 的生命周期
+ * // TODO_MA 马中华 注释： 当我们通过 RPCService 启动了一个 RpcEndpoint 的时候
+ * // TODO_MA 马中华 注释： 先构造了一个RpcEndpoint的实例，首先调用 onStart()
+ * // TODO_MA 马中华 注释： 几乎所有的 RpcEndpoint 的启动逻辑，都在 onStart()
  */
 public abstract class FencedRpcEndpoint<F extends Serializable> extends RpcEndpoint {
 

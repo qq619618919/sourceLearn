@@ -51,7 +51,8 @@ class NettyClient {
 
     private Bootstrap bootstrap;
 
-    @Nullable private SSLHandlerFactory clientSSLFactory;
+    @Nullable
+    private SSLHandlerFactory clientSSLFactory;
 
     NettyClient(NettyConfig config) {
         this.config = config;
@@ -64,6 +65,10 @@ class NettyClient {
 
         final long start = System.nanoTime();
 
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释：
+         */
         bootstrap = new Bootstrap();
 
         // --------------------------------------------------------------------
@@ -71,6 +76,11 @@ class NettyClient {
         // --------------------------------------------------------------------
 
         switch (config.getTransportType()) {
+
+            /*************************************************
+             * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+             *  注释：
+             */
             case NIO:
                 initNioBootstrap();
                 break;
@@ -97,9 +107,7 @@ class NettyClient {
         bootstrap.option(ChannelOption.SO_KEEPALIVE, true);
 
         // Timeout for new connections
-        bootstrap.option(
-                ChannelOption.CONNECT_TIMEOUT_MILLIS,
-                config.getClientConnectTimeoutSeconds() * 1000);
+        bootstrap.option(ChannelOption.CONNECT_TIMEOUT_MILLIS, config.getClientConnectTimeoutSeconds() * 1000);
 
         // Pooled allocator for Netty's ByteBuf instances
         bootstrap.option(ChannelOption.ALLOCATOR, nettyBufferPool);
@@ -148,9 +156,18 @@ class NettyClient {
         // multiple clients running on the same host.
         String name = NettyConfig.CLIENT_THREAD_GROUP_NAME + " (" + config.getServerPort() + ")";
 
-        NioEventLoopGroup nioGroup =
-                new NioEventLoopGroup(
-                        config.getClientNumThreads(), NettyServer.getNamedThreadFactory(name));
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释：
+         */
+        NioEventLoopGroup nioGroup = new NioEventLoopGroup(config.getClientNumThreads(),
+                NettyServer.getNamedThreadFactory(name)
+        );
+
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释：
+         */
         bootstrap.group(nioGroup).channel(NioSocketChannel.class);
     }
 
@@ -159,9 +176,9 @@ class NettyClient {
         // multiple clients running on the same host.
         String name = NettyConfig.CLIENT_THREAD_GROUP_NAME + " (" + config.getServerPort() + ")";
 
-        EpollEventLoopGroup epollGroup =
-                new EpollEventLoopGroup(
-                        config.getClientNumThreads(), NettyServer.getNamedThreadFactory(name));
+        EpollEventLoopGroup epollGroup = new EpollEventLoopGroup(config.getClientNumThreads(),
+                NettyServer.getNamedThreadFactory(name)
+        );
         bootstrap.group(epollGroup).channel(EpollSocketChannel.class);
     }
 
@@ -176,39 +193,54 @@ class NettyClient {
         // Child channel pipeline for accepted connections
         // --------------------------------------------------------------------
 
-        bootstrap.handler(
-                new ChannelInitializer<SocketChannel>() {
-                    @Override
-                    public void initChannel(SocketChannel channel) throws Exception {
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释： 指定 channel pipeline 上的各种 handler
+         */
+        bootstrap.handler(new ChannelInitializer<SocketChannel>() {
+            @Override
+            public void initChannel(SocketChannel channel) throws Exception {
 
-                        // SSL handler should be added first in the pipeline
-                        if (clientSSLFactory != null) {
-                            SslHandler sslHandler =
-                                    clientSSLFactory.createNettySSLHandler(
-                                            channel.alloc(),
-                                            serverSocketAddress.getAddress().getCanonicalHostName(),
-                                            serverSocketAddress.getPort());
-                            channel.pipeline().addLast("ssl", sslHandler);
-                        }
-                        channel.pipeline().addLast(protocol.getClientChannelHandlers());
-                    }
-                });
+                // SSL handler should be added first in the pipeline
+                if (clientSSLFactory != null) {
+                    SslHandler sslHandler = clientSSLFactory.createNettySSLHandler(channel.alloc(),
+                            serverSocketAddress.getAddress().getCanonicalHostName(),
+                            serverSocketAddress.getPort()
+                    );
+                    channel.pipeline().addLast("ssl", sslHandler);
+                }
+                /*************************************************
+                 * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+                 *  注释： client handler
+                 */
+                channel.pipeline().addLast(protocol.getClientChannelHandlers());
+            }
+        });
 
         try {
+            /*************************************************
+             * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+             *  注释： 发起链接请求
+             */
             return bootstrap.connect(serverSocketAddress);
         } catch (ChannelException e) {
-            if ((e.getCause() instanceof java.net.SocketException
-                            && e.getCause().getMessage().equals("Too many open files"))
-                    || (e.getCause() instanceof ChannelException
-                            && e.getCause().getCause() instanceof java.net.SocketException
-                            && e.getCause()
-                                    .getCause()
-                                    .getMessage()
-                                    .equals("Too many open files"))) {
+            if ((e.getCause() instanceof java.net.SocketException && e
+                    .getCause()
+                    .getMessage()
+                    .equals("Too many open files")
+            ) || (e.getCause() instanceof ChannelException && e
+                    .getCause()
+                    .getCause() instanceof java.net.SocketException && e
+                    .getCause()
+                    .getCause()
+                    .getMessage()
+                    .equals("Too many open files")
+            )) {
                 throw new ChannelException(
                         "The operating system does not offer enough file handles to open the network connection. "
                                 + "Please increase the number of available file handles.",
-                        e.getCause());
+                        e.getCause()
+                );
             } else {
                 throw e;
             }

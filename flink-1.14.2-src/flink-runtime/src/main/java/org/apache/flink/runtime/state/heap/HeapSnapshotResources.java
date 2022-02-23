@@ -50,14 +50,13 @@ final class HeapSnapshotResources<K> implements FullSnapshotResources<K> {
     private final TypeSerializer<K> keySerializer;
     private final int totalKeyGroups;
 
-    private HeapSnapshotResources(
-            List<StateMetaInfoSnapshot> metaInfoSnapshots,
-            Map<StateUID, StateSnapshot> cowStateStableSnapshots,
-            StreamCompressionDecorator streamCompressionDecorator,
-            Map<StateUID, Integer> stateNamesToId,
-            KeyGroupRange keyGroupRange,
-            TypeSerializer<K> keySerializer,
-            int totalKeyGroups) {
+    private HeapSnapshotResources(List<StateMetaInfoSnapshot> metaInfoSnapshots,
+                                  Map<StateUID, StateSnapshot> cowStateStableSnapshots,
+                                  StreamCompressionDecorator streamCompressionDecorator,
+                                  Map<StateUID, Integer> stateNamesToId,
+                                  KeyGroupRange keyGroupRange,
+                                  TypeSerializer<K> keySerializer,
+                                  int totalKeyGroups) {
         this.metaInfoSnapshots = metaInfoSnapshots;
         this.cowStateStableSnapshots = cowStateStableSnapshots;
         this.streamCompressionDecorator = streamCompressionDecorator;
@@ -67,72 +66,65 @@ final class HeapSnapshotResources<K> implements FullSnapshotResources<K> {
         this.totalKeyGroups = totalKeyGroups;
     }
 
-    public static <K> HeapSnapshotResources<K> create(
-            Map<String, StateTable<K, ?, ?>> registeredKVStates,
-            Map<String, HeapPriorityQueueSnapshotRestoreWrapper<?>> registeredPQStates,
-            StreamCompressionDecorator streamCompressionDecorator,
-            KeyGroupRange keyGroupRange,
-            TypeSerializer<K> keySerializer,
-            int totalKeyGroups) {
+    public static <K> HeapSnapshotResources<K> create(Map<String, StateTable<K, ?, ?>> registeredKVStates,
+                                                      Map<String, HeapPriorityQueueSnapshotRestoreWrapper<?>> registeredPQStates,
+                                                      StreamCompressionDecorator streamCompressionDecorator,
+                                                      KeyGroupRange keyGroupRange,
+                                                      TypeSerializer<K> keySerializer,
+                                                      int totalKeyGroups) {
 
         if (registeredKVStates.isEmpty() && registeredPQStates.isEmpty()) {
-            return new HeapSnapshotResources<>(
-                    Collections.emptyList(),
+            return new HeapSnapshotResources<>(Collections.emptyList(),
                     Collections.emptyMap(),
                     streamCompressionDecorator,
                     Collections.emptyMap(),
                     keyGroupRange,
                     keySerializer,
-                    totalKeyGroups);
+                    totalKeyGroups
+            );
         }
 
         int numStates = registeredKVStates.size() + registeredPQStates.size();
 
-        Preconditions.checkState(
-                numStates <= Short.MAX_VALUE,
-                "Too many states: "
-                        + numStates
-                        + ". Currently at most "
-                        + Short.MAX_VALUE
-                        + " states are supported");
+        Preconditions.checkState(numStates <= Short.MAX_VALUE,
+                "Too many states: " + numStates + ". Currently at most " + Short.MAX_VALUE + " states are supported"
+        );
 
         final List<StateMetaInfoSnapshot> metaInfoSnapshots = new ArrayList<>(numStates);
         final Map<StateUID, Integer> stateNamesToId = new HashMap<>(numStates);
         final Map<StateUID, StateSnapshot> cowStateStableSnapshots = new HashMap<>(numStates);
 
-        processSnapshotMetaInfoForAllStates(
-                metaInfoSnapshots,
+        processSnapshotMetaInfoForAllStates(metaInfoSnapshots,
                 cowStateStableSnapshots,
                 stateNamesToId,
                 registeredKVStates,
-                StateMetaInfoSnapshot.BackendStateType.KEY_VALUE);
+                StateMetaInfoSnapshot.BackendStateType.KEY_VALUE
+        );
 
-        processSnapshotMetaInfoForAllStates(
-                metaInfoSnapshots,
+        processSnapshotMetaInfoForAllStates(metaInfoSnapshots,
                 cowStateStableSnapshots,
                 stateNamesToId,
                 registeredPQStates,
-                StateMetaInfoSnapshot.BackendStateType.PRIORITY_QUEUE);
+                StateMetaInfoSnapshot.BackendStateType.PRIORITY_QUEUE
+        );
 
-        return new HeapSnapshotResources<>(
-                metaInfoSnapshots,
+        return new HeapSnapshotResources<>(metaInfoSnapshots,
                 cowStateStableSnapshots,
                 streamCompressionDecorator,
                 stateNamesToId,
                 keyGroupRange,
                 keySerializer,
-                totalKeyGroups);
+                totalKeyGroups
+        );
     }
 
-    private static void processSnapshotMetaInfoForAllStates(
-            List<StateMetaInfoSnapshot> metaInfoSnapshots,
-            Map<StateUID, StateSnapshot> cowStateStableSnapshots,
-            Map<StateUID, Integer> stateNamesToId,
-            Map<String, ? extends StateSnapshotRestore> registeredStates,
-            StateMetaInfoSnapshot.BackendStateType stateType) {
+    private static void processSnapshotMetaInfoForAllStates(List<StateMetaInfoSnapshot> metaInfoSnapshots,
+                                                            Map<StateUID, StateSnapshot> cowStateStableSnapshots,
+                                                            Map<StateUID, Integer> stateNamesToId,
+                                                            Map<String, ? extends StateSnapshotRestore> registeredStates,
+                                                            StateMetaInfoSnapshot.BackendStateType stateType) {
 
-        for (Map.Entry<String, ? extends StateSnapshotRestore> kvState :
-                registeredStates.entrySet()) {
+        for (Map.Entry<String, ? extends StateSnapshotRestore> kvState : registeredStates.entrySet()) {
             final StateUID stateUid = StateUID.of(kvState.getKey(), stateType);
             stateNamesToId.put(stateUid, stateNamesToId.size());
             StateSnapshotRestore state = kvState.getValue();
@@ -157,12 +149,12 @@ final class HeapSnapshotResources<K> implements FullSnapshotResources<K> {
 
     @Override
     public KeyValueStateIterator createKVStateIterator() throws IOException {
-        return new HeapKeyValueStateIterator(
-                keyGroupRange,
+        return new HeapKeyValueStateIterator(keyGroupRange,
                 keySerializer,
                 totalKeyGroups,
                 stateNamesToId,
-                cowStateStableSnapshots);
+                cowStateStableSnapshots
+        );
     }
 
     @Override

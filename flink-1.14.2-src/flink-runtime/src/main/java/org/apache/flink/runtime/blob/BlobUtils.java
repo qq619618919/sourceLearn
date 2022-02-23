@@ -182,9 +182,15 @@ public class BlobUtils {
      *
      * @throws IOException if creating the directory fails
      */
-    static File getStorageLocation(File storageDir, @Nullable JobID jobId, BlobKey key) throws IOException {
+    static File getStorageLocation(File storageDir,
+                                   @Nullable JobID jobId,
+                                   BlobKey key) throws IOException {
+
+        // TODO_MA 马中华 注释： 获取 Task 的 StorageLocation
+        // TODO_MA 马中华 注释： $base/job_$jobId/blob_$key
         File file = new File(getStorageLocationPath(storageDir.getAbsolutePath(), jobId, key));
 
+        // TODO_MA 马中华 注释： 创建父目录 $base/job_$jobId
         Files.createDirectories(file.getParentFile().toPath());
 
         return file;
@@ -199,7 +205,8 @@ public class BlobUtils {
      *
      * @return the storage directory for BLOBs belonging to the job with the given ID
      */
-    static String getStorageLocationPath(String storageDir, @Nullable JobID jobId) {
+    static String getStorageLocationPath(String storageDir,
+                                         @Nullable JobID jobId) {
         if (jobId == null) {
             // format: $base/no_job
             return String.format("%s/%s", storageDir, NO_JOB_DIR_PREFIX);
@@ -222,7 +229,9 @@ public class BlobUtils {
      *
      * @return the path to the given BLOB
      */
-    static String getStorageLocationPath(String storageDir, @Nullable JobID jobId, BlobKey key) {
+    static String getStorageLocationPath(String storageDir,
+                                         @Nullable JobID jobId,
+                                         BlobKey key) {
         if (jobId == null) {
             // format: $base/no_job/blob_$key
             return String.format("%s/%s/%s%s", storageDir, NO_JOB_DIR_PREFIX, BLOB_FILE_PREFIX, key.toString());
@@ -259,7 +268,8 @@ public class BlobUtils {
      *
      * @throws IOException thrown if an I/O error occurs while writing to the output stream
      */
-    static void writeLength(int length, OutputStream outputStream) throws IOException {
+    static void writeLength(int length,
+                            OutputStream outputStream) throws IOException {
         byte[] buf = new byte[4];
         buf[0] = (byte) (length & 0xff);
         buf[1] = (byte) ((length >> 8) & 0xff);
@@ -332,7 +342,11 @@ public class BlobUtils {
      * @throws IOException Thrown if I/O error occurs while reading from the stream or the stream
      *         cannot offer enough data.
      */
-    static void readFully(InputStream inputStream, byte[] buf, int off, int len, String type) throws IOException {
+    static void readFully(InputStream inputStream,
+                          byte[] buf,
+                          int off,
+                          int len,
+                          String type) throws IOException {
 
         int bytesRead = 0;
         while (bytesRead < len) {
@@ -345,7 +359,8 @@ public class BlobUtils {
         }
     }
 
-    static void closeSilently(Socket socket, Logger log) {
+    static void closeSilently(Socket socket,
+                              Logger log) {
         if (socket != null) {
             try {
                 socket.close();
@@ -402,8 +417,7 @@ public class BlobUtils {
 
                 if (blobStore != null) {
                     // only the one moving the incoming file to its final destination is allowed to
-                    // upload the
-                    // file to the blob store
+                    // upload the file to the blob store
                     blobStore.put(storageFile, jobId, blobKey);
                 }
             } else {

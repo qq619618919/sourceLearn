@@ -56,13 +56,10 @@ public class PipelineExecutorUtils {
          * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
          *  注释：
          */
-        final JobGraph jobGraph = FlinkPipelineTranslationUtil.getJobGraph(pipeline,
-                configuration,
-                executionConfigAccessor.getParallelism()
-        );
+        final JobGraph jobGraph = FlinkPipelineTranslationUtil.getJobGraph(pipeline, configuration,
+                executionConfigAccessor.getParallelism());
 
-        configuration
-                .getOptional(PipelineOptionsInternal.PIPELINE_FIXED_JOB_ID)
+        configuration.getOptional(PipelineOptionsInternal.PIPELINE_FIXED_JOB_ID)
                 .ifPresent(strJobID -> jobGraph.setJobID(JobID.fromHexString(strJobID)));
 
         jobGraph.addJars(executionConfigAccessor.getJars());

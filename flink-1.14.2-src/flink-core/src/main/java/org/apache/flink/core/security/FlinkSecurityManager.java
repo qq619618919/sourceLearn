@@ -57,16 +57,14 @@ public class FlinkSecurityManager extends SecurityManager {
     private final boolean haltOnSystemExit;
 
     @VisibleForTesting
-    FlinkSecurityManager(
-            ClusterOptions.UserSystemExitMode userSystemExitMode, boolean haltOnSystemExit) {
+    FlinkSecurityManager(ClusterOptions.UserSystemExitMode userSystemExitMode, boolean haltOnSystemExit) {
         this(userSystemExitMode, haltOnSystemExit, System.getSecurityManager());
     }
 
     @VisibleForTesting
-    FlinkSecurityManager(
-            ClusterOptions.UserSystemExitMode userSystemExitMode,
-            boolean haltOnSystemExit,
-            SecurityManager originalSecurityManager) {
+    FlinkSecurityManager(ClusterOptions.UserSystemExitMode userSystemExitMode,
+                         boolean haltOnSystemExit,
+                         SecurityManager originalSecurityManager) {
         this.userSystemExitMode = Preconditions.checkNotNull(userSystemExitMode);
         this.haltOnSystemExit = haltOnSystemExit;
         this.originalSecurityManager = originalSecurityManager;
@@ -79,13 +77,13 @@ public class FlinkSecurityManager extends SecurityManager {
      * which handles disabled case.
      *
      * @param configuration to instantiate the security manager from
+     *
      * @return FlinkUserSecurityManager instantiated based on configuration. Return null if
-     *     disabled.
+     *         disabled.
      */
     @VisibleForTesting
     static FlinkSecurityManager fromConfiguration(Configuration configuration) {
-        final ClusterOptions.UserSystemExitMode userSystemExitMode =
-                configuration.get(ClusterOptions.INTERCEPT_USER_SYSTEM_EXIT);
+        final ClusterOptions.UserSystemExitMode userSystemExitMode = configuration.get(ClusterOptions.INTERCEPT_USER_SYSTEM_EXIT);
 
         boolean haltOnSystemExit = configuration.get(ClusterOptions.HALT_ON_FATAL_ERROR);
 
@@ -94,33 +92,32 @@ public class FlinkSecurityManager extends SecurityManager {
         if (userSystemExitMode == ClusterOptions.UserSystemExitMode.DISABLED && !haltOnSystemExit) {
             return null;
         }
-        LOG.info(
-                "FlinkSecurityManager is created with {} user system exit mode and {} exit",
+        LOG.info("FlinkSecurityManager is created with {} user system exit mode and {} exit",
                 userSystemExitMode,
-                haltOnSystemExit ? "forceful" : "graceful");
+                haltOnSystemExit ? "forceful" : "graceful"
+        );
         // Add more configuration parameters that need user security manager (currently only for
         // system exit).
         return new FlinkSecurityManager(userSystemExitMode, haltOnSystemExit);
     }
 
     public static void setFromConfiguration(Configuration configuration) {
-        final FlinkSecurityManager flinkSecurityManager =
-                FlinkSecurityManager.fromConfiguration(configuration);
+        final FlinkSecurityManager flinkSecurityManager = FlinkSecurityManager.fromConfiguration(configuration);
         if (flinkSecurityManager != null) {
             try {
                 System.setSecurityManager(flinkSecurityManager);
             } catch (Exception e) {
-                throw new IllegalConfigurationException(
-                        String.format(
-                                "Could not register security manager due to no permission to "
-                                        + "set a SecurityManager. Either update your existing "
-                                        + "SecurityManager to allow the permission or do not use "
-                                        + "security manager features (e.g., '%s: %s', '%s: %s')",
-                                ClusterOptions.INTERCEPT_USER_SYSTEM_EXIT.key(),
-                                ClusterOptions.INTERCEPT_USER_SYSTEM_EXIT.defaultValue(),
-                                ClusterOptions.HALT_ON_FATAL_ERROR.key(),
-                                ClusterOptions.HALT_ON_FATAL_ERROR.defaultValue(),
-                                e));
+                throw new IllegalConfigurationException(String.format(
+                        "Could not register security manager due to no permission to "
+                                + "set a SecurityManager. Either update your existing "
+                                + "SecurityManager to allow the permission or do not use "
+                                + "security manager features (e.g., '%s: %s', '%s: %s')",
+                        ClusterOptions.INTERCEPT_USER_SYSTEM_EXIT.key(),
+                        ClusterOptions.INTERCEPT_USER_SYSTEM_EXIT.defaultValue(),
+                        ClusterOptions.HALT_ON_FATAL_ERROR.key(),
+                        ClusterOptions.HALT_ON_FATAL_ERROR.defaultValue(),
+                        e
+                ));
             }
         }
         FlinkSecurityManager.flinkSecurityManager = flinkSecurityManager;
@@ -160,10 +157,10 @@ public class FlinkSecurityManager extends SecurityManager {
                     break;
                 case LOG:
                     // Add exception trace log to help users to debug where exit came from.
-                    LOG.warn(
-                            "Exiting JVM with status {} is monitored: The system will exit due to this call.",
+                    LOG.warn("Exiting JVM with status {} is monitored: The system will exit due to this call.",
                             status,
-                            new UserSystemExitException());
+                            new UserSystemExitException()
+                    );
                     break;
                 case THROW:
                     throw new UserSystemExitException();
@@ -208,6 +205,7 @@ public class FlinkSecurityManager extends SecurityManager {
     public static void forceProcessExit(int exitCode) {
         // Unset ourselves to allow exiting in any case.
         System.setSecurityManager(null);
+
         if (flinkSecurityManager != null && flinkSecurityManager.haltOnSystemExit) {
             Runtime.getRuntime().halt(exitCode);
         } else {

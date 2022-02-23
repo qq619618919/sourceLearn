@@ -33,8 +33,7 @@ import java.util.concurrent.ConcurrentHashMap;
 @ThreadSafe
 public class PartitionTable<K> {
 
-    private final Map<K, Set<ResultPartitionID>> trackedPartitionsPerKey =
-            new ConcurrentHashMap<>(8);
+    private final Map<K, Set<ResultPartitionID>> trackedPartitionsPerKey = new ConcurrentHashMap<>(8);
 
     /** Returns whether any partitions are being tracked for the given key. */
     public boolean hasTrackedPartitions(K key) {
@@ -50,15 +49,13 @@ public class PartitionTable<K> {
             return;
         }
 
-        trackedPartitionsPerKey.compute(
-                key,
-                (ignored, partitionIds) -> {
-                    if (partitionIds == null) {
-                        partitionIds = new HashSet<>(8);
-                    }
-                    partitionIds.addAll(newPartitionIds);
-                    return partitionIds;
-                });
+        trackedPartitionsPerKey.compute(key, (ignored, partitionIds) -> {
+            if (partitionIds == null) {
+                partitionIds = new HashSet<>(8);
+            }
+            partitionIds.addAll(newPartitionIds);
+            return partitionIds;
+        });
     }
 
     /** Stops the tracking of all partition for the given key. */
@@ -76,11 +73,9 @@ public class PartitionTable<K> {
 
         // If the key is unknown we do not fail here, in line with
         // ShuffleEnvironment#releaseFinishedPartitions
-        trackedPartitionsPerKey.computeIfPresent(
-                key,
-                (ignored, resultPartitionIDS) -> {
-                    resultPartitionIDS.removeAll(partitionIds);
-                    return resultPartitionIDS.isEmpty() ? null : resultPartitionIDS;
-                });
+        trackedPartitionsPerKey.computeIfPresent(key, (ignored, resultPartitionIDS) -> {
+            resultPartitionIDS.removeAll(partitionIds);
+            return resultPartitionIDS.isEmpty() ? null : resultPartitionIDS;
+        });
     }
 }

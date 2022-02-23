@@ -139,11 +139,10 @@ public interface RuntimeContext {
      *
      * @param releaseHookName name of the release hook.
      * @param releaseHook release hook which is executed just before the user code class loader is
-     *     being released
+     *         being released
      */
     @PublicEvolving
-    void registerUserCodeClassLoaderReleaseHookIfAbsent(
-            String releaseHookName, Runnable releaseHook);
+    void registerUserCodeClassLoaderReleaseHookIfAbsent(String releaseHookName, Runnable releaseHook);
 
     // --------------------------------------------------------------------------------------------
 
@@ -184,6 +183,7 @@ public interface RuntimeContext {
      * Get the specific external resource information by the resourceName.
      *
      * @param resourceName of the required external resource
+     *
      * @return information set of the external resource identified by the resourceName
      */
     @PublicEvolving
@@ -195,6 +195,7 @@ public interface RuntimeContext {
      * Tests for the existence of the broadcast variable identified by the given {@code name}.
      *
      * @param name The name under which the broadcast variable is registered;
+     *
      * @return Whether a broadcast variable exists for the given name.
      */
     @PublicEvolving
@@ -208,6 +209,7 @@ public interface RuntimeContext {
      * the caller.
      *
      * @param name The name under which the broadcast variable is registered;
+     *
      * @return The broadcast variable, materialized as a list of elements.
      */
     <RT> List<RT> getBroadcastVariable(String name);
@@ -223,11 +225,11 @@ public interface RuntimeContext {
      *
      * @param name The name under which the broadcast variable is registered;
      * @param initializer The initializer that creates the shared data structure of the broadcast
-     *     variable from the sequence of elements.
+     *         variable from the sequence of elements.
+     *
      * @return The broadcast variable, materialized as a list of elements.
      */
-    <T, C> C getBroadcastVariableWithInitializer(
-            String name, BroadcastVariableInitializer<T, C> initializer);
+    <T, C> C getBroadcastVariableWithInitializer(String name, BroadcastVariableInitializer<T, C> initializer);
 
     /**
      * Returns the {@link DistributedCache} to get the local temporary file copies of files
@@ -278,9 +280,11 @@ public interface RuntimeContext {
      *
      * @param stateProperties The descriptor defining the properties of the stats.
      * @param <T> The type of value stored in the state.
+     *
      * @return The partitioned state object.
+     *
      * @throws UnsupportedOperationException Thrown, if no partitioned state is available for the
-     *     function (function is not part of a KeyedStream).
+     *         function (function is not part of a KeyedStream).
      */
     @PublicEvolving
     <T> ValueState<T> getState(ValueStateDescriptor<T> stateProperties);
@@ -319,9 +323,11 @@ public interface RuntimeContext {
      *
      * @param stateProperties The descriptor defining the properties of the stats.
      * @param <T> The type of value stored in the state.
+     *
      * @return The partitioned state object.
+     *
      * @throws UnsupportedOperationException Thrown, if no partitioned state is available for the
-     *     function (function is not part os a KeyedStream).
+     *         function (function is not part os a KeyedStream).
      */
     @PublicEvolving
     <T> ListState<T> getListState(ListStateDescriptor<T> stateProperties);
@@ -356,9 +362,11 @@ public interface RuntimeContext {
      *
      * @param stateProperties The descriptor defining the properties of the stats.
      * @param <T> The type of value stored in the state.
+     *
      * @return The partitioned state object.
+     *
      * @throws UnsupportedOperationException Thrown, if no partitioned state is available for the
-     *     function (function is not part of a KeyedStream).
+     *         function (function is not part of a KeyedStream).
      */
     @PublicEvolving
     <T> ReducingState<T> getReducingState(ReducingStateDescriptor<T> stateProperties);
@@ -396,13 +404,14 @@ public interface RuntimeContext {
      * @param <IN> The type of the values that are added to the state.
      * @param <ACC> The type of the accumulator (intermediate aggregation state).
      * @param <OUT> The type of the values that are returned from the state.
+     *
      * @return The partitioned state object.
+     *
      * @throws UnsupportedOperationException Thrown, if no partitioned state is available for the
-     *     function (function is not part of a KeyedStream).
+     *         function (function is not part of a KeyedStream).
      */
     @PublicEvolving
-    <IN, ACC, OUT> AggregatingState<IN, OUT> getAggregatingState(
-            AggregatingStateDescriptor<IN, ACC, OUT> stateProperties);
+    <IN, ACC, OUT> AggregatingState<IN, OUT> getAggregatingState(AggregatingStateDescriptor<IN, ACC, OUT> stateProperties);
 
     /**
      * Gets a handle to the system's key/value map state. This state is similar to the state
@@ -434,9 +443,11 @@ public interface RuntimeContext {
      * @param stateProperties The descriptor defining the properties of the stats.
      * @param <UK> The type of the user keys stored in the state.
      * @param <UV> The type of the user values stored in the state.
+     *
      * @return The partitioned state object.
+     *
      * @throws UnsupportedOperationException Thrown, if no partitioned state is available for the
-     *     function (function is not part of a KeyedStream).
+     *         function (function is not part of a KeyedStream).
      */
     @PublicEvolving
     <UK, UV> MapState<UK, UV> getMapState(MapStateDescriptor<UK, UV> stateProperties);

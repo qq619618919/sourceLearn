@@ -34,20 +34,14 @@ public class RetryingRegistrationConfiguration {
 
     private final long refusedDelayMillis;
 
-    public RetryingRegistrationConfiguration(
-            long initialRegistrationTimeoutMillis,
-            long maxRegistrationTimeoutMillis,
-            long errorDelayMillis,
-            long refusedDelayMillis) {
-        checkArgument(
-                initialRegistrationTimeoutMillis > 0,
-                "initial registration timeout must be greater than zero");
-        checkArgument(
-                maxRegistrationTimeoutMillis > 0,
-                "maximum registration timeout must be greater than zero");
+    public RetryingRegistrationConfiguration(long initialRegistrationTimeoutMillis,
+                                             long maxRegistrationTimeoutMillis,
+                                             long errorDelayMillis,
+                                             long refusedDelayMillis) {
+        checkArgument(initialRegistrationTimeoutMillis > 0, "initial registration timeout must be greater than zero");
+        checkArgument(maxRegistrationTimeoutMillis > 0, "maximum registration timeout must be greater than zero");
         checkArgument(errorDelayMillis >= 0, "delay on error must be non-negative");
-        checkArgument(
-                refusedDelayMillis >= 0, "delay on refused registration must be non-negative");
+        checkArgument(refusedDelayMillis >= 0, "delay on refused registration must be non-negative");
 
         this.initialRegistrationTimeoutMillis = initialRegistrationTimeoutMillis;
         this.maxRegistrationTimeoutMillis = maxRegistrationTimeoutMillis;
@@ -71,20 +65,16 @@ public class RetryingRegistrationConfiguration {
         return refusedDelayMillis;
     }
 
-    public static RetryingRegistrationConfiguration fromConfiguration(
-            final Configuration configuration) {
-        long initialRegistrationTimeoutMillis =
-                configuration.getLong(ClusterOptions.INITIAL_REGISTRATION_TIMEOUT);
-        long maxRegistrationTimeoutMillis =
-                configuration.getLong(ClusterOptions.MAX_REGISTRATION_TIMEOUT);
+    public static RetryingRegistrationConfiguration fromConfiguration(final Configuration configuration) {
+
+        // TODO_MA 马中华 注释： cluster.registration.initial-timeout = 0.1s
+        long initialRegistrationTimeoutMillis = configuration.getLong(ClusterOptions.INITIAL_REGISTRATION_TIMEOUT);
+        long maxRegistrationTimeoutMillis = configuration.getLong(ClusterOptions.MAX_REGISTRATION_TIMEOUT);
         long errorDelayMillis = configuration.getLong(ClusterOptions.ERROR_REGISTRATION_DELAY);
         long refusedDelayMillis = configuration.getLong(ClusterOptions.REFUSED_REGISTRATION_DELAY);
 
-        return new RetryingRegistrationConfiguration(
-                initialRegistrationTimeoutMillis,
-                maxRegistrationTimeoutMillis,
-                errorDelayMillis,
-                refusedDelayMillis);
+        return new RetryingRegistrationConfiguration(initialRegistrationTimeoutMillis, maxRegistrationTimeoutMillis,
+                errorDelayMillis, refusedDelayMillis);
     }
 
     public static RetryingRegistrationConfiguration defaultConfiguration() {

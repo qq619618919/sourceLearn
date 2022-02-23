@@ -124,6 +124,11 @@ public abstract class AbstractHaServices implements HighAvailabilityServices {
 
     @Override
     public CheckpointRecoveryFactory getCheckpointRecoveryFactory() throws Exception {
+
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释：
+         */
         return createCheckpointRecoveryFactory();
     }
 

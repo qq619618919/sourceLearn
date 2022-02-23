@@ -48,8 +48,7 @@ import static org.apache.flink.util.Preconditions.checkArgument;
  * {@link #onConsumedSubpartition(int)}) then the partition as a whole is disposed and all buffers
  * are freed.
  */
-public class PipelinedResultPartition extends BufferWritingResultPartition
-        implements CheckpointedResultPartition, ChannelStateHolder {
+public class PipelinedResultPartition extends BufferWritingResultPartition implements CheckpointedResultPartition, ChannelStateHolder {
     private static final int PIPELINED_RESULT_PARTITION_ITSELF = -42;
 
     /**
@@ -98,19 +97,17 @@ public class PipelinedResultPartition extends BufferWritingResultPartition
     @GuardedBy("lock")
     private int numberOfUsers;
 
-    public PipelinedResultPartition(
-            String owningTaskName,
-            int partitionIndex,
-            ResultPartitionID partitionId,
-            ResultPartitionType partitionType,
-            ResultSubpartition[] subpartitions,
-            int numTargetKeyGroups,
-            ResultPartitionManager partitionManager,
-            @Nullable BufferCompressor bufferCompressor,
-            SupplierWithException<BufferPool, IOException> bufferPoolFactory) {
+    public PipelinedResultPartition(String owningTaskName,
+                                    int partitionIndex,
+                                    ResultPartitionID partitionId,
+                                    ResultPartitionType partitionType,
+                                    ResultSubpartition[] subpartitions,
+                                    int numTargetKeyGroups,
+                                    ResultPartitionManager partitionManager,
+                                    @Nullable BufferCompressor bufferCompressor,
+                                    SupplierWithException<BufferPool, IOException> bufferPoolFactory) {
 
-        super(
-                owningTaskName,
+        super(owningTaskName,
                 partitionIndex,
                 partitionId,
                 checkResultPartitionType(partitionType),
@@ -118,7 +115,8 @@ public class PipelinedResultPartition extends BufferWritingResultPartition
                 numTargetKeyGroups,
                 partitionManager,
                 bufferCompressor,
-                bufferPoolFactory);
+                bufferPoolFactory
+        );
 
         this.allRecordsProcessedSubpartitions = new boolean[subpartitions.length];
         this.numNotAllRecordsProcessedSubpartitions = subpartitions.length;
@@ -166,8 +164,7 @@ public class PipelinedResultPartition extends BufferWritingResultPartition
             remainingUnconsumed = (--numberOfUsers);
         }
 
-        LOG.debug(
-                "{}: Received consumed notification for subpartition {}.", this, subpartitionIndex);
+        LOG.debug("{}: Received consumed notification for subpartition {}.", this, subpartitionIndex);
 
         if (remainingUnconsumed == 0) {
             partitionManager.onConsumedPartition(this);
@@ -189,6 +186,10 @@ public class PipelinedResultPartition extends BufferWritingResultPartition
 
     @Override
     public void flush(int targetSubpartition) {
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释：
+         */
         flushSubpartition(targetSubpartition, false);
     }
 
@@ -226,15 +227,8 @@ public class PipelinedResultPartition extends BufferWritingResultPartition
     @Override
     @SuppressWarnings("FieldAccessNotGuarded")
     public String toString() {
-        return "PipelinedResultPartition "
-                + partitionId.toString()
-                + " ["
-                + partitionType
-                + ", "
-                + subpartitions.length
-                + " subpartitions, "
-                + numberOfUsers
-                + " pending consumptions]";
+        return "PipelinedResultPartition " + partitionId.toString() + " [" + partitionType + ", " + subpartitions.length
+                + " subpartitions, " + numberOfUsers + " pending consumptions]";
     }
 
     // ------------------------------------------------------------------------
@@ -242,18 +236,15 @@ public class PipelinedResultPartition extends BufferWritingResultPartition
     // ------------------------------------------------------------------------
 
     private static ResultPartitionType checkResultPartitionType(ResultPartitionType type) {
-        checkArgument(
-                type == ResultPartitionType.PIPELINED
-                        || type == ResultPartitionType.PIPELINED_BOUNDED
-                        || type == ResultPartitionType.PIPELINED_APPROXIMATE);
+        checkArgument(type == ResultPartitionType.PIPELINED || type == ResultPartitionType.PIPELINED_BOUNDED
+                || type == ResultPartitionType.PIPELINED_APPROXIMATE);
         return type;
     }
 
     @Override
     public void finishReadRecoveredState(boolean notifyAndBlockOnCompletion) throws IOException {
         for (ResultSubpartition subpartition : subpartitions) {
-            ((CheckpointedResultSubpartition) subpartition)
-                    .finishReadRecoveredState(notifyAndBlockOnCompletion);
+            ((CheckpointedResultSubpartition) subpartition).finishReadRecoveredState(notifyAndBlockOnCompletion);
         }
     }
 

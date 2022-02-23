@@ -75,21 +75,20 @@ import static org.apache.flink.util.Preconditions.checkNotNull;
  * @param <OUT> The output type of the operator.
  */
 @Internal
-public class SourceOperator<OUT, SplitT extends SourceSplit> extends AbstractStreamOperator<OUT>
-        implements OperatorEventHandler, PushingAsyncDataInput<OUT> {
+public class SourceOperator<OUT, SplitT extends SourceSplit> extends AbstractStreamOperator<OUT> implements OperatorEventHandler, PushingAsyncDataInput<OUT> {
     private static final long serialVersionUID = 1405537676017904695L;
 
     // Package private for unit test.
-    static final ListStateDescriptor<byte[]> SPLITS_STATE_DESC =
-            new ListStateDescriptor<>("SourceReaderState", BytePrimitiveArraySerializer.INSTANCE);
+    static final ListStateDescriptor<byte[]> SPLITS_STATE_DESC = new ListStateDescriptor<>("SourceReaderState",
+            BytePrimitiveArraySerializer.INSTANCE
+    );
 
     /**
      * The factory for the source reader. This is a workaround, because currently the SourceReader
      * must be lazily initialized, which is mainly because the metrics groups that the reader relies
      * on is lazily initialized.
      */
-    private final FunctionWithException<SourceReaderContext, SourceReader<OUT, SplitT>, Exception>
-            readerFactory;
+    private final FunctionWithException<SourceReaderContext, SourceReader<OUT, SplitT>, Exception> readerFactory;
 
     /**
      * The serializer for the splits, applied to the split types before storing them in the reader
@@ -137,8 +136,7 @@ public class SourceOperator<OUT, SplitT extends SourceSplit> extends AbstractStr
     private OperatingMode operatingMode;
 
     private final CompletableFuture<Void> finished = new CompletableFuture<>();
-    private final SourceOperatorAvailabilityHelper availabilityHelper =
-            new SourceOperatorAvailabilityHelper();
+    private final SourceOperatorAvailabilityHelper availabilityHelper = new SourceOperatorAvailabilityHelper();
 
     private enum OperatingMode {
         READING,
@@ -149,16 +147,14 @@ public class SourceOperator<OUT, SplitT extends SourceSplit> extends AbstractStr
 
     private InternalSourceReaderMetricGroup sourceMetricGroup;
 
-    public SourceOperator(
-            FunctionWithException<SourceReaderContext, SourceReader<OUT, SplitT>, Exception>
-                    readerFactory,
-            OperatorEventGateway operatorEventGateway,
-            SimpleVersionedSerializer<SplitT> splitSerializer,
-            WatermarkStrategy<OUT> watermarkStrategy,
-            ProcessingTimeService timeService,
-            Configuration configuration,
-            String localHostname,
-            boolean emitProgressiveWatermarks) {
+    public SourceOperator(FunctionWithException<SourceReaderContext, SourceReader<OUT, SplitT>, Exception> readerFactory,
+                          OperatorEventGateway operatorEventGateway,
+                          SimpleVersionedSerializer<SplitT> splitSerializer,
+                          WatermarkStrategy<OUT> watermarkStrategy,
+                          ProcessingTimeService timeService,
+                          Configuration configuration,
+                          String localHostname,
+                          boolean emitProgressiveWatermarks) {
 
         this.readerFactory = checkNotNull(readerFactory);
         this.operatorEventGateway = checkNotNull(operatorEventGateway);
@@ -172,10 +168,7 @@ public class SourceOperator<OUT, SplitT extends SourceSplit> extends AbstractStr
     }
 
     @Override
-    public void setup(
-            StreamTask<?, ?> containingTask,
-            StreamConfig config,
-            Output<StreamRecord<OUT>> output) {
+    public void setup(StreamTask<?, ?> containingTask, StreamConfig config, Output<StreamRecord<OUT>> output) {
         super.setup(containingTask, config, output);
         initSourceMetricGroup();
     }
@@ -204,57 +197,54 @@ public class SourceOperator<OUT, SplitT extends SourceSplit> extends AbstractStr
 
         final int subtaskIndex = getRuntimeContext().getIndexOfThisSubtask();
 
-        final SourceReaderContext context =
-                new SourceReaderContext() {
+        final SourceReaderContext context = new SourceReaderContext() {
+            @Override
+            public SourceReaderMetricGroup metricGroup() {
+                return sourceMetricGroup;
+            }
+
+            @Override
+            public Configuration getConfiguration() {
+                return configuration;
+            }
+
+            @Override
+            public String getLocalHostName() {
+                return localHostname;
+            }
+
+            @Override
+            public int getIndexOfSubtask() {
+                return subtaskIndex;
+            }
+
+            @Override
+            public void sendSplitRequest() {
+                operatorEventGateway.sendEventToCoordinator(new RequestSplitEvent(getLocalHostName()));
+            }
+
+            @Override
+            public void sendSourceEventToCoordinator(SourceEvent event) {
+                operatorEventGateway.sendEventToCoordinator(new SourceEventWrapper(event));
+            }
+
+            @Override
+            public UserCodeClassLoader getUserCodeClassLoader() {
+                return new UserCodeClassLoader() {
                     @Override
-                    public SourceReaderMetricGroup metricGroup() {
-                        return sourceMetricGroup;
+                    public ClassLoader asClassLoader() {
+                        return getRuntimeContext().getUserCodeClassLoader();
                     }
 
                     @Override
-                    public Configuration getConfiguration() {
-                        return configuration;
-                    }
-
-                    @Override
-                    public String getLocalHostName() {
-                        return localHostname;
-                    }
-
-                    @Override
-                    public int getIndexOfSubtask() {
-                        return subtaskIndex;
-                    }
-
-                    @Override
-                    public void sendSplitRequest() {
-                        operatorEventGateway.sendEventToCoordinator(
-                                new RequestSplitEvent(getLocalHostName()));
-                    }
-
-                    @Override
-                    public void sendSourceEventToCoordinator(SourceEvent event) {
-                        operatorEventGateway.sendEventToCoordinator(new SourceEventWrapper(event));
-                    }
-
-                    @Override
-                    public UserCodeClassLoader getUserCodeClassLoader() {
-                        return new UserCodeClassLoader() {
-                            @Override
-                            public ClassLoader asClassLoader() {
-                                return getRuntimeContext().getUserCodeClassLoader();
-                            }
-
-                            @Override
-                            public void registerReleaseHookIfAbsent(
-                                    String releaseHookName, Runnable releaseHook) {
-                                getRuntimeContext()
-                                        .registerUserCodeClassLoaderReleaseHookIfAbsent(
-                                                releaseHookName, releaseHook);
-                            }
-                        };
+                    public void registerReleaseHookIfAbsent(String releaseHookName, Runnable releaseHook) {
+                        getRuntimeContext().registerUserCodeClassLoaderReleaseHookIfAbsent(releaseHookName,
+                                releaseHook
+                        );
                     }
                 };
+            }
+        };
 
         sourceReader = readerFactory.apply(context);
     }
@@ -270,16 +260,13 @@ public class SourceOperator<OUT, SplitT extends SourceSplit> extends AbstractStr
         // in the future when we this one is migrated to the "eager initialization" operator
         // (StreamOperatorV2), then we should evaluate this during operator construction.
         if (emitProgressiveWatermarks) {
-            eventTimeLogic =
-                    TimestampsAndWatermarks.createProgressiveEventTimeLogic(
-                            watermarkStrategy,
-                            sourceMetricGroup,
-                            getProcessingTimeService(),
-                            getExecutionConfig().getAutoWatermarkInterval());
+            eventTimeLogic = TimestampsAndWatermarks.createProgressiveEventTimeLogic(watermarkStrategy,
+                    sourceMetricGroup,
+                    getProcessingTimeService(),
+                    getExecutionConfig().getAutoWatermarkInterval()
+            );
         } else {
-            eventTimeLogic =
-                    TimestampsAndWatermarks.createNoOpEventTimeLogic(
-                            watermarkStrategy, sourceMetricGroup);
+            eventTimeLogic = TimestampsAndWatermarks.createNoOpEventTimeLogic(watermarkStrategy, sourceMetricGroup);
         }
 
         // restore the state if necessary.
@@ -332,8 +319,7 @@ public class SourceOperator<OUT, SplitT extends SourceSplit> extends AbstractStr
         // guarding an assumptions we currently make due to the fact that certain classes
         // assume a constant output, this assumption does not need to stand if we emitted all
         // records. In that case the output will change to FinishedDataOutput
-        assert lastInvokedOutput == output
-                || lastInvokedOutput == null
+        assert lastInvokedOutput == output || lastInvokedOutput == null
                 || this.operatingMode == OperatingMode.DATA_FINISHED;
 
         // short circuit the hot path. Without this short circuit (READING handled in the
@@ -384,6 +370,11 @@ public class SourceOperator<OUT, SplitT extends SourceSplit> extends AbstractStr
     public void snapshotState(StateSnapshotContext context) throws Exception {
         long checkpointId = context.getCheckpointId();
         LOG.debug("Taking a snapshot for checkpoint {}", checkpointId);
+
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释：
+         */
         readerState.update(sourceReader.snapshotState(checkpointId));
     }
 
@@ -404,8 +395,7 @@ public class SourceOperator<OUT, SplitT extends SourceSplit> extends AbstractStr
     @Override
     public void initializeState(StateInitializationContext context) throws Exception {
         super.initializeState(context);
-        final ListState<byte[]> rawState =
-                context.getOperatorStateStore().getListState(SPLITS_STATE_DESC);
+        final ListState<byte[]> rawState = context.getOperatorStateStore().getListState(SPLITS_STATE_DESC);
         readerState = new SimpleVersionedListState<>(rawState, splitSerializer);
     }
 
@@ -439,9 +429,9 @@ public class SourceOperator<OUT, SplitT extends SourceSplit> extends AbstractStr
     }
 
     private void registerReader() {
-        operatorEventGateway.sendEventToCoordinator(
-                new ReaderRegistrationEvent(
-                        getRuntimeContext().getIndexOfThisSubtask(), localHostname));
+        operatorEventGateway.sendEventToCoordinator(new ReaderRegistrationEvent(getRuntimeContext().getIndexOfThisSubtask(),
+                localHostname
+        ));
     }
 
     // --------------- methods for unit tests ------------
@@ -468,8 +458,7 @@ public class SourceOperator<OUT, SplitT extends SourceSplit> extends AbstractStr
                 return currentCombinedFuture;
             } else {
                 currentReaderFuture = sourceReaderFuture;
-                currentCombinedFuture =
-                        CompletableFuture.anyOf(forcedStopFuture, sourceReaderFuture);
+                currentCombinedFuture = CompletableFuture.anyOf(forcedStopFuture, sourceReaderFuture);
                 return currentCombinedFuture;
             }
         }

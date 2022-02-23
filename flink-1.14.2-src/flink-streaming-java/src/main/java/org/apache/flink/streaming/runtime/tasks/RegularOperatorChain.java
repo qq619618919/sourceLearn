@@ -99,9 +99,21 @@ public class RegularOperatorChain<OUT, OP extends StreamOperator<OUT>> extends O
 
     @Override
     public void initializeStateAndOpenOperators(StreamTaskStateInitializer streamTaskStateInitializer) throws Exception {
+
+        // TODO_MA 马中华 注释：
         for (StreamOperatorWrapper<?, ?> operatorWrapper : getAllOperators(true)) {
             StreamOperator<?> operator = operatorWrapper.getStreamOperator();
+
+            /*************************************************
+             * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+             *  注释：
+             */
             operator.initializeState(streamTaskStateInitializer);
+
+            /*************************************************
+             * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+             *  注释：
+             */
             operator.open();
         }
     }
@@ -175,7 +187,7 @@ public class RegularOperatorChain<OUT, OP extends StreamOperator<OUT>> extends O
 
         /*************************************************
          * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-         *  注释：
+         *  注释： 遍历每个 Operator
          */
         for (StreamOperatorWrapper<?, ?> operatorWrapper : getAllOperators(true)) {
             if (!operatorWrapper.isClosed()) {

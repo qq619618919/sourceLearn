@@ -110,6 +110,7 @@ public class TaskManagerRunner implements FatalErrorHandler {
 
     private final Configuration configuration;
 
+    // TODO_MA 马中华 注释：
     private final ResourceID resourceId;
 
     private final Time timeout;
@@ -152,7 +153,7 @@ public class TaskManagerRunner implements FatalErrorHandler {
 
         /*************************************************
          * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-         *  注释：
+         *  注释： ZooKeeperHaServices
          */
         highAvailabilityServices = HighAvailabilityServicesUtils.createHighAvailabilityServices(configuration,
                 executor,
@@ -163,24 +164,26 @@ public class TaskManagerRunner implements FatalErrorHandler {
 
         /*************************************************
          * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-         *  注释：
+         *  注释： JMX 服务
          */
         JMXService.startInstance(configuration.getString(JMXServerOptions.JMX_SERVER_PORT));
 
         /*************************************************
          * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-         *  注释：
+         *  注释： 3 = RPC 服务
          */
         rpcService = createRpcService(configuration, highAvailabilityServices, rpcSystem);
 
+        // TODO_MA 马中华 注释： 给 TaskExecutor 生成一个 ResourceID
         this.resourceId = getTaskManagerResourceID(configuration, rpcService.getAddress(), rpcService.getPort());
 
         /*************************************************
          * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-         *  注释：
+         *  注释： 4= HeartBeat 服务
          */
         HeartbeatServices heartbeatServices = HeartbeatServices.fromConfiguration(configuration);
 
+        // TODO_MA 马中华 注释： 5 = metric 性能监控服务
         metricRegistry = new MetricRegistryImpl(MetricRegistryConfiguration.fromConfiguration(configuration,
                 rpcSystem.getMaximumMessageSizeInBytes(configuration)
         ), ReporterSetup.fromConfiguration(configuration, pluginManager));
@@ -193,7 +196,7 @@ public class TaskManagerRunner implements FatalErrorHandler {
 
         /*************************************************
          * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-         *  注释：
+         *  注释： 6 = BlobCache 文件服务
          */
         blobCacheService = new BlobCacheService(configuration, highAvailabilityServices.createBlobStore(), null);
 
@@ -204,7 +207,7 @@ public class TaskManagerRunner implements FatalErrorHandler {
 
         /*************************************************
          * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-         *  注释：
+         *  注释： 重点： 创建 TaskExecutorService
          */
         taskExecutorService = taskExecutorServiceFactory.createTaskExecutor(this.configuration,
                 this.resourceId,
@@ -241,6 +244,11 @@ public class TaskManagerRunner implements FatalErrorHandler {
     // --------------------------------------------------------------------------------------------
 
     public void start() throws Exception {
+
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释：
+         */
         taskExecutorService.start();
     }
 
@@ -388,31 +396,63 @@ public class TaskManagerRunner implements FatalErrorHandler {
     }
 
     public static Configuration loadConfiguration(String[] args) throws FlinkParseException {
+
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释：
+         */
         return ConfigurationParserUtils.loadCommonConfiguration(args, TaskManagerRunner.class.getSimpleName());
     }
 
+    /*************************************************
+     * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+     *  注释： 里面两个重要工作：
+     *  1、 创建 TaskExecutorService
+     *  2、 启动 TaskExecutorService
+     *  -
+     *  创建和启动 TaskManagerRunner， 但是里面，其实是创建和启动 TaskExecutorService
+     *  其实最本质的事情： 创建和启动 TaskExecutor
+     *  1、TaskManagerRunner 逻辑上的从节点的概念，代表了从节点上的一切
+     *  2、TaskExecutor 从节点上，最为重要的一个工作组件： 管理slot 和 接收 task执行
+     *  3、TaskExecutorService(=TaskManagerServices) 这个东东西是对 TaskExecutor 的包装，其实内部除了 TaskExecutor 之外
+     *  还有两个重要的组件： TaskManagerServices(从节点上的各种基础服务)   Configurationd
+     *  -
+     *  所有的重点，都可以总结为两句话：
+     *  1、new TaskExecutor()
+     *  2、TaskExecutor.onStart()
+     *  -
+     *  JobMaster = JobManager，  TaskExecutorService = TaskManagerServices
+     *  称呼： JobManager， TaskManager， 实际的实现类： JobMaster，  TaskExecutor
+     *  jobMaster = crateJobManager()
+     *  TaskManagerServices = createTaskExecutorService()
+     */
     public static int runTaskManager(Configuration configuration, PluginManager pluginManager) throws Exception {
         final TaskManagerRunner taskManagerRunner;
 
         try {
             /*************************************************
              * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-             *  注释：
+             *  注释： 第一步： 创建 11 TaskExecutorService
              */
             taskManagerRunner = new TaskManagerRunner(configuration, pluginManager,
 
                     /*************************************************
                      * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-                     *  注释：
+                     *  注释： 创建了一个 22 TaskExecutorToServiceAdapter
                      */
                     TaskManagerRunner::createTaskExecutorService
+                    // TODO_MA 马中华 注释： 33 其实内部要创建 TaskExecutor
             );
 
             /*************************************************
              * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-             *  注释：
+             *  注释： 启动 TaskExecutorService
              */
             taskManagerRunner.start();
+            // TODO_MA 马中华 注释： 1 = taskManagerRunner.start();
+            // TODO_MA 马中华 注释： 2 = taskExecutorService.start()
+            // TODO_MA 马中华 注释： 3 = TaskExecutor.start()
+
         } catch (Exception exception) {
             throw new FlinkException("Failed to start the TaskManagerRunner.", exception);
         }
@@ -432,7 +472,7 @@ public class TaskManagerRunner implements FatalErrorHandler {
         try {
             /*************************************************
              * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-             *  注释：
+             *  注释： 1、加载配置： 解析 flink-conf.yaml
              */
             configuration = loadConfiguration(args);
         } catch (FlinkParseException fpe) {
@@ -442,7 +482,7 @@ public class TaskManagerRunner implements FatalErrorHandler {
 
         /*************************************************
          * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-         *  注释：
+         *  注释： 2、启动 TaskManager
          */
         runTaskManagerProcessSecurely(checkNotNull(configuration));
     }
@@ -462,11 +502,13 @@ public class TaskManagerRunner implements FatalErrorHandler {
         try {
             SecurityUtils.install(new SecurityConfiguration(configuration));
 
-            exitCode = SecurityUtils.getInstalledContext()
+            exitCode = SecurityUtils.getInstalledContext().runSecured(() ->
+
                     /*************************************************
                      * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-                     *  注释：
-                     */.runSecured(() -> runTaskManager(configuration, pluginManager));
+                     *  注释： 这个方法的唯一重点：  继续启动 TaskManager
+                     */
+                    runTaskManager(configuration, pluginManager));
         } catch (Throwable t) {
             throwable = ExceptionUtils.stripException(t, UndeclaredThrowableException.class);
             exitCode = FAILURE_EXIT_CODE;
@@ -498,7 +540,9 @@ public class TaskManagerRunner implements FatalErrorHandler {
 
         /*************************************************
          * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-         *  注释：
+         *  注释： 创建 TaskExecutor
+         *  1、TaskManager 逻辑从节点
+         *  2、TaskExecutor 物理从节点
          */
         final TaskExecutor taskExecutor = startTaskManager(configuration,
                 resourceID,
@@ -514,11 +558,17 @@ public class TaskManagerRunner implements FatalErrorHandler {
 
         /*************************************************
          * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-         *  注释：
+         *  注释： 开启 TaskExecutor 的生命周期
          */
         return TaskExecutorToServiceAdapter.createFor(taskExecutor);
     }
 
+    /*************************************************
+     * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+     *  注释： 这个方法的作用，就干两件事：
+     *  1、 创建 TaskManagerServices
+     *  2、 创建 TaskExecutor
+     */
     public static TaskExecutor startTaskManager(Configuration configuration,
                                                 ResourceID resourceID,
                                                 RpcService rpcService,
@@ -539,9 +589,11 @@ public class TaskManagerRunner implements FatalErrorHandler {
 
         String externalAddress = rpcService.getAddress();
 
+        // TODO_MA 马中华 注释： 资源配置
         final TaskExecutorResourceSpec taskExecutorResourceSpec = TaskExecutorResourceUtils.resourceSpecFromConfig(
                 configuration);
 
+        // TODO_MA 马中华 注释： 配置信息
         TaskManagerServicesConfiguration taskManagerServicesConfiguration = TaskManagerServicesConfiguration.fromConfiguration(
                 configuration,
                 resourceID,
@@ -557,13 +609,18 @@ public class TaskManagerRunner implements FatalErrorHandler {
                 taskManagerServicesConfiguration.getSystemResourceMetricsProbingInterval()
         );
 
+        // TODO_MA 马中华 注释： IO 线程池
         final ExecutorService ioExecutor = Executors.newFixedThreadPool(taskManagerServicesConfiguration.getNumIoThreads(),
                 new ExecutorThreadFactory("flink-taskexecutor-io")
         );
 
         /*************************************************
          * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-         *  注释：
+         *  注释： 第一个重点： TaskExecutor 中的各种基础服务
+         *  把从节点的所有相关的东西分为三个部分：
+         *  1、基础公共服务 （rpc,心跳,ha服务,）
+         *  2、核心服务 TaskManagerServices （IO服务，shuffle服务，内存管理，....）
+         *  3、TaskExecutor  （真正干活的）
          */
         TaskManagerServices taskManagerServices = TaskManagerServices.fromConfiguration(taskManagerServicesConfiguration,
                 blobCacheService.getPermanentBlobService(),
@@ -577,6 +634,7 @@ public class TaskManagerRunner implements FatalErrorHandler {
                 taskManagerServices::getManagedMemorySize
         );
 
+        // TODO_MA 马中华 注释： TaskManager 各种配置
         TaskManagerConfiguration taskManagerConfiguration = TaskManagerConfiguration.fromConfiguration(configuration,
                 taskExecutorResourceSpec,
                 externalAddress
@@ -586,7 +644,7 @@ public class TaskManagerRunner implements FatalErrorHandler {
 
         /*************************************************
          * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-         *  注释：
+         *  注释： 第二个重点： 创建 TaskExecutor
          */
         return new TaskExecutor(rpcService,
                 taskManagerConfiguration,
@@ -600,6 +658,8 @@ public class TaskManagerRunner implements FatalErrorHandler {
                 fatalErrorHandler,
                 new TaskExecutorPartitionTrackerImpl(taskManagerServices.getShuffleEnvironment())
         );
+
+        // TODO_MA 马中华 注释： 接下来就是 TaskExecutor 启动
     }
 
     /**
@@ -668,6 +728,10 @@ public class TaskManagerRunner implements FatalErrorHandler {
 
     @VisibleForTesting
     static ResourceID getTaskManagerResourceID(Configuration config, String rpcAddress, int rpcPort) throws Exception {
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释：
+         */
         return new ResourceID(config.getString(TaskManagerOptions.TASK_MANAGER_RESOURCE_ID,
                 StringUtils.isNullOrWhitespaceOnly(rpcAddress) ?
                         InetAddress.getLocalHost().getHostName() + "-" + new AbstractID().toString().substring(0, 6) :

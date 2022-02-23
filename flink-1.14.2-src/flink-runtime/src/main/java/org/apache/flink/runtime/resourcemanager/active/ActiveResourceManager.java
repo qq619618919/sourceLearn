@@ -126,8 +126,7 @@ public class ActiveResourceManager<WorkerType extends ResourceIDRetrievable> ext
                 fatalErrorHandler,
                 resourceManagerMetricGroup,
                 Time.fromDuration(Preconditions.checkNotNull(flinkConfig).get(AkkaOptions.ASK_TIMEOUT_DURATION)),
-                ioExecutor
-        );
+                ioExecutor);
 
         this.flinkConfig = flinkConfig;
         this.resourceManagerDriver = resourceManagerDriver;
@@ -148,6 +147,10 @@ public class ActiveResourceManager<WorkerType extends ResourceIDRetrievable> ext
     @Override
     protected void initialize() throws ResourceManagerException {
         try {
+            /*************************************************
+             * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+             *  注释：
+             */
             resourceManagerDriver.initialize(this, new GatewayMainThreadExecutor(), ioExecutor);
         } catch (Exception e) {
             throw new ResourceManagerException("Cannot initialize resource provider.", e);
@@ -203,8 +206,7 @@ public class ActiveResourceManager<WorkerType extends ResourceIDRetrievable> ext
                             + " Current pending count after registering: {}.",
                     resourceId.getStringWithMetadata(),
                     workerResourceSpec,
-                    count
-            );
+                    count);
         }
     }
 
@@ -226,7 +228,13 @@ public class ActiveResourceManager<WorkerType extends ResourceIDRetrievable> ext
             final ResourceID resourceId = worker.getResourceID();
             workerNodeMap.put(resourceId, worker);
             previousAttemptUnregisteredWorkers.add(resourceId);
+
+            /*************************************************
+             * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+             *  注释：
+             */
             scheduleWorkerRegistrationTimeoutCheck(resourceId);
+
             log.info("Worker {} recovered from previous attempt.", resourceId.getStringWithMetadata());
         }
     }
@@ -256,14 +264,12 @@ public class ActiveResourceManager<WorkerType extends ResourceIDRetrievable> ext
     private void requestNewWorker(WorkerResourceSpec workerResourceSpec) {
         final TaskExecutorProcessSpec taskExecutorProcessSpec = TaskExecutorProcessUtils.processSpecFromWorkerResourceSpec(
                 flinkConfig,
-                workerResourceSpec
-        );
+                workerResourceSpec);
         final int pendingCount = pendingWorkerCounter.increaseAndGet(workerResourceSpec);
 
         log.info("Requesting new worker with resource spec {}, current pending count: {}.",
                 workerResourceSpec,
-                pendingCount
-        );
+                pendingCount);
 
         // In case of start worker failures, we should wait for an interval before
         // trying to start new workers.
@@ -277,8 +283,7 @@ public class ActiveResourceManager<WorkerType extends ResourceIDRetrievable> ext
                 log.warn("Failed requesting worker with resource spec {}, current pending count: {}",
                         workerResourceSpec,
                         count,
-                        exception
-                );
+                        exception);
                 recordWorkerFailureAndPauseWorkerCreationIfNeeded();
                 requestWorkerIfRequired();
             } else {
@@ -288,8 +293,7 @@ public class ActiveResourceManager<WorkerType extends ResourceIDRetrievable> ext
                 scheduleWorkerRegistrationTimeoutCheck(resourceId);
                 log.info("Requested worker {} with resource spec {}.",
                         resourceId.getStringWithMetadata(),
-                        workerResourceSpec
-                );
+                        workerResourceSpec);
             }
             return null;
         }));
@@ -301,8 +305,7 @@ public class ActiveResourceManager<WorkerType extends ResourceIDRetrievable> ext
                     || previousAttemptUnregisteredWorkers.contains(resourceId)) {
                 log.warn("Worker {} did not register in {}, will stop it and request a new one if needed.",
                         resourceId,
-                        workerRegistrationTimeout
-                );
+                        workerRegistrationTimeout);
                 internalStopWorker(resourceId);
                 requestWorkerIfRequired();
             }
@@ -343,8 +346,7 @@ public class ActiveResourceManager<WorkerType extends ResourceIDRetrievable> ext
                             + " Current pending count after removing: {}.",
                     resourceId.getStringWithMetadata(),
                     workerResourceSpec,
-                    count
-            );
+                    count);
         }
         return true;
     }

@@ -31,6 +31,7 @@ public interface CustomCommandLine {
      * Signals whether the custom command-line wants to execute or not.
      *
      * @param commandLine The command-line options
+     *
      * @return True if the command-line wants to run, False otherwise
      */
     boolean isActive(CommandLine commandLine);
@@ -62,8 +63,7 @@ public interface CustomCommandLine {
      */
     Configuration toConfiguration(CommandLine commandLine) throws FlinkException;
 
-    default CommandLine parseCommandLineOptions(String[] args, boolean stopAtNonOptions)
-            throws CliArgsException {
+    default CommandLine parseCommandLineOptions(String[] args, boolean stopAtNonOptions) throws CliArgsException {
         final Options options = new Options();
         addGeneralOptions(options);
         addRunOptions(options);

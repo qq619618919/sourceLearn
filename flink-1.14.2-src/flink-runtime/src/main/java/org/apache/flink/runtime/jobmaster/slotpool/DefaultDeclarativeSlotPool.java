@@ -108,7 +108,6 @@ public class DefaultDeclarativeSlotPool implements DeclarativeSlotPool {
                                       Consumer<? super Collection<ResourceRequirement>> notifyNewResourceRequirements,
                                       Time idleSlotTimeout,
                                       Time rpcTimeout) {
-
         this.jobId = jobId;
         this.slotPool = slotPool;
         this.notifyNewResourceRequirements = notifyNewResourceRequirements;
@@ -124,8 +123,14 @@ public class DefaultDeclarativeSlotPool implements DeclarativeSlotPool {
         if (increment.isEmpty()) {
             return;
         }
+
+        // TODO_MA 马中华 注释： 资源需求集合, 请求次数 +1
         totalResourceRequirements = totalResourceRequirements.add(increment);
 
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释： 开始声明式申请资源
+         */
         declareResourceRequirements();
     }
 
@@ -142,21 +147,26 @@ public class DefaultDeclarativeSlotPool implements DeclarativeSlotPool {
     @Override
     public void setResourceRequirements(ResourceCounter resourceRequirements) {
         totalResourceRequirements = resourceRequirements;
-
         declareResourceRequirements();
     }
 
     private void declareResourceRequirements() {
+
+        // TODO_MA 马中华 注释： 获取资源申请需求总量
         final Collection<ResourceRequirement> resourceRequirements = getResourceRequirements();
 
-        LOG.debug("Declare new resource requirements for job {}.{}\trequired resources: {}{}\tacquired resources: {}",
-                jobId,
-                System.lineSeparator(),
-                resourceRequirements,
-                System.lineSeparator(),
-                fulfilledResourceRequirements
-        );
+        LOG.debug("Declare new resource requirements for job {}.{}\trequired resources: {}{}\tacquired resources: {}", jobId,
+                System.lineSeparator(), resourceRequirements, System.lineSeparator(), fulfilledResourceRequirements);
+
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释： 核心入口
+         *  此时这个地方，就是触发 JobMaster 开始发送RPC 请求给 ResourceManager 满足资源申请需求
+         */
         notifyNewResourceRequirements.accept(resourceRequirements);
+
+        // TODO_MA 马中华 注释： 接下来 notifyNewResourceRequirements 到底是谁，搞不清楚！
+        // TODO_MA 马中华 注释： 还有一个情况跟这个情况： 集合的put  线程的start
     }
 
     @Override
@@ -164,9 +174,8 @@ public class DefaultDeclarativeSlotPool implements DeclarativeSlotPool {
         final Collection<ResourceRequirement> currentResourceRequirements = new ArrayList<>();
 
         for (Map.Entry<ResourceProfile, Integer> resourceRequirement : totalResourceRequirements.getResourcesWithCount()) {
-            currentResourceRequirements.add(ResourceRequirement.create(resourceRequirement.getKey(),
-                    resourceRequirement.getValue()
-            ));
+            currentResourceRequirements.add(
+                    ResourceRequirement.create(resourceRequirement.getKey(), resourceRequirement.getValue()));
         }
 
         return currentResourceRequirements;
@@ -184,19 +193,23 @@ public class DefaultDeclarativeSlotPool implements DeclarativeSlotPool {
 
         /*************************************************
          * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-         *  注释：
+         *  注释： 遍历申请到的每个 slot
          */
         for (SlotOffer offer : offers) {
+
+            // TODO_MA 马中华 注释： 如果这个 slot 已经登记过了
             if (slotPool.containsSlot(offer.getAllocationId())) {
                 // we have already accepted this offer
                 acceptedSlotOffers.add(offer);
             } else {
-                Optional<AllocatedSlot> acceptedSlot = matchOfferWithOutstandingRequirements(offer,
-                        taskManagerLocation,
-                        taskManagerGateway
-                );
+                // TODO_MA 马中华 注释： 接受一个全新的申请到的 slot
+                Optional<AllocatedSlot> acceptedSlot = matchOfferWithOutstandingRequirements(offer, taskManagerLocation,
+                        taskManagerGateway);
                 if (acceptedSlot.isPresent()) {
+
+                    // TODO_MA 马中华 注释： 加入到这个集合中
                     acceptedSlotOffers.add(offer);
+
                     acceptedSlots.add(acceptedSlot.get());
                 } else {
                     LOG.debug("Could not match offer {} to any outstanding requirement.", offer.getAllocationId());
@@ -206,16 +219,16 @@ public class DefaultDeclarativeSlotPool implements DeclarativeSlotPool {
 
         /*************************************************
          * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-         *  注释：
+         *  注释： 将申请到的 slot 加入到 slotpool 中进行管理
          */
         slotPool.addSlots(acceptedSlots, currentTime);
 
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释： 既然申请到了 slot，得通知业务方/发起方
+         */
         if (!acceptedSlots.isEmpty()) {
             LOG.debug("Acquired new resources; new total acquired resources: {}", fulfilledResourceRequirements);
-            /*************************************************
-             * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-             *  注释：
-             */
             newSlotsListener.notifyNewSlotsAreAvailable(acceptedSlots);
         }
 
@@ -226,10 +239,8 @@ public class DefaultDeclarativeSlotPool implements DeclarativeSlotPool {
                                                                           TaskManagerLocation taskManagerLocation,
                                                                           TaskManagerGateway taskManagerGateway) {
 
-        final Optional<ResourceProfile> match = requirementMatcher.match(slotOffer.getResourceProfile(),
-                totalResourceRequirements,
-                fulfilledResourceRequirements::getResourceCount
-        );
+        final Optional<ResourceProfile> match = requirementMatcher.match(slotOffer.getResourceProfile(), totalResourceRequirements,
+                fulfilledResourceRequirements::getResourceCount);
 
         if (match.isPresent()) {
             final ResourceProfile matchedRequirement = match.get();
@@ -256,12 +267,8 @@ public class DefaultDeclarativeSlotPool implements DeclarativeSlotPool {
     private AllocatedSlot createAllocatedSlot(SlotOffer slotOffer,
                                               TaskManagerLocation taskManagerLocation,
                                               TaskManagerGateway taskManagerGateway) {
-        return new AllocatedSlot(slotOffer.getAllocationId(),
-                taskManagerLocation,
-                slotOffer.getSlotIndex(),
-                slotOffer.getResourceProfile(),
-                taskManagerGateway
-        );
+        return new AllocatedSlot(slotOffer.getAllocationId(), taskManagerLocation, slotOffer.getSlotIndex(),
+                slotOffer.getResourceProfile(), taskManagerGateway);
     }
 
     private void increaseAvailableResources(ResourceCounter acceptedResources) {
@@ -271,24 +278,25 @@ public class DefaultDeclarativeSlotPool implements DeclarativeSlotPool {
     @Nonnull
     private ResourceProfile getMatchingResourceProfile(AllocationID allocationId) {
         return Preconditions.checkNotNull(slotToRequirementProfileMappings.get(allocationId),
-                "No matching resource profile found for %s",
-                allocationId
-        );
+                "No matching resource profile found for %s", allocationId);
     }
 
     @Override
-    public PhysicalSlot reserveFreeSlot(AllocationID allocationId, ResourceProfile requiredSlotProfile) {
+    public PhysicalSlot reserveFreeSlot(AllocationID allocationId,
+                                        ResourceProfile requiredSlotProfile) {
+
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释：
+         */
         final AllocatedSlot allocatedSlot = slotPool.reserveFreeSlot(allocationId);
 
         Preconditions.checkState(allocatedSlot.getResourceProfile().isMatching(requiredSlotProfile),
-                "Slot {} cannot fulfill the given requirement. SlotProfile={} Requirement={}",
-                allocationId,
-                allocatedSlot.getResourceProfile(),
-                requiredSlotProfile
-        );
+                "Slot {} cannot fulfill the given requirement. SlotProfile={} Requirement={}", allocationId,
+                allocatedSlot.getResourceProfile(), requiredSlotProfile);
 
-        ResourceProfile previouslyMatchedResourceProfile = Preconditions.checkNotNull(slotToRequirementProfileMappings.get(
-                allocationId));
+        ResourceProfile previouslyMatchedResourceProfile = Preconditions.checkNotNull(
+                slotToRequirementProfileMappings.get(allocationId));
 
         if (!previouslyMatchedResourceProfile.equals(requiredSlotProfile)) {
             // slots can be reserved for a requirement that is not in line with the mapping we
@@ -298,11 +306,13 @@ public class DefaultDeclarativeSlotPool implements DeclarativeSlotPool {
             // be able to fulfill the total requirements
             LOG.debug(
                     "Adjusting requirements because a slot was reserved for a different requirement than initially assumed. Slot={} assumedRequirement={} actualRequirement={}",
-                    allocationId,
-                    previouslyMatchedResourceProfile,
-                    requiredSlotProfile
-            );
+                    allocationId, previouslyMatchedResourceProfile, requiredSlotProfile);
             updateSlotToRequirementProfileMapping(allocationId, requiredSlotProfile);
+
+            /*************************************************
+             * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+             *  注释：
+             */
             adjustRequirements(previouslyMatchedResourceProfile, requiredSlotProfile);
         }
 
@@ -310,13 +320,18 @@ public class DefaultDeclarativeSlotPool implements DeclarativeSlotPool {
     }
 
     @Override
-    public ResourceCounter freeReservedSlot(AllocationID allocationId, @Nullable Throwable cause, long currentTime) {
+    public ResourceCounter freeReservedSlot(AllocationID allocationId,
+                                            @Nullable Throwable cause,
+                                            long currentTime) {
         LOG.debug("Free reserved slot {}.", allocationId);
 
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释：
+         */
         final Optional<AllocatedSlot> freedSlot = slotPool.freeReservedSlot(allocationId, currentTime);
 
-        Optional<ResourceCounter> previouslyFulfilledRequirement = freedSlot
-                .map(Collections::singleton)
+        Optional<ResourceCounter> previouslyFulfilledRequirement = freedSlot.map(Collections::singleton)
                 .map(this::getFulfilledRequirements);
 
         freedSlot.ifPresent(allocatedSlot -> {
@@ -329,16 +344,16 @@ public class DefaultDeclarativeSlotPool implements DeclarativeSlotPool {
 
     private void updateSlotToRequirementProfileMapping(AllocationID allocationId,
                                                        ResourceProfile matchedResourceProfile) {
-        final ResourceProfile oldResourceProfile = Preconditions.checkNotNull(slotToRequirementProfileMappings.put(
-                allocationId,
-                matchedResourceProfile
-        ), "Expected slot profile matching to be non-empty.");
+        final ResourceProfile oldResourceProfile = Preconditions.checkNotNull(
+                slotToRequirementProfileMappings.put(allocationId, matchedResourceProfile),
+                "Expected slot profile matching to be non-empty.");
 
         fulfilledResourceRequirements = fulfilledResourceRequirements.add(matchedResourceProfile, 1);
         fulfilledResourceRequirements = fulfilledResourceRequirements.subtract(oldResourceProfile, 1);
     }
 
-    private void adjustRequirements(ResourceProfile oldResourceProfile, ResourceProfile newResourceProfile) {
+    private void adjustRequirements(ResourceProfile oldResourceProfile,
+                                    ResourceProfile newResourceProfile) {
         // slots can be reserved for a requirement that is not in line with the mapping we computed
         // when the slot was
         // offered, so we have to adjust the requirements accordingly to ensure we still request
@@ -351,13 +366,13 @@ public class DefaultDeclarativeSlotPool implements DeclarativeSlotPool {
     @Override
     public void registerNewSlotsListener(NewSlotsListener newSlotsListener) {
         Preconditions.checkState(this.newSlotsListener == NoOpNewSlotsListener.INSTANCE,
-                "DefaultDeclarativeSlotPool only supports a single slot listener."
-        );
+                "DefaultDeclarativeSlotPool only supports a single slot listener.");
         this.newSlotsListener = newSlotsListener;
     }
 
     @Override
-    public ResourceCounter releaseSlots(ResourceID owner, Exception cause) {
+    public ResourceCounter releaseSlots(ResourceID owner,
+                                        Exception cause) {
         final AllocatedSlotPool.AllocatedSlotsAndReservationStatus removedSlots = slotPool.removeSlots(owner);
 
         final Collection<AllocatedSlot> slotsToFree = new ArrayList<>();
@@ -371,7 +386,8 @@ public class DefaultDeclarativeSlotPool implements DeclarativeSlotPool {
     }
 
     @Override
-    public ResourceCounter releaseSlot(AllocationID allocationId, Exception cause) {
+    public ResourceCounter releaseSlot(AllocationID allocationId,
+                                       Exception cause) {
         final boolean wasSlotFree = slotPool.containsFreeSlot(allocationId);
         final Optional<AllocatedSlot> removedSlot = slotPool.removeSlot(allocationId);
 
@@ -379,10 +395,7 @@ public class DefaultDeclarativeSlotPool implements DeclarativeSlotPool {
             final AllocatedSlot slot = removedSlot.get();
 
             final Collection<AllocatedSlot> slotAsCollection = Collections.singleton(slot);
-            return freeAndReleaseSlots(wasSlotFree ? Collections.emptySet() : slotAsCollection,
-                    slotAsCollection,
-                    cause
-            );
+            return freeAndReleaseSlots(wasSlotFree ? Collections.emptySet() : slotAsCollection, slotAsCollection, cause);
         } else {
             return ResourceCounter.empty();
         }
@@ -400,7 +413,8 @@ public class DefaultDeclarativeSlotPool implements DeclarativeSlotPool {
         return previouslyFulfilledRequirements;
     }
 
-    private void releasePayload(Iterable<? extends AllocatedSlot> allocatedSlots, Throwable cause) {
+    private void releasePayload(Iterable<? extends AllocatedSlot> allocatedSlots,
+                                Throwable cause) {
         for (AllocatedSlot allocatedSlot : allocatedSlots) {
             allocatedSlot.releasePayload(cause);
         }
@@ -408,15 +422,24 @@ public class DefaultDeclarativeSlotPool implements DeclarativeSlotPool {
 
     @Override
     public void releaseIdleSlots(long currentTimeMillis) {
+
+        // TODO_MA 马中华 注释： 获取 Free Slot
         final Collection<AllocatedSlotPool.FreeSlotInfo> freeSlotsInformation = slotPool.getFreeSlotsInformation();
 
         ResourceCounter excessResources = fulfilledResourceRequirements.subtract(totalResourceRequirements);
 
+        // TODO_MA 马中华 注释： 生成一个迭代器
         final Iterator<AllocatedSlotPool.FreeSlotInfo> freeSlotIterator = freeSlotsInformation.iterator();
 
         final Collection<AllocatedSlot> slotsToReturnToOwner = new ArrayList<>();
 
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释： 遍历每一个 Free Slot
+         */
         while (!excessResources.isEmpty() && freeSlotIterator.hasNext()) {
+
+            // TODO_MA 马中华 注释： 获取到一个 FreeSlot
             final AllocatedSlotPool.FreeSlotInfo idleSlot = freeSlotIterator.next();
 
             if (currentTimeMillis >= idleSlot.getFreeSince() + idleSlotTimeout.toMilliseconds()) {
@@ -424,22 +447,34 @@ public class DefaultDeclarativeSlotPool implements DeclarativeSlotPool {
 
                 if (excessResources.containsResource(matchingProfile)) {
                     excessResources = excessResources.subtract(matchingProfile, 1);
-                    final Optional<AllocatedSlot> removedSlot = slotPool.removeSlot(idleSlot.getAllocationId());
 
-                    final AllocatedSlot allocatedSlot = removedSlot.orElseThrow(() -> new IllegalStateException(String.format(
-                            "Could not find slot for allocation id %s.",
-                            idleSlot.getAllocationId()
-                    )));
+                    /*************************************************
+                     * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+                     *  注释： 释放slot
+                     */
+                    final Optional<AllocatedSlot> removedSlot = slotPool.removeSlot(idleSlot.getAllocationId());
+                    final AllocatedSlot allocatedSlot = removedSlot.orElseThrow(() -> new IllegalStateException(
+                            String.format("Could not find slot for allocation id %s.", idleSlot.getAllocationId())));
                     slotsToReturnToOwner.add(allocatedSlot);
                 }
             }
         }
 
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释： 释放 slot
+         */
         releaseSlots(slotsToReturnToOwner, new FlinkException("Returning idle slots to their owners."));
         LOG.debug("Idle slots have been returned; new total acquired resources: {}", fulfilledResourceRequirements);
     }
 
-    private void releaseSlots(Iterable<AllocatedSlot> slotsToReturnToOwner, Throwable cause) {
+    private void releaseSlots(Iterable<AllocatedSlot> slotsToReturnToOwner,
+                              Throwable cause) {
+
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释： 遍历每一个 待释放的 slot
+         */
         for (AllocatedSlot slotToReturn : slotsToReturnToOwner) {
             Preconditions.checkState(!slotToReturn.isUsed(), "Free slot must not be used.");
 
@@ -453,18 +488,18 @@ public class DefaultDeclarativeSlotPool implements DeclarativeSlotPool {
             fulfilledResourceRequirements = fulfilledResourceRequirements.subtract(matchingResourceProfile, 1);
             slotToRequirementProfileMappings.remove(slotToReturn.getAllocationId());
 
-            final CompletableFuture<Acknowledge> freeSlotFuture = slotToReturn
-                    .getTaskManagerGateway()
+            /*************************************************
+             * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+             *  注释： 释放 slot
+             */
+            final CompletableFuture<Acknowledge> freeSlotFuture = slotToReturn.getTaskManagerGateway()
                     .freeSlot(slotToReturn.getAllocationId(), cause, rpcTimeout);
 
             freeSlotFuture.whenComplete((Acknowledge ignored, Throwable throwable) -> {
                 if (throwable != null) {
                     // The slot status will be synced to task manager in next heartbeat.
                     LOG.debug("Releasing slot [{}] of registered TaskExecutor {} failed. Discarding slot.",
-                            slotToReturn.getAllocationId(),
-                            slotToReturn.getTaskManagerId(),
-                            throwable
-                    );
+                            slotToReturn.getAllocationId(), slotToReturn.getTaskManagerId(), throwable);
                 }
             });
         }
@@ -472,10 +507,7 @@ public class DefaultDeclarativeSlotPool implements DeclarativeSlotPool {
 
     @Override
     public Collection<SlotInfoWithUtilization> getFreeSlotsInformation() {
-        return slotPool
-                .getFreeSlotsInformation()
-                .stream()
-                .map(AllocatedSlotPool.FreeSlotInfo::asSlotInfo)
+        return slotPool.getFreeSlotsInformation().stream().map(AllocatedSlotPool.FreeSlotInfo::asSlotInfo)
                 .collect(Collectors.toList());
     }
 

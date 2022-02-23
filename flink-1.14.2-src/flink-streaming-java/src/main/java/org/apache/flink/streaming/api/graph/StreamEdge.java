@@ -41,10 +41,10 @@ public class StreamEdge implements Serializable {
 
     private final String edgeId;
 
-    // TODO_MA 马中华 注释： 上游 StreamNode
+    // TODO_MA 马中华 注释： 上游 StreamNode，  输入
     private final int sourceId;
 
-    // TODO_MA 马中华 注释： 下游 StreamNode
+    // TODO_MA 马中华 注释： 下游 StreamNode，  输出
     private final int targetId;
 
     /** The type number of the input for co-tasks. */
@@ -108,8 +108,11 @@ public class StreamEdge implements Serializable {
                       OutputTag outputTag,
                       StreamExchangeMode exchangeMode) {
 
+        // TODO_MA 马中华 注释： 上游顶点
         this.sourceId = sourceVertex.getId();
+        // TODO_MA 马中华 注释： 下游顶点
         this.targetId = targetVertex.getId();
+
         this.typeNumber = typeNumber;
         this.bufferTimeout = bufferTimeout;
         this.outputPartitioner = outputPartitioner;

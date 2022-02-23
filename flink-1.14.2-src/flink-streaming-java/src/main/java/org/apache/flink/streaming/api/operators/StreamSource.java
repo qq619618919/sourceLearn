@@ -39,8 +39,7 @@ import java.util.concurrent.ScheduledFuture;
  * @param <SRC> Type of the source function of this stream source operator
  */
 @Internal
-public class StreamSource<OUT, SRC extends SourceFunction<OUT>>
-        extends AbstractUdfStreamOperator<OUT, SRC> {
+public class StreamSource<OUT, SRC extends SourceFunction<OUT>> extends AbstractUdfStreamOperator<OUT, SRC> {
 
     private static final long serialVersionUID = 1L;
 
@@ -67,52 +66,55 @@ public class StreamSource<OUT, SRC extends SourceFunction<OUT>>
         return emitProgressiveWatermarks;
     }
 
-    public void run(final Object lockingObject, final OperatorChain<?, ?> operatorChain)
-            throws Exception {
+    public void run(final Object lockingObject, final OperatorChain<?, ?> operatorChain) throws Exception {
 
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释：
+         */
         run(lockingObject, output, operatorChain);
     }
 
-    public void run(
-            final Object lockingObject,
-            final Output<StreamRecord<OUT>> collector,
-            final OperatorChain<?, ?> operatorChain)
-            throws Exception {
+    public void run(final Object lockingObject,
+                    final Output<StreamRecord<OUT>> collector,
+                    final OperatorChain<?, ?> operatorChain) throws Exception {
 
         final TimeCharacteristic timeCharacteristic = getOperatorConfig().getTimeCharacteristic();
 
-        final Configuration configuration =
-                this.getContainingTask().getEnvironment().getTaskManagerInfo().getConfiguration();
-        final long latencyTrackingInterval =
-                getExecutionConfig().isLatencyTrackingConfigured()
-                        ? getExecutionConfig().getLatencyTrackingInterval()
-                        : configuration.getLong(MetricOptions.LATENCY_INTERVAL);
+        final Configuration configuration = this
+                .getContainingTask()
+                .getEnvironment()
+                .getTaskManagerInfo()
+                .getConfiguration();
+        final long latencyTrackingInterval = getExecutionConfig().isLatencyTrackingConfigured() ? getExecutionConfig().getLatencyTrackingInterval() : configuration.getLong(
+                MetricOptions.LATENCY_INTERVAL);
 
         LatencyMarksEmitter<OUT> latencyEmitter = null;
         if (latencyTrackingInterval > 0) {
-            latencyEmitter =
-                    new LatencyMarksEmitter<>(
-                            getProcessingTimeService(),
-                            collector,
-                            latencyTrackingInterval,
-                            this.getOperatorID(),
-                            getRuntimeContext().getIndexOfThisSubtask());
+            latencyEmitter = new LatencyMarksEmitter<>(getProcessingTimeService(),
+                    collector,
+                    latencyTrackingInterval,
+                    this.getOperatorID(),
+                    getRuntimeContext().getIndexOfThisSubtask()
+            );
         }
 
-        final long watermarkInterval =
-                getRuntimeContext().getExecutionConfig().getAutoWatermarkInterval();
+        final long watermarkInterval = getRuntimeContext().getExecutionConfig().getAutoWatermarkInterval();
 
-        this.ctx =
-                StreamSourceContexts.getSourceContext(
-                        timeCharacteristic,
-                        getProcessingTimeService(),
-                        lockingObject,
-                        collector,
-                        watermarkInterval,
-                        -1,
-                        emitProgressiveWatermarks);
+        this.ctx = StreamSourceContexts.getSourceContext(timeCharacteristic,
+                getProcessingTimeService(),
+                lockingObject,
+                collector,
+                watermarkInterval,
+                -1,
+                emitProgressiveWatermarks
+        );
 
         try {
+            /*************************************************
+             * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+             *  注释：
+             */
             userFunction.run(ctx);
         } finally {
             if (latencyEmitter != null) {
@@ -169,37 +171,30 @@ public class StreamSource<OUT, SRC extends SourceFunction<OUT>>
     private static class LatencyMarksEmitter<OUT> {
         private final ScheduledFuture<?> latencyMarkTimer;
 
-        public LatencyMarksEmitter(
-                final ProcessingTimeService processingTimeService,
-                final Output<StreamRecord<OUT>> output,
-                long latencyTrackingInterval,
-                final OperatorID operatorId,
-                final int subtaskIndex) {
+        public LatencyMarksEmitter(final ProcessingTimeService processingTimeService,
+                                   final Output<StreamRecord<OUT>> output,
+                                   long latencyTrackingInterval,
+                                   final OperatorID operatorId,
+                                   final int subtaskIndex) {
 
-            latencyMarkTimer =
-                    processingTimeService.scheduleWithFixedDelay(
-                            new ProcessingTimeCallback() {
-                                @Override
-                                public void onProcessingTime(long timestamp) throws Exception {
-                                    try {
-                                        // ProcessingTimeService callbacks are executed under the
-                                        // checkpointing lock
-                                        output.emitLatencyMarker(
-                                                new LatencyMarker(
-                                                        processingTimeService
-                                                                .getCurrentProcessingTime(),
-                                                        operatorId,
-                                                        subtaskIndex));
-                                    } catch (Throwable t) {
-                                        // we catch the Throwables here so that we don't trigger the
-                                        // processing
-                                        // timer services async exception handler
-                                        LOG.warn("Error while emitting latency marker.", t);
-                                    }
-                                }
-                            },
-                            0L,
-                            latencyTrackingInterval);
+            latencyMarkTimer = processingTimeService.scheduleWithFixedDelay(new ProcessingTimeCallback() {
+                @Override
+                public void onProcessingTime(long timestamp) throws Exception {
+                    try {
+                        // ProcessingTimeService callbacks are executed under the
+                        // checkpointing lock
+                        output.emitLatencyMarker(new LatencyMarker(processingTimeService.getCurrentProcessingTime(),
+                                operatorId,
+                                subtaskIndex
+                        ));
+                    } catch (Throwable t) {
+                        // we catch the Throwables here so that we don't trigger the
+                        // processing
+                        // timer services async exception handler
+                        LOG.warn("Error while emitting latency marker.", t);
+                    }
+                }
+            }, 0L, latencyTrackingInterval);
         }
 
         public void close() {

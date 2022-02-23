@@ -97,11 +97,8 @@ public class PermanentBlobCache extends AbstractBlobCache implements PermanentBl
                               final BlobView blobView,
                               @Nullable final InetSocketAddress serverAddress) throws IOException {
 
-        this(blobClientConfig,
-                blobView,
-                serverAddress,
-                new BlobCacheSizeTracker(MemorySize.ofMebiBytes(DEFAULT_SIZE_LIMIT_MB).getBytes())
-        );
+        this(blobClientConfig, blobView, serverAddress, new BlobCacheSizeTracker(MemorySize.ofMebiBytes(DEFAULT_SIZE_LIMIT_MB)
+                .getBytes()));
     }
 
     @VisibleForTesting
@@ -116,6 +113,11 @@ public class PermanentBlobCache extends AbstractBlobCache implements PermanentBl
         this.cleanupTimer = new Timer(true);
 
         this.cleanupInterval = blobClientConfig.getLong(BlobServerOptions.CLEANUP_INTERVAL) * 1000;
+
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释： 清理 Task
+         */
         this.cleanupTimer.schedule(new PermanentBlobCleanupTask(), cleanupInterval, cleanupInterval);
 
         this.blobCacheSizeTracker = blobCacheSizeTracker;
@@ -161,8 +163,7 @@ public class PermanentBlobCache extends AbstractBlobCache implements PermanentBl
             RefCount ref = jobRefCounters.get(jobId);
 
             if (ref == null || ref.references == 0) {
-                log.warn("improper use of releaseJob() without a matching number of registerJob() calls for jobId "
-                        + jobId);
+                log.warn("improper use of releaseJob() without a matching number of registerJob() calls for jobId " + jobId);
                 return;
             }
 
@@ -204,6 +205,11 @@ public class PermanentBlobCache extends AbstractBlobCache implements PermanentBl
     @Override
     public File getFile(JobID jobId, PermanentBlobKey key) throws IOException {
         checkNotNull(jobId);
+
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释：
+         */
         return getFileInternal(jobId, key);
     }
 
@@ -231,16 +237,18 @@ public class PermanentBlobCache extends AbstractBlobCache implements PermanentBl
         checkNotNull(jobId);
         checkNotNull(blobKey);
 
+        // TODO_MA 马中华 注释： $base/job_$jobId/blob_$key
         final File localFile = BlobUtils.getStorageLocation(storageDir, jobId, blobKey);
-        readWriteLock.readLock().lock();
 
+        readWriteLock.readLock().lock();
         try {
             if (localFile.exists()) {
                 blobCacheSizeTracker.update(jobId, blobKey);
                 return FileUtils.readAllBytes(localFile.toPath());
             }
         } finally {
-            readWriteLock.readLock().unlock();
+            readWriteLock.readLock()
+                    .unlock();
         }
 
         // first try the distributed blob store (if available)
@@ -248,14 +256,20 @@ public class PermanentBlobCache extends AbstractBlobCache implements PermanentBl
         File incomingFile = createTemporaryFilename();
         try {
             try {
+                /*************************************************
+                 * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+                 *  注释：
+                 */
                 if (blobView.get(jobId, blobKey, incomingFile)) {
                     // now move the temp file to our local cache atomically
-                    readWriteLock.writeLock().lock();
+                    readWriteLock.writeLock()
+                            .lock();
                     try {
                         checkLimitAndMoveFile(incomingFile, jobId, blobKey, localFile, log, null);
                         return FileUtils.readAllBytes(localFile.toPath());
                     } finally {
-                        readWriteLock.writeLock().unlock();
+                        readWriteLock.writeLock()
+                                .unlock();
                     }
                 }
             } catch (Exception e) {
@@ -266,20 +280,22 @@ public class PermanentBlobCache extends AbstractBlobCache implements PermanentBl
 
             if (currentServerAddress != null) {
                 // fallback: download from the BlobServer
-                BlobClient.downloadFromBlobServer(jobId,
-                        blobKey,
-                        incomingFile,
-                        currentServerAddress,
-                        blobClientConfig,
-                        numFetchRetries
-                );
 
-                readWriteLock.writeLock().lock();
+                /*************************************************
+                 * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+                 *  注释： 从 BlobServer 下载文件
+                 */
+                BlobClient.downloadFromBlobServer(jobId, blobKey, incomingFile, currentServerAddress, blobClientConfig,
+                        numFetchRetries);
+
+                readWriteLock.writeLock()
+                        .lock();
                 try {
                     checkLimitAndMoveFile(incomingFile, jobId, blobKey, localFile, log, null);
                     return FileUtils.readAllBytes(localFile.toPath());
                 } finally {
-                    readWriteLock.writeLock().unlock();
+                    readWriteLock.writeLock()
+                            .unlock();
                 }
             } else {
                 throw new IOException("Cannot download from BlobServer, because the server address is unknown.");
@@ -288,11 +304,7 @@ public class PermanentBlobCache extends AbstractBlobCache implements PermanentBl
         } finally {
             // delete incomingFile from a failed download
             if (!incomingFile.delete() && incomingFile.exists()) {
-                log.warn("Could not delete the staging file {} for blob key {} and job {}.",
-                        incomingFile,
-                        blobKey,
-                        jobId
-                );
+                log.warn("Could not delete the staging file {} for blob key {} and job {}.", incomingFile, blobKey, jobId);
             }
         }
     }
@@ -325,7 +337,8 @@ public class PermanentBlobCache extends AbstractBlobCache implements PermanentBl
      * @param jobId ID of the job this blob belongs to (or <tt>null</tt> if job-unrelated)
      * @param blobKey The key of the desired BLOB.
      */
-    private boolean deleteFile(JobID jobId, BlobKey blobKey) {
+    private boolean deleteFile(JobID jobId,
+                               BlobKey blobKey) {
         final File localFile = new File(BlobUtils.getStorageLocationPath(storageDir.getAbsolutePath(), jobId, blobKey));
         if (!localFile.delete() && localFile.exists()) {
             log.warn("Failed to delete locally cached BLOB {} at {}", blobKey, localFile.getAbsolutePath());
@@ -345,7 +358,8 @@ public class PermanentBlobCache extends AbstractBlobCache implements PermanentBl
      * @throws IOException if creating the directory fails
      */
     @VisibleForTesting
-    public File getStorageLocation(JobID jobId, BlobKey key) throws IOException {
+    public File getStorageLocation(JobID jobId,
+                                   BlobKey key) throws IOException {
         checkNotNull(jobId);
         return BlobUtils.getStorageLocation(storageDir, jobId, key);
     }
@@ -369,7 +383,8 @@ public class PermanentBlobCache extends AbstractBlobCache implements PermanentBl
         @Override
         public void run() {
             synchronized (jobRefCounters) {
-                Iterator<Map.Entry<JobID, RefCount>> entryIter = jobRefCounters.entrySet().iterator();
+                Iterator<Map.Entry<JobID, RefCount>> entryIter = jobRefCounters.entrySet()
+                        .iterator();
                 final long currentTimeMillis = System.currentTimeMillis();
 
                 while (entryIter.hasNext()) {
@@ -379,16 +394,15 @@ public class PermanentBlobCache extends AbstractBlobCache implements PermanentBl
                     if (ref.references <= 0 && ref.keepUntil > 0 && currentTimeMillis >= ref.keepUntil) {
                         JobID jobId = entry.getKey();
 
-                        final File localFile = new File(BlobUtils.getStorageLocationPath(storageDir.getAbsolutePath(),
-                                jobId
-                        ));
+                        final File localFile = new File(BlobUtils.getStorageLocationPath(storageDir.getAbsolutePath(), jobId));
 
                         /*
                          * NOTE: normally it is not required to acquire the write lock to delete the job's
                          *       storage directory since there should be no one accessing it with the ref
                          *       counter being 0 - acquire it just in case, to always be on the safe side
                          */
-                        readWriteLock.writeLock().lock();
+                        readWriteLock.writeLock()
+                                .lock();
 
                         boolean success = false;
                         try {
@@ -398,7 +412,8 @@ public class PermanentBlobCache extends AbstractBlobCache implements PermanentBl
                         } catch (Throwable t) {
                             log.warn("Failed to locally delete job directory " + localFile.getAbsolutePath(), t);
                         } finally {
-                            readWriteLock.writeLock().unlock();
+                            readWriteLock.writeLock()
+                                    .unlock();
                         }
 
                         // let's only remove this directory from cleanup if the cleanup was

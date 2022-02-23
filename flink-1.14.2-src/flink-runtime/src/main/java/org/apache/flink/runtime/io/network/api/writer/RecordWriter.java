@@ -100,8 +100,16 @@ public abstract class RecordWriter<T extends IOReadableWritable> implements Avai
     protected void emit(T record, int targetSubpartition) throws IOException {
         checkErroneous();
 
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释：
+         */
         targetPartition.emitRecord(serializeRecord(serializer, record), targetSubpartition);
 
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释：
+         */
         if (flushAlways) {
             targetPartition.flush(targetSubpartition);
         }

@@ -124,7 +124,8 @@ public interface DeclarativeSlotPool {
      * @throws IllegalStateException if no free slot with the given allocationId exists or if the
      *         specified slot cannot fulfill the requiredSlotProfile
      */
-    PhysicalSlot reserveFreeSlot(AllocationID allocationId, ResourceProfile requiredSlotProfile);
+    PhysicalSlot reserveFreeSlot(AllocationID allocationId,
+                                 ResourceProfile requiredSlotProfile);
 
     /**
      * Frees the reserved slot identified by the given allocationId. If no slot with allocationId
@@ -138,7 +139,9 @@ public interface DeclarativeSlotPool {
      *
      * @return the resource requirements that the slot was fulfilling
      */
-    ResourceCounter freeReservedSlot(AllocationID allocationId, @Nullable Throwable cause, long currentTime);
+    ResourceCounter freeReservedSlot(AllocationID allocationId,
+                                     @Nullable Throwable cause,
+                                     long currentTime);
 
     /**
      * Releases all slots belonging to the owning TaskExecutor if it has been registered.
@@ -149,7 +152,8 @@ public interface DeclarativeSlotPool {
      * @return the resource requirements that all slots were fulfilling; empty if all slots were
      *         currently free
      */
-    ResourceCounter releaseSlots(ResourceID owner, Exception cause);
+    ResourceCounter releaseSlots(ResourceID owner,
+                                 Exception cause);
 
     /**
      * Releases the slot specified by allocationId if one exists.
@@ -160,7 +164,8 @@ public interface DeclarativeSlotPool {
      * @return the resource requirements that the slot was fulfilling; empty if the slot was
      *         currently free
      */
-    ResourceCounter releaseSlot(AllocationID allocationId, Exception cause);
+    ResourceCounter releaseSlot(AllocationID allocationId,
+                                Exception cause);
 
     /**
      * Returns whether the slot pool has a slot registered which is owned by the given TaskExecutor.

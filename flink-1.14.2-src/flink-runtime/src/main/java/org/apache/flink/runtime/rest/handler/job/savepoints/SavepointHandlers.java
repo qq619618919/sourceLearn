@@ -103,132 +103,109 @@ import java.util.concurrent.CompletableFuture;
  * }
  * </pre>
  */
-public class SavepointHandlers
-        extends AbstractAsynchronousOperationHandlers<AsynchronousJobOperationKey, String> {
+public class SavepointHandlers extends AbstractAsynchronousOperationHandlers<AsynchronousJobOperationKey, String> {
 
-    @Nullable private final String defaultSavepointDir;
+    @Nullable
+    private final String defaultSavepointDir;
 
     public SavepointHandlers(@Nullable final String defaultSavepointDir) {
         this.defaultSavepointDir = defaultSavepointDir;
     }
 
-    private abstract class SavepointHandlerBase<T extends RequestBody>
-            extends TriggerHandler<RestfulGateway, T, SavepointTriggerMessageParameters> {
+    private abstract class SavepointHandlerBase<T extends RequestBody> extends TriggerHandler<RestfulGateway, T, SavepointTriggerMessageParameters> {
 
-        SavepointHandlerBase(
-                final GatewayRetriever<? extends RestfulGateway> leaderRetriever,
-                final Time timeout,
-                Map<String, String> responseHeaders,
-                final MessageHeaders<T, TriggerResponse, SavepointTriggerMessageParameters>
-                        messageHeaders) {
+        SavepointHandlerBase(final GatewayRetriever<? extends RestfulGateway> leaderRetriever,
+                             final Time timeout,
+                             Map<String, String> responseHeaders,
+                             final MessageHeaders<T, TriggerResponse, SavepointTriggerMessageParameters> messageHeaders) {
             super(leaderRetriever, timeout, responseHeaders, messageHeaders);
         }
 
         @Override
-        protected AsynchronousJobOperationKey createOperationKey(
-                final HandlerRequest<T, SavepointTriggerMessageParameters> request) {
+        protected AsynchronousJobOperationKey createOperationKey(final HandlerRequest<T, SavepointTriggerMessageParameters> request) {
             final JobID jobId = request.getPathParameter(JobIDPathParameter.class);
             return AsynchronousJobOperationKey.of(new TriggerId(), jobId);
         }
     }
 
     /** HTTP handler to stop a job with a savepoint. */
-    public class StopWithSavepointHandler
-            extends SavepointHandlerBase<StopWithSavepointRequestBody> {
+    public class StopWithSavepointHandler extends SavepointHandlerBase<StopWithSavepointRequestBody> {
 
-        public StopWithSavepointHandler(
-                final GatewayRetriever<? extends RestfulGateway> leaderRetriever,
-                final Time timeout,
-                final Map<String, String> responseHeaders) {
-            super(
-                    leaderRetriever,
-                    timeout,
-                    responseHeaders,
-                    StopWithSavepointTriggerHeaders.getInstance());
+        public StopWithSavepointHandler(final GatewayRetriever<? extends RestfulGateway> leaderRetriever,
+                                        final Time timeout,
+                                        final Map<String, String> responseHeaders) {
+            super(leaderRetriever, timeout, responseHeaders, StopWithSavepointTriggerHeaders.getInstance());
         }
 
         @Override
-        protected CompletableFuture<String> triggerOperation(
-                final HandlerRequest<
-                                StopWithSavepointRequestBody, SavepointTriggerMessageParameters>
-                        request,
-                final RestfulGateway gateway)
-                throws RestHandlerException {
+        protected CompletableFuture<String> triggerOperation(final HandlerRequest<StopWithSavepointRequestBody, SavepointTriggerMessageParameters> request,
+                                                             final RestfulGateway gateway) throws RestHandlerException {
 
             final JobID jobId = request.getPathParameter(JobIDPathParameter.class);
             final String requestedTargetDirectory = request.getRequestBody().getTargetDirectory();
 
             if (requestedTargetDirectory == null && defaultSavepointDir == null) {
-                throw new RestHandlerException(
-                        String.format(
-                                "Config key [%s] is not set. Property [%s] must be provided.",
-                                CheckpointingOptions.SAVEPOINT_DIRECTORY.key(),
-                                StopWithSavepointRequestBody.FIELD_NAME_TARGET_DIRECTORY),
-                        HttpResponseStatus.BAD_REQUEST);
+                throw new RestHandlerException(String.format(
+                        "Config key [%s] is not set. Property [%s] must be provided.",
+                        CheckpointingOptions.SAVEPOINT_DIRECTORY.key(),
+                        StopWithSavepointRequestBody.FIELD_NAME_TARGET_DIRECTORY
+                ), HttpResponseStatus.BAD_REQUEST);
             }
 
             final boolean shouldDrain = request.getRequestBody().shouldDrain();
             final String targetDirectory =
-                    requestedTargetDirectory != null
-                            ? requestedTargetDirectory
-                            : defaultSavepointDir;
-            return gateway.stopWithSavepoint(
-                    jobId, targetDirectory, shouldDrain, RpcUtils.INF_TIMEOUT);
+                    requestedTargetDirectory != null ? requestedTargetDirectory : defaultSavepointDir;
+            return gateway.stopWithSavepoint(jobId, targetDirectory, shouldDrain, RpcUtils.INF_TIMEOUT);
         }
     }
 
     /** HTTP handler to trigger savepoints. */
     public class SavepointTriggerHandler extends SavepointHandlerBase<SavepointTriggerRequestBody> {
 
-        public SavepointTriggerHandler(
-                final GatewayRetriever<? extends RestfulGateway> leaderRetriever,
-                final Time timeout,
-                final Map<String, String> responseHeaders) {
+        public SavepointTriggerHandler(final GatewayRetriever<? extends RestfulGateway> leaderRetriever,
+                                       final Time timeout,
+                                       final Map<String, String> responseHeaders) {
             super(leaderRetriever, timeout, responseHeaders, SavepointTriggerHeaders.getInstance());
         }
 
         @Override
-        protected CompletableFuture<String> triggerOperation(
-                HandlerRequest<SavepointTriggerRequestBody, SavepointTriggerMessageParameters>
-                        request,
-                RestfulGateway gateway)
-                throws RestHandlerException {
+        protected CompletableFuture<String> triggerOperation(HandlerRequest<SavepointTriggerRequestBody, SavepointTriggerMessageParameters> request,
+                                                             RestfulGateway gateway) throws RestHandlerException {
             final JobID jobId = request.getPathParameter(JobIDPathParameter.class);
             final String requestedTargetDirectory = request.getRequestBody().getTargetDirectory();
 
             if (requestedTargetDirectory == null && defaultSavepointDir == null) {
-                throw new RestHandlerException(
-                        String.format(
-                                "Config key [%s] is not set. Property [%s] must be provided.",
-                                CheckpointingOptions.SAVEPOINT_DIRECTORY.key(),
-                                SavepointTriggerRequestBody.FIELD_NAME_TARGET_DIRECTORY),
-                        HttpResponseStatus.BAD_REQUEST);
+                throw new RestHandlerException(String.format(
+                        "Config key [%s] is not set. Property [%s] must be provided.",
+                        CheckpointingOptions.SAVEPOINT_DIRECTORY.key(),
+                        SavepointTriggerRequestBody.FIELD_NAME_TARGET_DIRECTORY
+                ), HttpResponseStatus.BAD_REQUEST);
             }
 
             final boolean cancelJob = request.getRequestBody().isCancelJob();
             final String targetDirectory =
-                    requestedTargetDirectory != null
-                            ? requestedTargetDirectory
-                            : defaultSavepointDir;
-            return gateway.triggerSavepoint(
-                    jobId, targetDirectory, cancelJob, RpcUtils.INF_TIMEOUT);
+                    requestedTargetDirectory != null ? requestedTargetDirectory : defaultSavepointDir;
+
+            /*************************************************
+             * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+             *  注释： WebMonitorEndpoint 接收到 客户端提交的 触发 savepoint 的请求之后，由 SavepointTriggerHandler
+             *  执行请求处理，然后转发给 Dispatcher 转发
+             */
+            return gateway.triggerSavepoint(jobId, targetDirectory, cancelJob, RpcUtils.INF_TIMEOUT);
         }
     }
 
     /** HTTP handler to query for the status of the savepoint. */
-    public class SavepointStatusHandler
-            extends StatusHandler<RestfulGateway, SavepointInfo, SavepointStatusMessageParameters> {
+    public class SavepointStatusHandler extends StatusHandler<RestfulGateway, SavepointInfo, SavepointStatusMessageParameters> {
 
-        public SavepointStatusHandler(
-                final GatewayRetriever<? extends RestfulGateway> leaderRetriever,
-                final Time timeout,
-                final Map<String, String> responseHeaders) {
+        public SavepointStatusHandler(final GatewayRetriever<? extends RestfulGateway> leaderRetriever,
+                                      final Time timeout,
+                                      final Map<String, String> responseHeaders) {
             super(leaderRetriever, timeout, responseHeaders, SavepointStatusHeaders.getInstance());
         }
 
         @Override
-        protected AsynchronousJobOperationKey getOperationKey(
-                HandlerRequest<EmptyRequestBody, SavepointStatusMessageParameters> request) {
+        protected AsynchronousJobOperationKey getOperationKey(HandlerRequest<EmptyRequestBody, SavepointStatusMessageParameters> request) {
             final TriggerId triggerId = request.getPathParameter(TriggerIdPathParameter.class);
             final JobID jobId = request.getPathParameter(JobIDPathParameter.class);
             return AsynchronousJobOperationKey.of(triggerId, jobId);

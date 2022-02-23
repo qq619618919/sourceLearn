@@ -84,7 +84,9 @@ public class DispatcherRestEndpoint extends WebMonitorEndpoint<DispatcherGateway
 
         /*************************************************
          * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-         *  注释：
+         *  注释： 调用父类的方法去构造大部分 Handler
+         *  1、一个：JobSubmitHandler
+         *  2、其他：大约 80
          */
         List<Tuple2<RestHandlerSpecification, ChannelInboundHandler>> handlers = super.initializeHandlers(
                 localAddressFuture);
@@ -95,7 +97,7 @@ public class DispatcherRestEndpoint extends WebMonitorEndpoint<DispatcherGateway
 
         /*************************************************
          * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-         *  注释：
+         *  注释： 有一个独特的： JobSubmitHandler ，就是处理 restClient （flink run ） 提交一个 job 过来
          */
         JobSubmitHandler jobSubmitHandler = new JobSubmitHandler(leaderRetriever,
                 timeout,
@@ -104,6 +106,7 @@ public class DispatcherRestEndpoint extends WebMonitorEndpoint<DispatcherGateway
                 clusterConfiguration
         );
 
+        // TODO_MA 马中华 注释： 最终都放在一个集合中
         handlers.add(Tuple2.of(jobSubmitHandler.getMessageHeaders(), jobSubmitHandler));
 
         return handlers;

@@ -40,7 +40,7 @@ public class RestHandlerConfiguration {
 
     private final boolean webCancelEnabled;
 
-    public RestHandlerConfiguration(long refreshInterval,
+    public 0RestHandlerConfiguration(long refreshInterval,
                                     int maxCheckpointStatisticCacheEntries,
                                     Time timeout,
                                     File webUiDir,

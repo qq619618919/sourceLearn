@@ -47,9 +47,7 @@ import static org.apache.flink.util.Preconditions.checkState;
  * RecordDeserializer} for spanning records. Specific implementation bind it to a specific {@link
  * RecordDeserializer}.
  */
-public abstract class AbstractStreamTaskNetworkInput<
-                T, R extends RecordDeserializer<DeserializationDelegate<StreamElement>>>
-        implements StreamTaskInput<T> {
+public abstract class AbstractStreamTaskNetworkInput<T, R extends RecordDeserializer<DeserializationDelegate<StreamElement>>> implements StreamTaskInput<T> {
     protected final CheckpointedInputGate checkpointedInputGate;
     protected final DeserializationDelegate<StreamElement> deserializationDelegate;
     protected final TypeSerializer<T> inputSerializer;
@@ -62,17 +60,14 @@ public abstract class AbstractStreamTaskNetworkInput<
     private InputChannelInfo lastChannel = null;
     private R currentRecordDeserializer = null;
 
-    public AbstractStreamTaskNetworkInput(
-            CheckpointedInputGate checkpointedInputGate,
-            TypeSerializer<T> inputSerializer,
-            StatusWatermarkValve statusWatermarkValve,
-            int inputIndex,
-            Map<InputChannelInfo, R> recordDeserializers) {
+    public AbstractStreamTaskNetworkInput(CheckpointedInputGate checkpointedInputGate,
+                                          TypeSerializer<T> inputSerializer,
+                                          StatusWatermarkValve statusWatermarkValve,
+                                          int inputIndex,
+                                          Map<InputChannelInfo, R> recordDeserializers) {
         super();
         this.checkpointedInputGate = checkpointedInputGate;
-        deserializationDelegate =
-                new NonReusingDeserializationDelegate<>(
-                        new StreamElementSerializer<>(inputSerializer));
+        deserializationDelegate = new NonReusingDeserializationDelegate<>(new StreamElementSerializer<>(inputSerializer));
         this.inputSerializer = inputSerializer;
 
         for (InputChannelInfo i : checkpointedInputGate.getChannelInfos()) {
@@ -88,40 +83,68 @@ public abstract class AbstractStreamTaskNetworkInput<
     public DataInputStatus emitNext(DataOutput<T> output) throws Exception {
 
         while (true) {
+
             // get the stream element from the deserializer
+            /*************************************************
+             * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+             *  注释：
+             */
             if (currentRecordDeserializer != null) {
                 RecordDeserializer.DeserializationResult result;
                 try {
                     result = currentRecordDeserializer.getNextRecord(deserializationDelegate);
                 } catch (IOException e) {
-                    throw new IOException(
-                            String.format("Can't get next record for channel %s", lastChannel), e);
+                    throw new IOException(String.format("Can't get next record for channel %s", lastChannel), e);
                 }
                 if (result.isBufferConsumed()) {
                     currentRecordDeserializer = null;
                 }
 
                 if (result.isFullRecord()) {
+
+                    /*************************************************
+                     * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+                     *  注释：
+                     */
                     processElement(deserializationDelegate.getInstance(), output);
                     return DataInputStatus.MORE_AVAILABLE;
                 }
             }
 
+            /*************************************************
+             * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+             *  注释：
+             */
             Optional<BufferOrEvent> bufferOrEvent = checkpointedInputGate.pollNext();
+
+            /*************************************************
+             * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+             *  注释：
+             */
             if (bufferOrEvent.isPresent()) {
                 // return to the mailbox after receiving a checkpoint barrier to avoid processing of
-                // data after the barrier before checkpoint is performed for unaligned checkpoint
-                // mode
+                // data after the barrier before checkpoint is performed for unaligned checkpoint mode
+
+                /*************************************************
+                 * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+                 *  注释： 处理 Buffer
+                 */
                 if (bufferOrEvent.get().isBuffer()) {
                     processBuffer(bufferOrEvent.get());
-                } else {
+                }
+
+                /*************************************************
+                 * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+                 *  注释： 处理 Event
+                 */
+                else {
                     return processEvent(bufferOrEvent.get());
                 }
             } else {
                 if (checkpointedInputGate.isFinished()) {
-                    checkState(
-                            checkpointedInputGate.getAvailableFuture().isDone(),
-                            "Finished BarrierHandler should be available");
+                    checkState(checkpointedInputGate.getAvailableFuture().isDone(),
+                            "Finished BarrierHandler should be available"
+                    );
                     return DataInputStatus.END_OF_INPUT;
                 }
                 return DataInputStatus.NOTHING_AVAILABLE;
@@ -130,18 +153,31 @@ public abstract class AbstractStreamTaskNetworkInput<
     }
 
     private void processElement(StreamElement recordOrMark, DataOutput<T> output) throws Exception {
+
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释： 处理数据
+         */
         if (recordOrMark.isRecord()) {
             output.emitRecord(recordOrMark.asRecord());
-        } else if (recordOrMark.isWatermark()) {
-            statusWatermarkValve.inputWatermark(
-                    recordOrMark.asWatermark(), flattenedChannelIndices.get(lastChannel), output);
+        }
+
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释： 处理 Watermark
+         */
+        else if (recordOrMark.isWatermark()) {
+            statusWatermarkValve.inputWatermark(recordOrMark.asWatermark(),
+                    flattenedChannelIndices.get(lastChannel),
+                    output
+            );
         } else if (recordOrMark.isLatencyMarker()) {
             output.emitLatencyMarker(recordOrMark.asLatencyMarker());
         } else if (recordOrMark.isWatermarkStatus()) {
-            statusWatermarkValve.inputWatermarkStatus(
-                    recordOrMark.asWatermarkStatus(),
+            statusWatermarkValve.inputWatermarkStatus(recordOrMark.asWatermarkStatus(),
                     flattenedChannelIndices.get(lastChannel),
-                    output);
+                    output
+            );
         } else {
             throw new UnsupportedOperationException("Unknown type of StreamElement");
         }
@@ -172,10 +208,9 @@ public abstract class AbstractStreamTaskNetworkInput<
     protected void processBuffer(BufferOrEvent bufferOrEvent) throws IOException {
         lastChannel = bufferOrEvent.getChannelInfo();
         checkState(lastChannel != null);
+
         currentRecordDeserializer = getActiveSerializer(bufferOrEvent.getChannelInfo());
-        checkState(
-                currentRecordDeserializer != null,
-                "currentRecordDeserializer has already been released");
+        checkState(currentRecordDeserializer != null, "currentRecordDeserializer has already been released");
 
         currentRecordDeserializer.setNextBuffer(bufferOrEvent.getBuffer());
     }

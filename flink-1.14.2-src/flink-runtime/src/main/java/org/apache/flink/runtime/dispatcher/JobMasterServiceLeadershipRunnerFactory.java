@@ -61,11 +61,17 @@ public enum JobMasterServiceLeadershipRunnerFactory implements JobManagerRunnerF
 
         /*************************************************
          * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-         *  注释：
+         *  注释： 配置信息
          */
         final JobMasterConfiguration jobMasterConfiguration = JobMasterConfiguration.fromConfiguration(configuration);
 
+        // TODO_MA 马中华 注释： RunningJobsRegistry
         final RunningJobsRegistry runningJobsRegistry = highAvailabilityServices.getRunningJobsRegistry();
+
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释： DefaultLeaderElectionService
+         */
         final LeaderElectionService jobManagerLeaderElectionService = highAvailabilityServices.getJobManagerLeaderElectionService(
                 jobGraph.getJobID());
 
@@ -96,7 +102,7 @@ public enum JobMasterServiceLeadershipRunnerFactory implements JobManagerRunnerF
 
         /*************************************************
          * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-         *  注释：
+         *  注释： 用来创建 JobMaster 的一个工厂
          */
         final DefaultJobMasterServiceFactory jobMasterServiceFactory = new DefaultJobMasterServiceFactory(
                 jobManagerServices.getIoExecutor(),
@@ -115,7 +121,7 @@ public enum JobMasterServiceLeadershipRunnerFactory implements JobManagerRunnerF
 
         /*************************************************
          * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-         *  注释：
+         *  注释： DefaultJobMasterServiceProcessFactory 对 DefaultJobMasterServiceFactory 进行了封装
          */
         final DefaultJobMasterServiceProcessFactory jobMasterServiceProcessFactory = new DefaultJobMasterServiceProcessFactory(
                 jobGraph.getJobID(),
@@ -127,7 +133,7 @@ public enum JobMasterServiceLeadershipRunnerFactory implements JobManagerRunnerF
 
         /*************************************************
          * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-         *  注释：
+         *  注释： JobMasterServiceLeadershipRunner 包装了 DefaultJobMasterServiceProcessFactory
          */
         return new JobMasterServiceLeadershipRunner(jobMasterServiceProcessFactory,
                 jobManagerLeaderElectionService,

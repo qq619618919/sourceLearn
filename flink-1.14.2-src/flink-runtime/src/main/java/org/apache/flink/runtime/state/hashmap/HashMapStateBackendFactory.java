@@ -28,8 +28,8 @@ import org.apache.flink.runtime.state.StateBackendFactory;
 public class HashMapStateBackendFactory implements StateBackendFactory<HashMapStateBackend> {
 
     @Override
-    public HashMapStateBackend createFromConfig(ReadableConfig config, ClassLoader classLoader)
-            throws IllegalConfigurationException {
+    public HashMapStateBackend createFromConfig(ReadableConfig config,
+                                                ClassLoader classLoader) throws IllegalConfigurationException {
         return new HashMapStateBackend().configure(config, classLoader);
     }
 }

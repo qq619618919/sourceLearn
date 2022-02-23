@@ -38,30 +38,32 @@ import static org.apache.flink.util.Preconditions.checkNotNull;
  * @param <OUT> The type of the elements that this source produces.
  */
 @Internal
-public class SourceTransformationTranslator<OUT, SplitT extends SourceSplit, EnumChkT>
-        extends SimpleTransformationTranslator<OUT, SourceTransformation<OUT, SplitT, EnumChkT>> {
+public class SourceTransformationTranslator<OUT, SplitT extends SourceSplit, EnumChkT> extends SimpleTransformationTranslator<OUT, SourceTransformation<OUT, SplitT, EnumChkT>> {
 
     @Override
-    protected Collection<Integer> translateForBatchInternal(
-            final SourceTransformation<OUT, SplitT, EnumChkT> transformation,
-            final Context context) {
+    protected Collection<Integer> translateForBatchInternal(final SourceTransformation<OUT, SplitT, EnumChkT> transformation,
+                                                            final Context context) {
 
-        return translateInternal(
-                transformation, context, false /* don't emit progressive watermarks */);
+        return translateInternal(transformation,
+                context,
+                false /* don't emit progressive watermarks */);
     }
 
     @Override
-    protected Collection<Integer> translateForStreamingInternal(
-            final SourceTransformation<OUT, SplitT, EnumChkT> transformation,
-            final Context context) {
-
-        return translateInternal(transformation, context, true /* emit progressive watermarks */);
+    protected Collection<Integer> translateForStreamingInternal(final SourceTransformation<OUT, SplitT, EnumChkT> transformation,
+                                                                final Context context) {
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释：
+         */
+        return translateInternal(transformation,
+                context,
+                true /* emit progressive watermarks */);
     }
 
-    private Collection<Integer> translateInternal(
-            final SourceTransformation<OUT, SplitT, EnumChkT> transformation,
-            final Context context,
-            boolean emitProgressiveWatermarks) {
+    private Collection<Integer> translateInternal(final SourceTransformation<OUT, SplitT, EnumChkT> transformation,
+                                                  final Context context,
+                                                  boolean emitProgressiveWatermarks) {
         checkNotNull(transformation);
         checkNotNull(context);
 
@@ -70,16 +72,17 @@ public class SourceTransformationTranslator<OUT, SplitT extends SourceSplit, Enu
         final int transformationId = transformation.getId();
         final ExecutionConfig executionConfig = streamGraph.getExecutionConfig();
 
-        SourceOperatorFactory<OUT> operatorFactory =
-                new SourceOperatorFactory<>(
-                        transformation.getSource(),
-                        transformation.getWatermarkStrategy(),
-                        emitProgressiveWatermarks);
+        SourceOperatorFactory<OUT> operatorFactory = new SourceOperatorFactory<>(transformation.getSource(),
+                transformation.getWatermarkStrategy(),
+                emitProgressiveWatermarks);
 
         operatorFactory.setChainingStrategy(transformation.getChainingStrategy());
 
-        streamGraph.addSource(
-                transformationId,
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释： 给 StreamGraph 安上 SourceOperator（StreamNode）
+         */
+        streamGraph.addSource(transformationId,
                 slotSharingGroup,
                 transformation.getCoLocationGroupKey(),
                 operatorFactory,
@@ -87,13 +90,12 @@ public class SourceTransformationTranslator<OUT, SplitT extends SourceSplit, Enu
                 transformation.getOutputType(),
                 "Source: " + transformation.getName());
 
-        final int parallelism =
-                transformation.getParallelism() != ExecutionConfig.PARALLELISM_DEFAULT
-                        ? transformation.getParallelism()
-                        : executionConfig.getParallelism();
+        final int parallelism = transformation.getParallelism() != ExecutionConfig.PARALLELISM_DEFAULT ? transformation.getParallelism() : executionConfig.getParallelism();
 
-        streamGraph.setParallelism(transformationId, parallelism);
-        streamGraph.setMaxParallelism(transformationId, transformation.getMaxParallelism());
+        streamGraph.setParallelism(transformationId,
+                parallelism);
+        streamGraph.setMaxParallelism(transformationId,
+                transformation.getMaxParallelism());
         return Collections.singleton(transformationId);
     }
 }

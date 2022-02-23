@@ -31,8 +31,8 @@ public abstract class JobClusterEntrypoint extends ClusterEntrypoint {
     }
 
     @Override
-    protected ExecutionGraphInfoStore createSerializableExecutionGraphStore(
-            Configuration configuration, ScheduledExecutor scheduledExecutor) {
+    protected ExecutionGraphInfoStore createSerializableExecutionGraphStore(Configuration configuration,
+                                                                            ScheduledExecutor scheduledExecutor) {
         return new MemoryExecutionGraphInfoStore();
     }
 }

@@ -98,19 +98,17 @@ public class FsCheckpointStreamFactory implements CheckpointStreamFactory {
      * @param checkpointDirectory The directory for checkpoint exclusive state data.
      * @param sharedStateDirectory The directory for shared checkpoint data.
      * @param fileStateSizeThreshold State up to this size will be stored as part of the metadata,
-     *     rather than in files
+     *         rather than in files
      * @param writeBufferSize The write buffer size.
      */
-    public FsCheckpointStreamFactory(
-            FileSystem fileSystem,
-            Path checkpointDirectory,
-            Path sharedStateDirectory,
-            int fileStateSizeThreshold,
-            int writeBufferSize) {
+    public FsCheckpointStreamFactory(FileSystem fileSystem,
+                                     Path checkpointDirectory,
+                                     Path sharedStateDirectory,
+                                     int fileStateSizeThreshold,
+                                     int writeBufferSize) {
 
         if (fileStateSizeThreshold < 0) {
-            throw new IllegalArgumentException(
-                    "The threshold for file state size must be zero or larger.");
+            throw new IllegalArgumentException("The threshold for file state size must be zero or larger.");
         }
 
         if (writeBufferSize < 0) {
@@ -119,8 +117,7 @@ public class FsCheckpointStreamFactory implements CheckpointStreamFactory {
 
         if (fileStateSizeThreshold > MAX_FILE_STATE_THRESHOLD) {
             throw new IllegalArgumentException(
-                    "The threshold for file state size cannot be larger than "
-                            + MAX_FILE_STATE_THRESHOLD);
+                    "The threshold for file state size cannot be larger than " + MAX_FILE_STATE_THRESHOLD);
         }
 
         this.filesystem = checkNotNull(fileSystem);
@@ -134,17 +131,12 @@ public class FsCheckpointStreamFactory implements CheckpointStreamFactory {
     // ------------------------------------------------------------------------
 
     @Override
-    public FsCheckpointStateOutputStream createCheckpointStateOutputStream(
-            CheckpointedStateScope scope) throws IOException {
-        Path target =
-                scope == CheckpointedStateScope.EXCLUSIVE
-                        ? checkpointDirectory
-                        : sharedStateDirectory;
+    public FsCheckpointStateOutputStream createCheckpointStateOutputStream(CheckpointedStateScope scope) throws IOException {
+        Path target = scope == CheckpointedStateScope.EXCLUSIVE ? checkpointDirectory : sharedStateDirectory;
         int bufferSize = Math.max(writeBufferSize, fileStateThreshold);
 
         final boolean absolutePath = entropyInjecting || scope == CheckpointedStateScope.SHARED;
-        return new FsCheckpointStateOutputStream(
-                target, filesystem, bufferSize, fileStateThreshold, !absolutePath);
+        return new FsCheckpointStateOutputStream(target, filesystem, bufferSize, fileStateThreshold, !absolutePath);
     }
 
     // ------------------------------------------------------------------------
@@ -164,8 +156,7 @@ public class FsCheckpointStreamFactory implements CheckpointStreamFactory {
      * A {@link CheckpointStreamFactory.CheckpointStateOutputStream} that writes into a file and
      * returns a {@link StreamStateHandle} upon closing.
      */
-    public static class FsCheckpointStateOutputStream
-            extends CheckpointStreamFactory.CheckpointStateOutputStream {
+    public static class FsCheckpointStateOutputStream extends CheckpointStreamFactory.CheckpointStateOutputStream {
 
         private final byte[] writeBuffer;
 
@@ -187,17 +178,15 @@ public class FsCheckpointStreamFactory implements CheckpointStreamFactory {
 
         private final boolean allowRelativePaths;
 
-        public FsCheckpointStateOutputStream(
-                Path basePath, FileSystem fs, int bufferSize, int localStateThreshold) {
+        public FsCheckpointStateOutputStream(Path basePath, FileSystem fs, int bufferSize, int localStateThreshold) {
             this(basePath, fs, bufferSize, localStateThreshold, false);
         }
 
-        public FsCheckpointStateOutputStream(
-                Path basePath,
-                FileSystem fs,
-                int bufferSize,
-                int localStateThreshold,
-                boolean allowRelativePaths) {
+        public FsCheckpointStateOutputStream(Path basePath,
+                                             FileSystem fs,
+                                             int bufferSize,
+                                             int localStateThreshold,
+                                             boolean allowRelativePaths) {
 
             if (bufferSize < localStateThreshold) {
                 throw new IllegalArgumentException();
@@ -312,10 +301,7 @@ public class FsCheckpointStreamFactory implements CheckpointStreamFactory {
                         try {
                             fs.delete(statePath, false);
                         } catch (Exception e) {
-                            LOG.warn(
-                                    "Cannot delete closed and discarded state stream for {}.",
-                                    statePath,
-                                    e);
+                            LOG.warn("Cannot delete closed and discarded state stream for {}.", statePath, e);
                         }
                     }
                 }
@@ -353,10 +339,10 @@ public class FsCheckpointStreamFactory implements CheckpointStreamFactory {
 
                             outStream.close();
 
-                            return allowRelativePaths
-                                    ? new RelativeFileStateHandle(
-                                            statePath, relativeStatePath, size)
-                                    : new FileStateHandle(statePath, size);
+                            return allowRelativePaths ? new RelativeFileStateHandle(statePath,
+                                    relativeStatePath,
+                                    size
+                            ) : new FileStateHandle(statePath, size);
                         } catch (Exception exception) {
                             try {
                                 if (statePath != null) {
@@ -364,19 +350,14 @@ public class FsCheckpointStreamFactory implements CheckpointStreamFactory {
                                 }
 
                             } catch (Exception deleteException) {
-                                LOG.warn(
-                                        "Could not delete the checkpoint stream file {}.",
-                                        statePath,
-                                        deleteException);
+                                LOG.warn("Could not delete the checkpoint stream file {}.", statePath, deleteException);
                             }
 
                             throw new IOException(
-                                    "Could not flush to file and close the file system "
-                                            + "output stream to "
-                                            + statePath
-                                            + " in order to obtain the "
-                                            + "stream state handle",
-                                    exception);
+                                    "Could not flush to file and close the file system " + "output stream to "
+                                            + statePath + " in order to obtain the " + "stream state handle",
+                                    exception
+                            );
                         } finally {
                             closed = true;
                         }
@@ -397,9 +378,10 @@ public class FsCheckpointStreamFactory implements CheckpointStreamFactory {
             Exception latestException = null;
             for (int attempt = 0; attempt < 10; attempt++) {
                 try {
-                    OutputStreamAndPath streamAndPath =
-                            EntropyInjector.createEntropyAware(
-                                    fs, createStatePath(), WriteMode.NO_OVERWRITE);
+                    OutputStreamAndPath streamAndPath = EntropyInjector.createEntropyAware(fs,
+                            createStatePath(),
+                            WriteMode.NO_OVERWRITE
+                    );
                     this.outStream = streamAndPath.stream();
                     this.statePath = streamAndPath.path();
                     return;
@@ -408,8 +390,7 @@ public class FsCheckpointStreamFactory implements CheckpointStreamFactory {
                 }
             }
 
-            throw new IOException(
-                    "Could not open output stream for state backend", latestException);
+            throw new IOException("Could not open output stream for state backend", latestException);
         }
     }
 }

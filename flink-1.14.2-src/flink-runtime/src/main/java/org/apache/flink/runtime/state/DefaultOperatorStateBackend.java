@@ -215,6 +215,10 @@ public class DefaultOperatorStateBackend implements OperatorStateBackend {
                                                                         long timestamp,
                                                                         @Nonnull CheckpointStreamFactory streamFactory,
                                                                         @Nonnull CheckpointOptions checkpointOptions) throws Exception {
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释：
+         */
         return snapshotStrategyRunner.snapshot(checkpointId, timestamp, streamFactory, checkpointOptions);
     }
 

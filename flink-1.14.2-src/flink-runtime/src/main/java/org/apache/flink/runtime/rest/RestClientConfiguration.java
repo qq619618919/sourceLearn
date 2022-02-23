@@ -34,7 +34,8 @@ import static org.apache.flink.util.Preconditions.checkArgument;
 /** A configuration object for {@link RestClient}s. */
 public final class RestClientConfiguration {
 
-    @Nullable private final SSLHandlerFactory sslHandlerFactory;
+    @Nullable
+    private final SSLHandlerFactory sslHandlerFactory;
 
     private final long connectionTimeout;
 
@@ -42,15 +43,11 @@ public final class RestClientConfiguration {
 
     private final int maxContentLength;
 
-    private RestClientConfiguration(
-            @Nullable final SSLHandlerFactory sslHandlerFactory,
-            final long connectionTimeout,
-            final long idlenessTimeout,
-            final int maxContentLength) {
-        checkArgument(
-                maxContentLength > 0,
-                "maxContentLength must be positive, was: %s",
-                maxContentLength);
+    private RestClientConfiguration(@Nullable final SSLHandlerFactory sslHandlerFactory,
+                                    final long connectionTimeout,
+                                    final long idlenessTimeout,
+                                    final int maxContentLength) {
+        checkArgument(maxContentLength > 0, "maxContentLength must be positive, was: %s", maxContentLength);
         this.sslHandlerFactory = sslHandlerFactory;
         this.connectionTimeout = connectionTimeout;
         this.idlenessTimeout = idlenessTimeout;
@@ -91,12 +88,13 @@ public final class RestClientConfiguration {
      * Configuration}.
      *
      * @param config configuration from which the REST client endpoint configuration should be
-     *     created from
+     *         created from
+     *
      * @return REST client endpoint configuration
+     *
      * @throws ConfigurationException if SSL was configured incorrectly
      */
-    public static RestClientConfiguration fromConfiguration(Configuration config)
-            throws ConfigurationException {
+    public static RestClientConfiguration fromConfiguration(Configuration config) throws ConfigurationException {
         Preconditions.checkNotNull(config);
 
         final SSLHandlerFactory sslHandlerFactory;
@@ -104,20 +102,25 @@ public final class RestClientConfiguration {
             try {
                 sslHandlerFactory = SSLUtils.createRestClientSSLEngineFactory(config);
             } catch (Exception e) {
-                throw new ConfigurationException(
-                        "Failed to initialize SSLContext for the REST client", e);
+                throw new ConfigurationException("Failed to initialize SSLContext for the REST client", e);
             }
         } else {
             sslHandlerFactory = null;
         }
 
+        // TODO_MA 马中华 注释： rest.connection-timeout = 15s
         final long connectionTimeout = config.getLong(RestOptions.CONNECTION_TIMEOUT);
 
+        // TODO_MA 马中华 注释： rest.idleness-timeout = 5 * 60
         final long idlenessTimeout = config.getLong(RestOptions.IDLENESS_TIMEOUT);
 
+        // TODO_MA 马中华 注释： rest.client.max-content-length = 104_857_600 = 100M
         int maxContentLength = config.getInteger(RestOptions.CLIENT_MAX_CONTENT_LENGTH);
 
-        return new RestClientConfiguration(
-                sslHandlerFactory, connectionTimeout, idlenessTimeout, maxContentLength);
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释：
+         */
+        return new RestClientConfiguration(sslHandlerFactory, connectionTimeout, idlenessTimeout, maxContentLength);
     }
 }

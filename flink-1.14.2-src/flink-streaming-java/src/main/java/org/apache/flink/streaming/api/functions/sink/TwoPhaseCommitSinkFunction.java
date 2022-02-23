@@ -72,16 +72,14 @@ import static org.apache.flink.util.Preconditions.checkState;
  * @param <IN> Input type for {@link SinkFunction}.
  * @param <TXN> Transaction to store all of the information required to handle a transaction.
  * @param <CONTEXT> Context that will be shared across all invocations for the given {@link
- *     TwoPhaseCommitSinkFunction} instance. Context is created once
+ *         TwoPhaseCommitSinkFunction} instance. Context is created once
  */
 @PublicEvolving
-public abstract class TwoPhaseCommitSinkFunction<IN, TXN, CONTEXT> extends RichSinkFunction<IN>
-        implements CheckpointedFunction, CheckpointListener {
+public abstract class TwoPhaseCommitSinkFunction<IN, TXN, CONTEXT> extends RichSinkFunction<IN> implements CheckpointedFunction, CheckpointListener {
 
     private static final Logger LOG = LoggerFactory.getLogger(TwoPhaseCommitSinkFunction.class);
 
-    protected final LinkedHashMap<Long, TransactionHolder<TXN>> pendingCommitTransactions =
-            new LinkedHashMap<>();
+    protected final LinkedHashMap<Long, TransactionHolder<TXN>> pendingCommitTransactions = new LinkedHashMap<>();
 
     protected transient Optional<CONTEXT> userContext;
 
@@ -95,7 +93,8 @@ public abstract class TwoPhaseCommitSinkFunction<IN, TXN, CONTEXT> extends RichS
      * Current Transaction Holder, including two states: 1. Normal Transaction: created when a new
      * snapshot is taken during normal task running 2. null: After task/function is finished.
      */
-    @Nullable private TransactionHolder<TXN> currentTransactionHolder;
+    @Nullable
+    private TransactionHolder<TXN> currentTransactionHolder;
 
     /** Specifies the maximum time a transaction should remain open. */
     private long transactionTimeout = Long.MAX_VALUE;
@@ -128,19 +127,18 @@ public abstract class TwoPhaseCommitSinkFunction<IN, TXN, CONTEXT> extends RichS
      * @param transactionSerializer {@link TypeSerializer} for the transaction type of this sink
      * @param contextSerializer {@link TypeSerializer} for the context type of this sink
      */
-    public TwoPhaseCommitSinkFunction(
-            TypeSerializer<TXN> transactionSerializer, TypeSerializer<CONTEXT> contextSerializer) {
+    public TwoPhaseCommitSinkFunction(TypeSerializer<TXN> transactionSerializer,
+                                      TypeSerializer<CONTEXT> contextSerializer) {
         this(transactionSerializer, contextSerializer, Clock.systemUTC());
     }
 
     @VisibleForTesting
-    TwoPhaseCommitSinkFunction(
-            TypeSerializer<TXN> transactionSerializer,
-            TypeSerializer<CONTEXT> contextSerializer,
-            Clock clock) {
-        this.stateDescriptor =
-                new ListStateDescriptor<>(
-                        "state", new StateSerializer<>(transactionSerializer, contextSerializer));
+    TwoPhaseCommitSinkFunction(TypeSerializer<TXN> transactionSerializer,
+                               TypeSerializer<CONTEXT> contextSerializer,
+                               Clock clock) {
+        this.stateDescriptor = new ListStateDescriptor<>("state",
+                new StateSerializer<>(transactionSerializer, contextSerializer)
+        );
         this.clock = clock;
     }
 
@@ -159,7 +157,9 @@ public abstract class TwoPhaseCommitSinkFunction<IN, TXN, CONTEXT> extends RichS
 
     @Nonnull
     protected Stream<Map.Entry<Long, TXN>> pendingTransactions() {
-        return pendingCommitTransactions.entrySet().stream()
+        return pendingCommitTransactions
+                .entrySet()
+                .stream()
                 .map(e -> new AbstractMap.SimpleEntry<>(e.getKey(), e.getValue().handle));
     }
 
@@ -215,9 +215,10 @@ public abstract class TwoPhaseCommitSinkFunction<IN, TXN, CONTEXT> extends RichS
      * Callback for subclasses which is called after restoring (each) user context.
      *
      * @param handledTransactions transactions which were already committed or aborted and do not
-     *     need further handling
+     *         need further handling
      */
-    protected void finishRecoveringContext(Collection<TXN> handledTransactions) {}
+    protected void finishRecoveringContext(Collection<TXN> handledTransactions) {
+    }
 
     /**
      * This method is called at the end of data processing.
@@ -227,21 +228,23 @@ public abstract class TwoPhaseCommitSinkFunction<IN, TXN, CONTEXT> extends RichS
      * You may use this method to flush remaining buffered elements in the state into the current
      * transaction which will be committed in the last checkpoint.
      */
-    protected void finishProcessing(@Nullable TXN transaction) {}
+    protected void finishProcessing(@Nullable TXN transaction) {
+    }
 
     // ------ entry points for above methods implementing {@CheckPointedFunction} and
     // {@CheckpointListener} ------
 
     /** This should not be implemented by subclasses. */
     @Override
-    public final void invoke(IN value) throws Exception {}
+    public final void invoke(IN value) throws Exception {
+    }
 
     @Override
     public final void invoke(IN value, Context context) throws Exception {
         TXN currentTransaction = currentTransaction();
-        checkNotNull(
-                currentTransaction,
-                "Two phase commit sink function with null transaction should not be invoked! ");
+        checkNotNull(currentTransaction,
+                "Two phase commit sink function with null transaction should not be invoked! "
+        );
         invoke(currentTransaction, value, context);
     }
 
@@ -286,8 +289,9 @@ public abstract class TwoPhaseCommitSinkFunction<IN, TXN, CONTEXT> extends RichS
         // ==> There should never be a case where we have no pending transaction here
         //
 
-        Iterator<Map.Entry<Long, TransactionHolder<TXN>>> pendingTransactionIterator =
-                pendingCommitTransactions.entrySet().iterator();
+        Iterator<Map.Entry<Long, TransactionHolder<TXN>>> pendingTransactionIterator = pendingCommitTransactions
+                .entrySet()
+                .iterator();
         Throwable firstError = null;
 
         while (pendingTransactionIterator.hasNext()) {
@@ -298,12 +302,12 @@ public abstract class TwoPhaseCommitSinkFunction<IN, TXN, CONTEXT> extends RichS
                 continue;
             }
 
-            LOG.info(
-                    "{} - checkpoint {} complete, committing transaction {} from checkpoint {}",
+            LOG.info("{} - checkpoint {} complete, committing transaction {} from checkpoint {}",
                     name(),
                     checkpointId,
                     pendingTransaction,
-                    pendingTransactionCheckpointId);
+                    pendingTransactionCheckpointId
+            );
 
             logWarningIfTimeoutAlmostReached(pendingTransaction);
             try {
@@ -320,14 +324,15 @@ public abstract class TwoPhaseCommitSinkFunction<IN, TXN, CONTEXT> extends RichS
         }
 
         if (firstError != null) {
-            throw new FlinkRuntimeException(
-                    "Committing one of transactions failed, logging first encountered failure",
-                    firstError);
+            throw new FlinkRuntimeException("Committing one of transactions failed, logging first encountered failure",
+                    firstError
+            );
         }
     }
 
     @Override
-    public void notifyCheckpointAborted(long checkpointId) {}
+    public void notifyCheckpointAborted(long checkpointId) {
+    }
 
     @Override
     public void snapshotState(FunctionSnapshotContext context) throws Exception {
@@ -335,11 +340,11 @@ public abstract class TwoPhaseCommitSinkFunction<IN, TXN, CONTEXT> extends RichS
         // we are ready to commit and remember the transaction
 
         long checkpointId = context.getCheckpointId();
-        LOG.debug(
-                "{} - checkpoint {} triggered, flushing transaction '{}'",
+        LOG.debug("{} - checkpoint {} triggered, flushing transaction '{}'",
                 name(),
                 context.getCheckpointId(),
-                currentTransactionHolder);
+                currentTransactionHolder
+        );
 
         if (currentTransactionHolder != null) {
             preCommit(currentTransactionHolder.handle);
@@ -356,11 +361,10 @@ public abstract class TwoPhaseCommitSinkFunction<IN, TXN, CONTEXT> extends RichS
         LOG.debug("{} - started new transaction '{}'", name(), currentTransactionHolder);
 
         state.clear();
-        state.add(
-                new State<>(
-                        this.currentTransactionHolder,
-                        new ArrayList<>(pendingCommitTransactions.values()),
-                        userContext));
+        state.add(new State<>(this.currentTransactionHolder,
+                new ArrayList<>(pendingCommitTransactions.values()),
+                userContext
+        ));
     }
 
     @Override
@@ -387,8 +391,7 @@ public abstract class TwoPhaseCommitSinkFunction<IN, TXN, CONTEXT> extends RichS
             LOG.info("{} - restoring state", name());
             for (State<TXN, CONTEXT> operatorState : state.get()) {
                 userContext = operatorState.getContext();
-                List<TransactionHolder<TXN>> recoveredTransactions =
-                        operatorState.getPendingCommitTransactions();
+                List<TransactionHolder<TXN>> recoveredTransactions = operatorState.getPendingCommitTransactions();
                 List<TXN> handledTransactions = new ArrayList<>(recoveredTransactions.size() + 1);
                 for (TransactionHolder<TXN> recoveredTransaction : recoveredTransactions) {
                     // If this fails to succeed eventually, there is actually data loss
@@ -402,10 +405,7 @@ public abstract class TwoPhaseCommitSinkFunction<IN, TXN, CONTEXT> extends RichS
                         TXN transaction = operatorState.getPendingTransaction().handle;
                         recoverAndAbort(transaction);
                         handledTransactions.add(transaction);
-                        LOG.info(
-                                "{} aborted recovered transaction {}",
-                                name(),
-                                operatorState.getPendingTransaction());
+                        LOG.info("{} aborted recovered transaction {}", name(), operatorState.getPendingTransaction());
                     }
                 }
 
@@ -448,13 +448,13 @@ public abstract class TwoPhaseCommitSinkFunction<IN, TXN, CONTEXT> extends RichS
         } catch (final Exception e) {
             final long elapsedTime = clock.millis() - transactionHolder.transactionStartTime;
             if (ignoreFailuresAfterTransactionTimeout && elapsedTime > transactionTimeout) {
-                LOG.error(
-                        "Error while committing transaction {}. "
+                LOG.error("Error while committing transaction {}. "
                                 + "Transaction has been open for longer than the transaction timeout ({})."
                                 + "Commit will not be attempted again. Data loss might have occurred.",
                         transactionHolder.handle,
                         transactionTimeout,
-                        e);
+                        e
+                );
             } else {
                 throw e;
             }
@@ -463,14 +463,13 @@ public abstract class TwoPhaseCommitSinkFunction<IN, TXN, CONTEXT> extends RichS
 
     private void logWarningIfTimeoutAlmostReached(TransactionHolder<TXN> transactionHolder) {
         final long elapsedTime = transactionHolder.elapsedTime(clock);
-        if (transactionTimeoutWarningRatio >= 0
-                && elapsedTime > transactionTimeout * transactionTimeoutWarningRatio) {
-            LOG.warn(
-                    "Transaction {} has been open for {} ms. "
+        if (transactionTimeoutWarningRatio >= 0 && elapsedTime > transactionTimeout * transactionTimeoutWarningRatio) {
+            LOG.warn("Transaction {} has been open for {} ms. "
                             + "This is close to or even exceeding the transaction timeout of {} ms.",
                     transactionHolder.handle,
                     elapsedTime,
-                    transactionTimeout);
+                    transactionTimeout
+            );
         }
     }
 
@@ -490,11 +489,11 @@ public abstract class TwoPhaseCommitSinkFunction<IN, TXN, CONTEXT> extends RichS
      * Sets the transaction timeout. Setting only the transaction timeout has no effect in itself.
      *
      * @param transactionTimeout The transaction timeout in ms.
+     *
      * @see #ignoreFailuresAfterTransactionTimeout()
      * @see #enableTransactionTimeoutWarnings(double)
      */
-    protected TwoPhaseCommitSinkFunction<IN, TXN, CONTEXT> setTransactionTimeout(
-            long transactionTimeout) {
+    protected TwoPhaseCommitSinkFunction<IN, TXN, CONTEXT> setTransactionTimeout(long transactionTimeout) {
         checkArgument(transactionTimeout >= 0, "transactionTimeout must not be negative");
         this.transactionTimeout = transactionTimeout;
         return this;
@@ -517,41 +516,42 @@ public abstract class TwoPhaseCommitSinkFunction<IN, TXN, CONTEXT> extends RichS
      * logged when committing the transaction.
      *
      * @param warningRatio A value in the range [0,1].
+     *
      * @return
      */
-    protected TwoPhaseCommitSinkFunction<IN, TXN, CONTEXT> enableTransactionTimeoutWarnings(
-            double warningRatio) {
-        checkArgument(
-                warningRatio >= 0 && warningRatio <= 1, "warningRatio must be in range [0,1]");
+    protected TwoPhaseCommitSinkFunction<IN, TXN, CONTEXT> enableTransactionTimeoutWarnings(double warningRatio) {
+        checkArgument(warningRatio >= 0 && warningRatio <= 1, "warningRatio must be in range [0,1]");
         this.transactionTimeoutWarningRatio = warningRatio;
         return this;
     }
 
     private String name() {
-        return String.format(
-                "%s %s/%s",
+        return String.format("%s %s/%s",
                 this.getClass().getSimpleName(),
                 getRuntimeContext().getIndexOfThisSubtask() + 1,
-                getRuntimeContext().getNumberOfParallelSubtasks());
+                getRuntimeContext().getNumberOfParallelSubtasks()
+        );
     }
 
     /** State POJO class coupling pendingTransaction, context and pendingCommitTransactions. */
     @VisibleForTesting
     @Internal
     public static final class State<TXN, CONTEXT> {
-        @Nullable protected TransactionHolder<TXN> pendingTransaction;
+        @Nullable
+        protected TransactionHolder<TXN> pendingTransaction;
         protected List<TransactionHolder<TXN>> pendingCommitTransactions = new ArrayList<>();
         protected Optional<CONTEXT> context;
 
-        public State() {}
+        public State() {
+        }
 
-        public State(
-                @Nullable TransactionHolder<TXN> pendingTransaction,
-                List<TransactionHolder<TXN>> pendingCommitTransactions,
-                Optional<CONTEXT> context) {
+        public State(@Nullable TransactionHolder<TXN> pendingTransaction,
+                     List<TransactionHolder<TXN>> pendingCommitTransactions,
+                     Optional<CONTEXT> context) {
             this.pendingTransaction = pendingTransaction;
-            this.pendingCommitTransactions =
-                    requireNonNull(pendingCommitTransactions, "pendingCommitTransactions is null");
+            this.pendingCommitTransactions = requireNonNull(pendingCommitTransactions,
+                    "pendingCommitTransactions is null"
+            );
             this.context = requireNonNull(context, "context is null");
         }
 
@@ -568,8 +568,7 @@ public abstract class TwoPhaseCommitSinkFunction<IN, TXN, CONTEXT> extends RichS
             return pendingCommitTransactions;
         }
 
-        public void setPendingCommitTransactions(
-                List<TransactionHolder<TXN>> pendingCommitTransactions) {
+        public void setPendingCommitTransactions(List<TransactionHolder<TXN>> pendingCommitTransactions) {
             this.pendingCommitTransactions = pendingCommitTransactions;
         }
 
@@ -592,19 +591,16 @@ public abstract class TwoPhaseCommitSinkFunction<IN, TXN, CONTEXT> extends RichS
 
             State<?, ?> state = (State<?, ?>) o;
 
-            return Objects.equals(pendingTransaction, state.pendingTransaction)
-                    && Objects.equals(pendingCommitTransactions, state.pendingCommitTransactions)
-                    && Objects.equals(context, state.context);
+            return Objects.equals(pendingTransaction, state.pendingTransaction) && Objects.equals(
+                    pendingCommitTransactions,
+                    state.pendingCommitTransactions
+            ) && Objects.equals(context, state.context);
         }
 
         @Override
         public int hashCode() {
             int result = pendingTransaction != null ? pendingTransaction.hashCode() : 0;
-            result =
-                    31 * result
-                            + (pendingCommitTransactions != null
-                                    ? pendingCommitTransactions.hashCode()
-                                    : 0);
+            result = 31 * result + (pendingCommitTransactions != null ? pendingCommitTransactions.hashCode() : 0);
             result = 31 * result + (context != null ? context.hashCode() : 0);
             return result;
         }
@@ -646,8 +642,7 @@ public abstract class TwoPhaseCommitSinkFunction<IN, TXN, CONTEXT> extends RichS
 
             TransactionHolder<?> that = (TransactionHolder<?>) o;
 
-            return transactionStartTime == that.transactionStartTime
-                    && Objects.equals(handle, that.handle);
+            return transactionStartTime == that.transactionStartTime && Objects.equals(handle, that.handle);
         }
 
         @Override
@@ -659,20 +654,14 @@ public abstract class TwoPhaseCommitSinkFunction<IN, TXN, CONTEXT> extends RichS
 
         @Override
         public String toString() {
-            return "TransactionHolder{"
-                    + "handle="
-                    + handle
-                    + ", transactionStartTime="
-                    + transactionStartTime
-                    + '}';
+            return "TransactionHolder{" + "handle=" + handle + ", transactionStartTime=" + transactionStartTime + '}';
         }
     }
 
     /** Custom {@link TypeSerializer} for the sink state. */
     @VisibleForTesting
     @Internal
-    public static final class StateSerializer<TXN, CONTEXT>
-            extends TypeSerializer<State<TXN, CONTEXT>> {
+    public static final class StateSerializer<TXN, CONTEXT> extends TypeSerializer<State<TXN, CONTEXT>> {
 
         private static final long serialVersionUID = 1L;
 
@@ -680,16 +669,13 @@ public abstract class TwoPhaseCommitSinkFunction<IN, TXN, CONTEXT> extends RichS
         private final TypeSerializer<CONTEXT> contextSerializer;
         private final boolean supportNullPendingTransaction;
 
-        public StateSerializer(
-                TypeSerializer<TXN> transactionSerializer,
-                TypeSerializer<CONTEXT> contextSerializer) {
+        public StateSerializer(TypeSerializer<TXN> transactionSerializer, TypeSerializer<CONTEXT> contextSerializer) {
             this(transactionSerializer, contextSerializer, true);
         }
 
-        public StateSerializer(
-                TypeSerializer<TXN> transactionSerializer,
-                TypeSerializer<CONTEXT> contextSerializer,
-                boolean supportNullPendingTransaction) {
+        public StateSerializer(TypeSerializer<TXN> transactionSerializer,
+                               TypeSerializer<CONTEXT> contextSerializer,
+                               boolean supportNullPendingTransaction) {
             this.transactionSerializer = checkNotNull(transactionSerializer);
             this.contextSerializer = checkNotNull(contextSerializer);
             this.supportNullPendingTransaction = supportNullPendingTransaction;
@@ -702,10 +688,10 @@ public abstract class TwoPhaseCommitSinkFunction<IN, TXN, CONTEXT> extends RichS
 
         @Override
         public TypeSerializer<State<TXN, CONTEXT>> duplicate() {
-            return new StateSerializer<>(
-                    transactionSerializer.duplicate(),
+            return new StateSerializer<>(transactionSerializer.duplicate(),
                     contextSerializer.duplicate(),
-                    supportNullPendingTransaction);
+                    supportNullPendingTransaction
+            );
         }
 
         @Override
@@ -717,22 +703,17 @@ public abstract class TwoPhaseCommitSinkFunction<IN, TXN, CONTEXT> extends RichS
         public State<TXN, CONTEXT> copy(State<TXN, CONTEXT> from) {
             final TransactionHolder<TXN> pendingTransaction = from.getPendingTransaction();
             final TransactionHolder<TXN> copiedPendingTransaction =
-                    pendingTransaction == null
-                            ? null
-                            : new TransactionHolder<>(
-                                    transactionSerializer.copy(pendingTransaction.handle),
-                                    pendingTransaction.transactionStartTime);
+                    pendingTransaction == null ? null : new TransactionHolder<>(transactionSerializer.copy(
+                            pendingTransaction.handle), pendingTransaction.transactionStartTime);
 
             final List<TransactionHolder<TXN>> copiedPendingCommitTransactions = new ArrayList<>();
             for (TransactionHolder<TXN> txn : from.getPendingCommitTransactions()) {
                 final TXN txnHandleCopy = transactionSerializer.copy(txn.handle);
-                copiedPendingCommitTransactions.add(
-                        new TransactionHolder<>(txnHandleCopy, txn.transactionStartTime));
+                copiedPendingCommitTransactions.add(new TransactionHolder<>(txnHandleCopy, txn.transactionStartTime));
             }
 
             final Optional<CONTEXT> copiedContext = from.getContext().map(contextSerializer::copy);
-            return new State<>(
-                    copiedPendingTransaction, copiedPendingCommitTransactions, copiedContext);
+            return new State<>(copiedPendingTransaction, copiedPendingCommitTransactions, copiedContext);
         }
 
         @Override
@@ -746,13 +727,11 @@ public abstract class TwoPhaseCommitSinkFunction<IN, TXN, CONTEXT> extends RichS
         }
 
         @Override
-        public void serialize(State<TXN, CONTEXT> record, DataOutputView target)
-                throws IOException {
+        public void serialize(State<TXN, CONTEXT> record, DataOutputView target) throws IOException {
             final TransactionHolder<TXN> pendingTransaction = record.getPendingTransaction();
             serializePendingTransaction(pendingTransaction, target);
 
-            final List<TransactionHolder<TXN>> pendingCommitTransactions =
-                    record.getPendingCommitTransactions();
+            final List<TransactionHolder<TXN>> pendingCommitTransactions = record.getPendingCommitTransactions();
             target.writeInt(pendingCommitTransactions.size());
             for (TransactionHolder<TXN> pendingTxn : pendingCommitTransactions) {
                 transactionSerializer.serialize(pendingTxn.handle, target);
@@ -777,8 +756,7 @@ public abstract class TwoPhaseCommitSinkFunction<IN, TXN, CONTEXT> extends RichS
             for (int i = 0; i < numPendingCommitTxns; i++) {
                 final TXN pendingCommitTxnHandle = transactionSerializer.deserialize(source);
                 final long pendingCommitTxnStartTime = source.readLong();
-                pendingCommitTxns.add(
-                        new TransactionHolder<>(pendingCommitTxnHandle, pendingCommitTxnStartTime));
+                pendingCommitTxns.add(new TransactionHolder<>(pendingCommitTxnHandle, pendingCommitTxnStartTime));
             }
 
             Optional<CONTEXT> context = Optional.empty();
@@ -790,16 +768,15 @@ public abstract class TwoPhaseCommitSinkFunction<IN, TXN, CONTEXT> extends RichS
             return new State<>(pendingTxn, pendingCommitTxns, context);
         }
 
-        private void serializePendingTransaction(
-                @Nullable TransactionHolder<TXN> pendingTransaction, DataOutputView target)
-                throws IOException {
+        private void serializePendingTransaction(@Nullable TransactionHolder<TXN> pendingTransaction,
+                                                 DataOutputView target) throws IOException {
             if (supportNullPendingTransaction) {
                 target.writeBoolean(pendingTransaction != null);
             } else {
-                checkState(
-                        pendingTransaction != null,
+                checkState(pendingTransaction != null,
                         "Received null pending transaction while the serializer "
-                                + "does not support null pending transaction.");
+                                + "does not support null pending transaction."
+                );
             }
 
             if (pendingTransaction != null) {
@@ -808,10 +785,8 @@ public abstract class TwoPhaseCommitSinkFunction<IN, TXN, CONTEXT> extends RichS
             }
         }
 
-        private TransactionHolder<TXN> deserializePendingTransaction(DataInputView source)
-                throws IOException {
-            boolean hasPendingTransaction =
-                    supportNullPendingTransaction ? source.readBoolean() : true;
+        private TransactionHolder<TXN> deserializePendingTransaction(DataInputView source) throws IOException {
+            boolean hasPendingTransaction = supportNullPendingTransaction ? source.readBoolean() : true;
 
             if (!hasPendingTransaction) {
                 return null;
@@ -823,8 +798,7 @@ public abstract class TwoPhaseCommitSinkFunction<IN, TXN, CONTEXT> extends RichS
         }
 
         @Override
-        public State<TXN, CONTEXT> deserialize(State<TXN, CONTEXT> reuse, DataInputView source)
-                throws IOException {
+        public State<TXN, CONTEXT> deserialize(State<TXN, CONTEXT> reuse, DataInputView source) throws IOException {
             return deserialize(source);
         }
 
@@ -886,21 +860,20 @@ public abstract class TwoPhaseCommitSinkFunction<IN, TXN, CONTEXT> extends RichS
      * TwoPhaseCommitSinkFunction}.
      *
      * @deprecated this snapshot class is no longer in use, and is maintained only for backwards
-     *     compatibility purposes. It is fully replaced by {@link StateSerializerSnapshot}.
+     *         compatibility purposes. It is fully replaced by {@link StateSerializerSnapshot}.
      */
     @Internal
     @Deprecated
-    public static final class StateSerializerConfigSnapshot<TXN, CONTEXT>
-            extends CompositeTypeSerializerConfigSnapshot<State<TXN, CONTEXT>> {
+    public static final class StateSerializerConfigSnapshot<TXN, CONTEXT> extends CompositeTypeSerializerConfigSnapshot<State<TXN, CONTEXT>> {
 
         private static final int VERSION = 1;
 
         /** This empty nullary constructor is required for deserializing the configuration. */
-        public StateSerializerConfigSnapshot() {}
+        public StateSerializerConfigSnapshot() {
+        }
 
-        public StateSerializerConfigSnapshot(
-                TypeSerializer<TXN> transactionSerializer,
-                TypeSerializer<CONTEXT> contextSerializer) {
+        public StateSerializerConfigSnapshot(TypeSerializer<TXN> transactionSerializer,
+                                             TypeSerializer<CONTEXT> contextSerializer) {
             super(transactionSerializer, contextSerializer);
         }
 
@@ -910,24 +883,23 @@ public abstract class TwoPhaseCommitSinkFunction<IN, TXN, CONTEXT> extends RichS
         }
 
         @Override
-        public TypeSerializerSchemaCompatibility<State<TXN, CONTEXT>> resolveSchemaCompatibility(
-                TypeSerializer<State<TXN, CONTEXT>> newSerializer) {
+        public TypeSerializerSchemaCompatibility<State<TXN, CONTEXT>> resolveSchemaCompatibility(TypeSerializer<State<TXN, CONTEXT>> newSerializer) {
 
-            final TypeSerializerSnapshot<?>[] nestedSnapshots =
-                    getNestedSerializersAndConfigs().stream()
-                            .map(t -> t.f1)
-                            .toArray(TypeSerializerSnapshot[]::new);
+            final TypeSerializerSnapshot<?>[] nestedSnapshots = getNestedSerializersAndConfigs()
+                    .stream()
+                    .map(t -> t.f1)
+                    .toArray(TypeSerializerSnapshot[]::new);
 
-            return CompositeTypeSerializerUtil.delegateCompatibilityCheckToNewSnapshot(
-                    newSerializer, new StateSerializerSnapshot<>(), nestedSnapshots);
+            return CompositeTypeSerializerUtil.delegateCompatibilityCheckToNewSnapshot(newSerializer,
+                    new StateSerializerSnapshot<>(),
+                    nestedSnapshots
+            );
         }
     }
 
     /** Snapshot for the {@link StateSerializer}. */
     @Internal
-    public static final class StateSerializerSnapshot<TXN, CONTEXT>
-            extends CompositeTypeSerializerSnapshot<
-                    State<TXN, CONTEXT>, StateSerializer<TXN, CONTEXT>> {
+    public static final class StateSerializerSnapshot<TXN, CONTEXT> extends CompositeTypeSerializerSnapshot<State<TXN, CONTEXT>, StateSerializer<TXN, CONTEXT>> {
 
         private static final int VERSION = 3;
 
@@ -950,15 +922,14 @@ public abstract class TwoPhaseCommitSinkFunction<IN, TXN, CONTEXT> extends RichS
         }
 
         @Override
-        protected void readOuterSnapshot(
-                int readOuterSnapshotVersion, DataInputView in, ClassLoader userCodeClassLoader)
-                throws IOException {
+        protected void readOuterSnapshot(int readOuterSnapshotVersion,
+                                         DataInputView in,
+                                         ClassLoader userCodeClassLoader) throws IOException {
             readVersion = readOuterSnapshotVersion;
         }
 
         @Override
-        protected OuterSchemaCompatibility resolveOuterSchemaCompatibility(
-                StateSerializer<TXN, CONTEXT> newSerializer) {
+        protected OuterSchemaCompatibility resolveOuterSchemaCompatibility(StateSerializer<TXN, CONTEXT> newSerializer) {
             if (readVersion < FIRST_VERSION_SUPPORTING_NULL_TRANSACTIONS) {
                 return OuterSchemaCompatibility.COMPATIBLE_AFTER_MIGRATION;
             }
@@ -967,28 +938,22 @@ public abstract class TwoPhaseCommitSinkFunction<IN, TXN, CONTEXT> extends RichS
         }
 
         @Override
-        protected StateSerializer<TXN, CONTEXT> createOuterSerializerWithNestedSerializers(
-                TypeSerializer<?>[] nestedSerializers) {
+        protected StateSerializer<TXN, CONTEXT> createOuterSerializerWithNestedSerializers(TypeSerializer<?>[] nestedSerializers) {
             @SuppressWarnings("unchecked")
-            final TypeSerializer<TXN> transactionSerializer =
-                    (TypeSerializer<TXN>) nestedSerializers[0];
+            final TypeSerializer<TXN> transactionSerializer = (TypeSerializer<TXN>) nestedSerializers[0];
 
             @SuppressWarnings("unchecked")
-            final TypeSerializer<CONTEXT> contextSerializer =
-                    (TypeSerializer<CONTEXT>) nestedSerializers[1];
+            final TypeSerializer<CONTEXT> contextSerializer = (TypeSerializer<CONTEXT>) nestedSerializers[1];
 
-            return new StateSerializer<>(
-                    transactionSerializer,
+            return new StateSerializer<>(transactionSerializer,
                     contextSerializer,
-                    readVersion >= FIRST_VERSION_SUPPORTING_NULL_TRANSACTIONS);
+                    readVersion >= FIRST_VERSION_SUPPORTING_NULL_TRANSACTIONS
+            );
         }
 
         @Override
-        protected TypeSerializer<?>[] getNestedSerializers(
-                StateSerializer<TXN, CONTEXT> outerSerializer) {
-            return new TypeSerializer<?>[] {
-                outerSerializer.transactionSerializer, outerSerializer.contextSerializer
-            };
+        protected TypeSerializer<?>[] getNestedSerializers(StateSerializer<TXN, CONTEXT> outerSerializer) {
+            return new TypeSerializer<?>[]{outerSerializer.transactionSerializer, outerSerializer.contextSerializer};
         }
     }
 }

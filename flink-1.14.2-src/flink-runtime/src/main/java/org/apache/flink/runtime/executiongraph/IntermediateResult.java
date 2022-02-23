@@ -83,6 +83,10 @@ public class IntermediateResult {
         checkArgument(numParallelProducers >= 1);
         this.numParallelProducers = numParallelProducers;
 
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释： 一个 IntermediateResult 根据并行度会生成多个 IntermediateResultPartition
+         */
         this.partitions = new IntermediateResultPartition[numParallelProducers];
 
         // we do not set the intermediate result partitions here, because we let them be initialized
@@ -98,6 +102,10 @@ public class IntermediateResult {
         this.shuffleDescriptorCache = new HashMap<>();
     }
 
+    /*************************************************
+     * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+     *  注释： 注册
+     */
     public void setPartition(int partitionNumber, IntermediateResultPartition partition) {
         if (partition == null || partitionNumber < 0 || partitionNumber >= numParallelProducers) {
             throw new IllegalArgumentException();
@@ -107,7 +115,9 @@ public class IntermediateResult {
             throw new IllegalStateException("Partition #" + partitionNumber + " has already been assigned.");
         }
 
+        // TODO_MA 马中华 注释： 注册登记
         partitions[partitionNumber] = partition;
+
         partitionLookupHelper.put(partition.getPartitionId(), partitionNumber);
         partitionsAssigned++;
     }

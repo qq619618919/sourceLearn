@@ -110,20 +110,23 @@ public class ZooKeeperLeaderElectionDriver implements LeaderElectionDriver, Lead
          * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
          *  注释： curator 框架提供的一个 选举组价
          *  LeaderLatch 这个组件的工作机制
-         *  1、LeaderLatch 选举成功  isLeader
-         *  2、LeaderLatch 选举失败  notLeader
+         *  1、LeaderLatch 选举成功  isLeader()
+         *  2、LeaderLatch 选举失败  notLeader()
          */
         leaderLatch = new LeaderLatch(client, leaderLatchPath);
 
         /*************************************************
          * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-         *  注释：
+         *  注释： 创建 TreeCache 用来执行监听
          */
         this.cache = ZooKeeperUtils.createTreeCache(client,
                 connectionInformationPath,
+                // TODO_MA 马中华 注释： 这是监听
                 this::retrieveLeaderInformationFromZooKeeper
         );
 
+        // TODO_MA 马中华 注释： 链接监听
+        // TODO_MA 马中华 注释： 如果链接发生了什么事，最终回调 this.unhandledError()
         client.getUnhandledErrorListenable().addListener(this);
 
         running = true;
@@ -141,12 +144,17 @@ public class ZooKeeperLeaderElectionDriver implements LeaderElectionDriver, Lead
 
         /*************************************************
          * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-         *  注释：
+         *  注释： 启动监听
          */
         cache.start();
 
         client.getConnectionStateListenable().addListener(listener);
     }
+
+    // TODO_MA 马中华 注释： ZooKeeperLeaderElectionDriver 和 ZooKeeperLeaderRetrievalDriver 的结构是几乎类似的，
+    // TODO_MA 马中华 注释： 前者用来进行 选举， 后者用来进行 监听， 内部通过 Curator 的 LeaderLactch 和 TreeCache 来实现完成。
+    // TODO_MA 马中华 注释： 监听响应，则回调 Driver 的 retrieveLeaderInformationFromZooKeeper 方法，
+    // TODO_MA 马中华 注释： 选举响应，则回调 isLeader 或者 notLeader 方法。
 
     @Override
     public void close() throws Exception {
@@ -206,7 +214,11 @@ public class ZooKeeperLeaderElectionDriver implements LeaderElectionDriver, Lead
 
     private void retrieveLeaderInformationFromZooKeeper() throws Exception {
         if (leaderLatch.hasLeadership()) {
+
+            // TODO_MA 马中华 注释： 获取数据
             ChildData childData = cache.getCurrentData(connectionInformationPath);
+
+            // TODO_MA 马中华 注释： 如果数据存在
             if (childData != null) {
                 final byte[] data = childData.getData();
                 if (data != null && data.length > 0) {
@@ -216,12 +228,20 @@ public class ZooKeeperLeaderElectionDriver implements LeaderElectionDriver, Lead
                     final String leaderAddress = ois.readUTF();
                     final UUID leaderSessionID = (UUID) ois.readObject();
 
+                    /*************************************************
+                     * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+                     *  注释：
+                     */
                     leaderElectionEventHandler.onLeaderInformationChange(LeaderInformation.known(leaderSessionID,
                             leaderAddress
                     ));
                     return;
                 }
             }
+            /*************************************************
+             * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+             *  注释：
+             */
             leaderElectionEventHandler.onLeaderInformationChange(LeaderInformation.empty());
         }
     }

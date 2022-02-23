@@ -266,7 +266,7 @@ public class SingleInputGate extends IndexedInputGate {
 
         /*************************************************
          * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-         *  注释：
+         *  注释： 获取 BufferPool = LocalBufferPool
          */
         BufferPool bufferPool = bufferPoolFactory.get();
         setBufferPool(bufferPool);
@@ -306,7 +306,16 @@ public class SingleInputGate extends IndexedInputGate {
                             + "channels [%s].", inputChannels.size(), numberOfInputChannels));
                 }
 
+                /*************************************************
+                 * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+                 *  注释：
+                 */
                 convertRecoveredInputChannels();
+
+                /*************************************************
+                 * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+                 *  注释：
+                 */
                 internalRequestPartitions();
             }
 
@@ -317,10 +326,15 @@ public class SingleInputGate extends IndexedInputGate {
     @VisibleForTesting
     public void convertRecoveredInputChannels() {
         LOG.debug("Converting recovered input channels ({} channels)", getNumberOfInputChannels());
+        // TODO_MA 马中华 注释：
         for (Map.Entry<IntermediateResultPartitionID, InputChannel> entry : inputChannels.entrySet()) {
             InputChannel inputChannel = entry.getValue();
             if (inputChannel instanceof RecoveredInputChannel) {
                 try {
+                    /*************************************************
+                     * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+                     *  注释：
+                     */
                     InputChannel realInputChannel = ((RecoveredInputChannel) inputChannel).toInputChannel();
                     inputChannel.releaseAllResources();
                     entry.setValue(realInputChannel);
@@ -334,8 +348,14 @@ public class SingleInputGate extends IndexedInputGate {
     }
 
     private void internalRequestPartitions() {
+
+        // TODO_MA 马中华 注释： 遍历每个 InputChannel
         for (InputChannel inputChannel : inputChannels.values()) {
             try {
+                /*************************************************
+                 * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+                 *  注释： 去链接上游 NettyServer
+                 */
                 inputChannel.requestSubpartition(consumedSubpartitionIndex);
             } catch (Throwable t) {
                 inputChannel.setError(t);
@@ -469,6 +489,7 @@ public class SingleInputGate extends IndexedInputGate {
 
         // First allocate a single floating buffer to avoid potential deadlock when the exclusive
         // buffer is 0. See FLINK-24035 for more information.
+        // TODO_MA 马中华 注释：
         bufferPool.reserveSegments(1);
 
         // Next allocate the exclusive buffers per channel when the number of exclusive buffer is
@@ -476,13 +497,14 @@ public class SingleInputGate extends IndexedInputGate {
         synchronized (requestLock) {
             /*************************************************
              * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-             *  注释：
+             *  注释： 遍历每个 InputChannel 启动
              */
             for (InputChannel inputChannel : inputChannels.values()) {
 
                 /*************************************************
                  * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-                 *  注释：
+                 *  注释： 给每个 InputChannel 申请 2 个独家使用的 NetworkBuffer
+                 *  注意是从 NetworkBufferPool 的 队列中申请的，每个 NetworkBuffer = 32k
                  */
                 inputChannel.setup();
             }
@@ -661,6 +683,11 @@ public class SingleInputGate extends IndexedInputGate {
 
     @Override
     public Optional<BufferOrEvent> pollNext() throws IOException, InterruptedException {
+
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释：
+         */
         return getNextBufferOrEvent(false);
     }
 
@@ -673,11 +700,17 @@ public class SingleInputGate extends IndexedInputGate {
             throw new CancelTaskException("Input gate is already closed.");
         }
 
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释：
+         */
         Optional<InputWithData<InputChannel, BufferAndAvailability>> next = waitAndGetNextData(blocking);
+
         if (!next.isPresent()) {
             return Optional.empty();
         }
 
+        // TODO_MA 马中华 注释： 拿到数据
         InputWithData<InputChannel, BufferAndAvailability> inputWithData = next.get();
         return Optional.of(transformToBufferOrEvent(inputWithData.data.buffer(),
                 inputWithData.moreAvailable,
@@ -687,14 +720,26 @@ public class SingleInputGate extends IndexedInputGate {
     }
 
     private Optional<InputWithData<InputChannel, BufferAndAvailability>> waitAndGetNextData(boolean blocking) throws IOException, InterruptedException {
+
+        // TODO_MA 马中华 注释：
         while (true) {
             synchronized (inputChannelsWithData) {
+
+                /*************************************************
+                 * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+                 *  注释： 获取有数据准备就绪的 InputChannel
+                 */
                 Optional<InputChannel> inputChannelOpt = getChannel(blocking);
                 if (!inputChannelOpt.isPresent()) {
                     return Optional.empty();
                 }
 
                 final InputChannel inputChannel = inputChannelOpt.get();
+
+                /*************************************************
+                 * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+                 *  注释： 从该 InputChannel 中读取出来数据
+                 */
                 Optional<BufferAndAvailability> bufferAndAvailabilityOpt = inputChannel.getNextBuffer();
 
                 if (!bufferAndAvailabilityOpt.isPresent()) {
@@ -702,6 +747,7 @@ public class SingleInputGate extends IndexedInputGate {
                     continue;
                 }
 
+                // TODO_MA 马中华 注释： 将获取到的数据，加入到可用数据队列
                 final BufferAndAvailability bufferAndAvailability = bufferAndAvailabilityOpt.get();
                 if (bufferAndAvailability.moreAvailable()) {
                     // enqueue the inputChannel at the end to avoid starvation
@@ -718,6 +764,7 @@ public class SingleInputGate extends IndexedInputGate {
 
                 checkUnavailability();
 
+                // TODO_MA 马中华 注释： 封装成一个数据： InputWithData
                 return Optional.of(new InputWithData<>(inputChannel,
                         bufferAndAvailability,
                         !inputChannelsWithData.isEmpty(),
@@ -862,6 +909,11 @@ public class SingleInputGate extends IndexedInputGate {
     // ------------------------------------------------------------------------
 
     void notifyChannelNonEmpty(InputChannel channel) {
+
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释：
+         */
         queueChannel(checkNotNull(channel), null, false);
     }
 
@@ -903,7 +955,10 @@ public class SingleInputGate extends IndexedInputGate {
     }
 
     private void queueChannel(InputChannel channel, @Nullable Integer prioritySequenceNumber, boolean forcePriority) {
+
+        // TODO_MA 马中华 注释： 注意： 第二个参数 = inputChannelsWithData
         try (GateNotificationHelper notification = new GateNotificationHelper(this, inputChannelsWithData)) {
+
             synchronized (inputChannelsWithData) {
                 boolean priority = prioritySequenceNumber != null || forcePriority;
 
@@ -916,6 +971,10 @@ public class SingleInputGate extends IndexedInputGate {
                     return;
                 }
 
+                /*************************************************
+                 * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+                 *  注释： 将有数据准备就绪的 InputChannel 加入到 inputChannelsWithData 集合中
+                 */
                 if (!queueChannelUnsafe(channel, priority)) {
                     return;
                 }
@@ -923,6 +982,11 @@ public class SingleInputGate extends IndexedInputGate {
                 if (priority && inputChannelsWithData.getNumPriorityElements() == 1) {
                     notification.notifyPriority();
                 }
+
+                /*************************************************
+                 * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+                 *  注释： 通知 inputChannelsWithData 可用
+                 */
                 if (inputChannelsWithData.size() == 1) {
                     notification.notifyDataAvailable();
                 }
@@ -958,7 +1022,12 @@ public class SingleInputGate extends IndexedInputGate {
             return false;
         }
 
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释： 加入到可用数据队列
+         */
         inputChannelsWithData.add(channel, priority, alreadyEnqueued);
+
         if (!alreadyEnqueued) {
             enqueuedInputChannelsWithData.set(channel.getChannelIndex());
         }
@@ -968,11 +1037,19 @@ public class SingleInputGate extends IndexedInputGate {
     private Optional<InputChannel> getChannel(boolean blocking) throws InterruptedException {
         assert Thread.holdsLock(inputChannelsWithData);
 
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释： 如果没有数据，则等待
+         */
         while (inputChannelsWithData.isEmpty()) {
             if (closeFuture.isDone()) {
                 throw new IllegalStateException("Released");
             }
 
+            /*************************************************
+             * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+             *  注释： 等待
+             */
             if (blocking) {
                 inputChannelsWithData.wait();
             } else {
@@ -981,7 +1058,9 @@ public class SingleInputGate extends IndexedInputGate {
             }
         }
 
+        // TODO_MA 马中华 注释： 获取数据
         InputChannel inputChannel = inputChannelsWithData.poll();
+
         enqueuedInputChannelsWithData.clear(inputChannel.getChannelIndex());
 
         return Optional.of(inputChannel);

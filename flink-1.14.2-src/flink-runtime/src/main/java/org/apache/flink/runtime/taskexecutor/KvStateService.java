@@ -33,6 +33,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
+ * // TODO_MA 马中华 注释： 每个 {@link TaskExecutor} 实例的 KvState 相关组件。该服务可以为单个任务创建 kvState 注册。
  * KvState related components of each {@link TaskExecutor} instance. This service can create the
  * kvState registration for a single task.
  */
@@ -163,45 +164,42 @@ public class KvStateService {
             TaskManagerServicesConfiguration taskManagerServicesConfiguration) {
         KvStateRegistry kvStateRegistry = new KvStateRegistry();
 
-        QueryableStateConfiguration qsConfig =
-                taskManagerServicesConfiguration.getQueryableStateConfig();
+        QueryableStateConfiguration qsConfig = taskManagerServicesConfiguration.getQueryableStateConfig();
 
         KvStateClientProxy kvClientProxy = null;
         KvStateServer kvStateServer = null;
 
         if (qsConfig != null) {
-            int numProxyServerNetworkThreads =
-                    qsConfig.numProxyServerThreads() == 0
-                            ? taskManagerServicesConfiguration.getNumberOfSlots()
-                            : qsConfig.numProxyServerThreads();
-            int numProxyServerQueryThreads =
-                    qsConfig.numProxyQueryThreads() == 0
-                            ? taskManagerServicesConfiguration.getNumberOfSlots()
-                            : qsConfig.numProxyQueryThreads();
-            kvClientProxy =
-                    QueryableStateUtils.createKvStateClientProxy(
-                            taskManagerServicesConfiguration.getExternalAddress(),
-                            qsConfig.getProxyPortRange(),
-                            numProxyServerNetworkThreads,
-                            numProxyServerQueryThreads,
-                            new DisabledKvStateRequestStats());
+            int numProxyServerNetworkThreads = qsConfig.numProxyServerThreads() == 0
+                    ? taskManagerServicesConfiguration.getNumberOfSlots()
+                    : qsConfig.numProxyServerThreads();
 
-            int numStateServerNetworkThreads =
-                    qsConfig.numStateServerThreads() == 0
-                            ? taskManagerServicesConfiguration.getNumberOfSlots()
-                            : qsConfig.numStateServerThreads();
-            int numStateServerQueryThreads =
-                    qsConfig.numStateQueryThreads() == 0
-                            ? taskManagerServicesConfiguration.getNumberOfSlots()
-                            : qsConfig.numStateQueryThreads();
-            kvStateServer =
-                    QueryableStateUtils.createKvStateServer(
-                            taskManagerServicesConfiguration.getExternalAddress(),
-                            qsConfig.getStateServerPortRange(),
-                            numStateServerNetworkThreads,
-                            numStateServerQueryThreads,
-                            kvStateRegistry,
-                            new DisabledKvStateRequestStats());
+            int numProxyServerQueryThreads = qsConfig.numProxyQueryThreads() == 0
+                    ? taskManagerServicesConfiguration.getNumberOfSlots()
+                    : qsConfig.numProxyQueryThreads();
+
+            kvClientProxy = QueryableStateUtils.createKvStateClientProxy(
+                    taskManagerServicesConfiguration.getExternalAddress(),
+                    qsConfig.getProxyPortRange(),
+                    numProxyServerNetworkThreads,
+                    numProxyServerQueryThreads,
+                    new DisabledKvStateRequestStats());
+
+            int numStateServerNetworkThreads = qsConfig.numStateServerThreads() == 0
+                    ? taskManagerServicesConfiguration.getNumberOfSlots()
+                    : qsConfig.numStateServerThreads();
+
+            int numStateServerQueryThreads = qsConfig.numStateQueryThreads() == 0
+                    ? taskManagerServicesConfiguration.getNumberOfSlots()
+                    : qsConfig.numStateQueryThreads();
+
+            kvStateServer = QueryableStateUtils.createKvStateServer(
+                    taskManagerServicesConfiguration.getExternalAddress(),
+                    qsConfig.getStateServerPortRange(),
+                    numStateServerNetworkThreads,
+                    numStateServerQueryThreads,
+                    kvStateRegistry,
+                    new DisabledKvStateRequestStats());
         }
 
         return new KvStateService(kvStateRegistry, kvStateServer, kvClientProxy);

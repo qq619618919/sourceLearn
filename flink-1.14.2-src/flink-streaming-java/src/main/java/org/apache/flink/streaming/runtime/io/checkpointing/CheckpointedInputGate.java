@@ -147,6 +147,11 @@ public class CheckpointedInputGate implements PullingAsyncDataInput<BufferOrEven
 
     @Override
     public Optional<BufferOrEvent> pollNext() throws IOException, InterruptedException {
+
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释：
+         */
         Optional<BufferOrEvent> next = inputGate.pollNext();
 
         if (!next.isPresent()) {
@@ -155,6 +160,10 @@ public class CheckpointedInputGate implements PullingAsyncDataInput<BufferOrEven
 
         BufferOrEvent bufferOrEvent = next.get();
 
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释：
+         */
         if (bufferOrEvent.isEvent()) {
             return handleEvent(bufferOrEvent);
         } else if (bufferOrEvent.isBuffer()) {
@@ -176,18 +185,37 @@ public class CheckpointedInputGate implements PullingAsyncDataInput<BufferOrEven
 
     private Optional<BufferOrEvent> handleEvent(BufferOrEvent bufferOrEvent) throws IOException {
         Class<? extends AbstractEvent> eventClass = bufferOrEvent.getEvent().getClass();
+
+        // TODO_MA 马中华 注释： CheckpointBarrier
         if (eventClass == CheckpointBarrier.class) {
             CheckpointBarrier checkpointBarrier = (CheckpointBarrier) bufferOrEvent.getEvent();
+
+            /*************************************************
+             * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+             *  注释：
+             */
             barrierHandler.processBarrier(checkpointBarrier, bufferOrEvent.getChannelInfo(), false);
-        } else if (eventClass == CancelCheckpointMarker.class) {
+        }
+
+        // TODO_MA 马中华 注释： CancelCheckpointMarker
+        else if (eventClass == CancelCheckpointMarker.class) {
             barrierHandler.processCancellationBarrier(
                     (CancelCheckpointMarker) bufferOrEvent.getEvent(),
                     bufferOrEvent.getChannelInfo());
-        } else if (eventClass == EndOfData.class) {
+        }
+
+        // TODO_MA 马中华 注释： EndOfData
+        else if (eventClass == EndOfData.class) {
             inputGate.acknowledgeAllRecordsProcessed(bufferOrEvent.getChannelInfo());
-        } else if (eventClass == EndOfPartitionEvent.class) {
+        }
+
+        // TODO_MA 马中华 注释： EndOfPartitionEvent
+        else if (eventClass == EndOfPartitionEvent.class) {
             barrierHandler.processEndOfPartition(bufferOrEvent.getChannelInfo());
-        } else if (eventClass == EventAnnouncement.class) {
+        }
+
+        // TODO_MA 马中华 注释： EventAnnouncement
+        else if (eventClass == EventAnnouncement.class) {
             EventAnnouncement eventAnnouncement = (EventAnnouncement) bufferOrEvent.getEvent();
             AbstractEvent announcedEvent = eventAnnouncement.getAnnouncedEvent();
             checkState(
@@ -199,7 +227,10 @@ public class CheckpointedInputGate implements PullingAsyncDataInput<BufferOrEven
                     announcedBarrier,
                     eventAnnouncement.getSequenceNumber(),
                     bufferOrEvent.getChannelInfo());
-        } else if (bufferOrEvent.getEvent().getClass() == EndOfChannelStateEvent.class) {
+        }
+
+        // TODO_MA 马中华 注释： EndOfChannelStateEvent
+        else if (bufferOrEvent.getEvent().getClass() == EndOfChannelStateEvent.class) {
             upstreamRecoveryTracker.handleEndOfRecovery(bufferOrEvent.getChannelInfo());
         }
         return Optional.of(bufferOrEvent);

@@ -44,8 +44,7 @@ public class CheckpointStorageLoader {
 
     private static final String FILE_SYSTEM_STORAGE_NAME = "filesystem";
 
-    private static final String LEGACY_PRECEDENCE_LOG_MESSAGE =
-            "Legacy state backends can also be used as checkpoint storage and take precedence for backward-compatibility reasons.";
+    private static final String LEGACY_PRECEDENCE_LOG_MESSAGE = "Legacy state backends can also be used as checkpoint storage and take precedence for backward-compatibility reasons.";
 
     /**
      * Loads the checkpoint storage from the configuration, from the parameter
@@ -62,15 +61,17 @@ public class CheckpointStorageLoader {
      * @param config The configuration to load the checkpoint storage from
      * @param classLoader The class loader that should be used to load the checkpoint storage
      * @param logger Optionally, a logger to log actions to (may be null)
+     *
      * @return The instantiated checkpoint storage.
+     *
      * @throws DynamicCodeLoadingException Thrown if a checkpoint storage factory is configured and
-     *     the factory class was not found or the factory could not be instantiated
+     *         the factory class was not found or the factory could not be instantiated
      * @throws IllegalConfigurationException May be thrown by the CheckpointStorageFactory when
-     *     creating / configuring the checkpoint storage in the factory
+     *         creating / configuring the checkpoint storage in the factory
      */
-    public static Optional<CheckpointStorage> fromConfig(
-            ReadableConfig config, ClassLoader classLoader, @Nullable Logger logger)
-            throws IllegalStateException, DynamicCodeLoadingException {
+    public static Optional<CheckpointStorage> fromConfig(ReadableConfig config,
+                                                         ClassLoader classLoader,
+                                                         @Nullable Logger logger) throws IllegalStateException, DynamicCodeLoadingException {
 
         Preconditions.checkNotNull(config, "config");
         Preconditions.checkNotNull(classLoader, "classLoader");
@@ -78,13 +79,11 @@ public class CheckpointStorageLoader {
         final String storageName = config.get(CheckpointingOptions.CHECKPOINT_STORAGE);
         if (storageName == null) {
             if (logger != null) {
-                logger.debug(
-                        "The configuration {} has not be set in the current"
-                                + " sessions flink-conf.yaml. Falling back to a default CheckpointStorage"
-                                + " type. Users are strongly encouraged explicitly set this configuration"
-                                + " so they understand how their applications are checkpointing"
-                                + " snapshots for fault-tolerance.",
-                        CheckpointingOptions.CHECKPOINT_STORAGE.key());
+                logger.debug("The configuration {} has not be set in the current"
+                        + " sessions flink-conf.yaml. Falling back to a default CheckpointStorage"
+                        + " type. Users are strongly encouraged explicitly set this configuration"
+                        + " so they understand how their applications are checkpointing"
+                        + " snapshots for fault-tolerance.", CheckpointingOptions.CHECKPOINT_STORAGE.key());
             }
             return Optional.empty();
         }
@@ -103,24 +102,18 @@ public class CheckpointStorageLoader {
 
                 CheckpointStorageFactory<?> factory;
                 try {
-                    @SuppressWarnings("rawtypes")
-                    Class<? extends CheckpointStorageFactory> clazz =
-                            Class.forName(storageName, false, classLoader)
-                                    .asSubclass(CheckpointStorageFactory.class);
+                    @SuppressWarnings("rawtypes") Class<? extends CheckpointStorageFactory> clazz = Class
+                            .forName(storageName, false, classLoader)
+                            .asSubclass(CheckpointStorageFactory.class);
 
                     factory = clazz.newInstance();
                 } catch (ClassNotFoundException e) {
                     throw new DynamicCodeLoadingException(
-                            "Cannot find configured state backend factory class: " + storageName,
-                            e);
+                            "Cannot find configured state backend factory class: " + storageName, e);
                 } catch (ClassCastException | InstantiationException | IllegalAccessException e) {
                     throw new DynamicCodeLoadingException(
-                            "The class configured under '"
-                                    + CheckpointingOptions.CHECKPOINT_STORAGE.key()
-                                    + "' is not a valid checkpoint storage factory ("
-                                    + storageName
-                                    + ')',
-                            e);
+                            "The class configured under '" + CheckpointingOptions.CHECKPOINT_STORAGE.key()
+                                    + "' is not a valid checkpoint storage factory (" + storageName + ')', e);
                 }
 
                 return Optional.of(factory.createFromConfig(config, classLoader));
@@ -144,25 +137,25 @@ public class CheckpointStorageLoader {
      * <p>4) Load a default {@link CheckpointStorage} instance.
      *
      * @param fromApplication The checkpoint storage instance passed to the jobs
-     *     StreamExecutionEnvironment. Or null if not was set.
+     *         StreamExecutionEnvironment. Or null if not was set.
      * @param configuredStateBackend The jobs configured state backend.
      * @param config The configuration to load the checkpoint storage from.
      * @param classLoader The class loader that should be used to load the checkpoint storage.
      * @param logger Optionally, a logger to log actions to (may be null).
+     *
      * @return The configured checkpoint storage instance.
+     *
      * @throws DynamicCodeLoadingException Thrown if a checkpoint storage factory is configured and
-     *     the factory class was not found or the factory could not be instantiated
+     *         the factory class was not found or the factory could not be instantiated
      * @throws IllegalConfigurationException May be thrown by the CheckpointStorageFactory when
-     *     creating / configuring the checkpoint storage in the factory
+     *         creating / configuring the checkpoint storage in the factory
      */
-    public static CheckpointStorage load(
-            @Nullable CheckpointStorage fromApplication,
-            @Nullable Path defaultSavepointDirectory,
-            StateBackend configuredStateBackend,
-            Configuration config,
-            ClassLoader classLoader,
-            @Nullable Logger logger)
-            throws IllegalConfigurationException, DynamicCodeLoadingException {
+    public static CheckpointStorage load(@Nullable CheckpointStorage fromApplication,
+                                         @Nullable Path defaultSavepointDirectory,
+                                         StateBackend configuredStateBackend,
+                                         Configuration config,
+                                         ClassLoader classLoader,
+                                         @Nullable Logger logger) throws IllegalConfigurationException, DynamicCodeLoadingException {
 
         Preconditions.checkNotNull(config, "config");
         Preconditions.checkNotNull(classLoader, "classLoader");
@@ -174,34 +167,28 @@ public class CheckpointStorageLoader {
             // us to pass this value to the CheckpointStorage instance
             // where it is needed at runtime while keeping its API logically
             // separated for users.
-            config.set(
-                    CheckpointingOptions.SAVEPOINT_DIRECTORY, defaultSavepointDirectory.toString());
+            config.set(CheckpointingOptions.SAVEPOINT_DIRECTORY, defaultSavepointDirectory.toString());
         }
 
         // Legacy state backends always take precedence for backwards compatibility.
-        StateBackend rootStateBackend =
-                (configuredStateBackend instanceof DelegatingStateBackend)
-                        ? ((DelegatingStateBackend) configuredStateBackend)
-                                .getDelegatedStateBackend()
-                        : configuredStateBackend;
+        StateBackend rootStateBackend = (configuredStateBackend instanceof DelegatingStateBackend) ? ((DelegatingStateBackend) configuredStateBackend).getDelegatedStateBackend() : configuredStateBackend;
 
         if (rootStateBackend instanceof CheckpointStorage) {
             if (logger != null) {
-                logger.info(
-                        "Using legacy state backend {} as Job checkpoint storage",
-                        rootStateBackend);
+                logger.info("Using legacy state backend {} as Job checkpoint storage", rootStateBackend);
                 if (fromApplication != null) {
                     logger.warn(
                             "Checkpoint storage passed via StreamExecutionEnvironment is ignored because legacy state backend '{}' is used. {}",
                             rootStateBackend.getClass().getName(),
-                            LEGACY_PRECEDENCE_LOG_MESSAGE);
+                            LEGACY_PRECEDENCE_LOG_MESSAGE
+                    );
                 }
                 if (config.get(CheckpointingOptions.CHECKPOINT_STORAGE) != null) {
-                    logger.warn(
-                            "Config option '{}' is ignored because legacy state backend '{}' is used. {}",
+                    logger.warn("Config option '{}' is ignored because legacy state backend '{}' is used. {}",
                             CheckpointingOptions.CHECKPOINT_STORAGE.key(),
                             rootStateBackend.getClass().getName(),
-                            LEGACY_PRECEDENCE_LOG_MESSAGE);
+                            LEGACY_PRECEDENCE_LOG_MESSAGE
+                    );
                 }
             }
             return (CheckpointStorage) rootStateBackend;
@@ -210,17 +197,17 @@ public class CheckpointStorageLoader {
         if (fromApplication != null) {
             if (fromApplication instanceof ConfigurableCheckpointStorage) {
                 if (logger != null) {
-                    logger.info(
-                            "Using job/cluster config to configure application-defined checkpoint storage: {}",
-                            fromApplication);
+                    logger.info("Using job/cluster config to configure application-defined checkpoint storage: {}",
+                            fromApplication
+                    );
                     if (config.get(CheckpointingOptions.CHECKPOINT_STORAGE) != null) {
                         logger.warn(
                                 "Config option '{}' is ignored because the checkpoint storage passed via StreamExecutionEnvironment takes precedence.",
-                                CheckpointingOptions.CHECKPOINT_STORAGE.key());
+                                CheckpointingOptions.CHECKPOINT_STORAGE.key()
+                        );
                     }
                 }
-                return ((ConfigurableCheckpointStorage) fromApplication)
-                        .configure(config, classLoader);
+                return ((ConfigurableCheckpointStorage) fromApplication).configure(config, classLoader);
             }
             if (logger != null) {
                 logger.info("Using application defined checkpoint storage: {}", fromApplication);
@@ -228,8 +215,14 @@ public class CheckpointStorageLoader {
             return fromApplication;
         }
 
-        return fromConfig(config, classLoader, logger)
-                .orElseGet(() -> createDefaultCheckpointStorage(config, classLoader, logger));
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释：
+         */
+        return fromConfig(config, classLoader, logger).orElseGet(() -> createDefaultCheckpointStorage(config,
+                classLoader,
+                logger
+        ));
     }
 
     /**
@@ -241,35 +234,52 @@ public class CheckpointStorageLoader {
      * @param config The configuration to load the checkpoint storage from
      * @param classLoader The class loader that should be used to load the checkpoint storage
      * @param logger Optionally, a logger to log actions to (may be null)
+     *
      * @return The instantiated checkpoint storage.
+     *
      * @throws IllegalConfigurationException May be thrown by the CheckpointStorageFactory when
-     *     creating / configuring the checkpoint storage in the factory.
+     *         creating / configuring the checkpoint storage in the factory.
      */
-    private static CheckpointStorage createDefaultCheckpointStorage(
-            ReadableConfig config, ClassLoader classLoader, @Nullable Logger logger) {
+    private static CheckpointStorage createDefaultCheckpointStorage(ReadableConfig config,
+                                                                    ClassLoader classLoader,
+                                                                    @Nullable Logger logger) {
 
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释： state.checkpoints.dir
+         */
         if (config.getOptional(CheckpointingOptions.CHECKPOINTS_DIRECTORY).isPresent()) {
             return createFileSystemCheckpointStorage(config, classLoader, logger);
         }
 
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释：
+         */
         return createJobManagerCheckpointStorage(config, classLoader, logger);
     }
 
-    private static CheckpointStorage createFileSystemCheckpointStorage(
-            ReadableConfig config, ClassLoader classLoader, @Nullable Logger logger) {
-        FileSystemCheckpointStorage storage =
-                FileSystemCheckpointStorage.createFromConfig(config, classLoader);
+    private static CheckpointStorage createFileSystemCheckpointStorage(ReadableConfig config,
+                                                                       ClassLoader classLoader,
+                                                                       @Nullable Logger logger) {
+
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释：
+         */
+        FileSystemCheckpointStorage storage = FileSystemCheckpointStorage.createFromConfig(config, classLoader);
         if (logger != null) {
-            logger.info(
-                    "Checkpoint storage is set to '{}': (checkpoints \"{}\")",
+            logger.info("Checkpoint storage is set to '{}': (checkpoints \"{}\")",
                     FILE_SYSTEM_STORAGE_NAME,
-                    storage.getCheckpointPath());
+                    storage.getCheckpointPath()
+            );
         }
         return storage;
     }
 
-    private static CheckpointStorage createJobManagerCheckpointStorage(
-            ReadableConfig config, ClassLoader classLoader, @Nullable Logger logger) {
+    private static CheckpointStorage createJobManagerCheckpointStorage(ReadableConfig config,
+                                                                       ClassLoader classLoader,
+                                                                       @Nullable Logger logger) {
         if (logger != null) {
             logger.info("Checkpoint storage is set to '{}'", JOB_MANAGER_STORAGE_NAME);
         }

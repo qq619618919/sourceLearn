@@ -494,7 +494,9 @@ public class ResourceProfile implements Serializable {
         return resourceStr;
     }
 
-    private static String addMemorySizeString(String resourceStr, String name, MemorySize size) {
+    private static String addMemorySizeString(String resourceStr,
+                                              String name,
+                                              MemorySize size) {
         String comma = resourceStr.isEmpty() ? "" : ", ";
         String memorySizeStr = size == null || size.compareTo(MAX_MEMORY_SIZE_TO_LOG) > 0 ? "" :
                 comma + name + '=' + size.toHumanReadableString();
@@ -528,7 +530,8 @@ public class ResourceProfile implements Serializable {
         return fromResourceSpec(resourceSpec, MemorySize.ZERO);
     }
 
-    public static ResourceProfile fromResourceSpec(ResourceSpec resourceSpec, MemorySize networkMemory) {
+    public static ResourceProfile fromResourceSpec(ResourceSpec resourceSpec,
+                                                   MemorySize networkMemory) {
         if (ResourceSpec.UNKNOWN.equals(resourceSpec)) {
             return UNKNOWN;
         }
@@ -544,7 +547,8 @@ public class ResourceProfile implements Serializable {
     }
 
     @VisibleForTesting
-    public static ResourceProfile fromResources(final double cpuCores, final int taskHeapMemoryMB) {
+    public static ResourceProfile fromResources(final double cpuCores,
+                                                final int taskHeapMemoryMB) {
         return newBuilder().setCpuCores(cpuCores).setTaskHeapMemoryMB(taskHeapMemoryMB).build();
     }
 

@@ -69,39 +69,38 @@ public class StreamingRuntimeContext extends AbstractRuntimeUDFContext {
     private final StreamConfig streamConfig;
     private final String operatorUniqueID;
     private final ProcessingTimeService processingTimeService;
-    private @Nullable KeyedStateStore keyedStateStore;
+    private @Nullable
+    KeyedStateStore keyedStateStore;
     private final ExternalResourceInfoProvider externalResourceInfoProvider;
 
     @VisibleForTesting
-    public StreamingRuntimeContext(
-            AbstractStreamOperator<?> operator,
-            Environment env,
-            Map<String, Accumulator<?, ?>> accumulators) {
-        this(
-                env,
+    public StreamingRuntimeContext(AbstractStreamOperator<?> operator,
+                                   Environment env,
+                                   Map<String, Accumulator<?, ?>> accumulators) {
+        this(env,
                 accumulators,
                 operator.getMetricGroup(),
                 operator.getOperatorID(),
                 operator.getProcessingTimeService(),
                 operator.getKeyedStateStore(),
-                env.getExternalResourceInfoProvider());
+                env.getExternalResourceInfoProvider()
+        );
     }
 
-    public StreamingRuntimeContext(
-            Environment env,
-            Map<String, Accumulator<?, ?>> accumulators,
-            OperatorMetricGroup operatorMetricGroup,
-            OperatorID operatorID,
-            ProcessingTimeService processingTimeService,
-            @Nullable KeyedStateStore keyedStateStore,
-            ExternalResourceInfoProvider externalResourceInfoProvider) {
-        super(
-                checkNotNull(env).getTaskInfo(),
+    public StreamingRuntimeContext(Environment env,
+                                   Map<String, Accumulator<?, ?>> accumulators,
+                                   OperatorMetricGroup operatorMetricGroup,
+                                   OperatorID operatorID,
+                                   ProcessingTimeService processingTimeService,
+                                   @Nullable KeyedStateStore keyedStateStore,
+                                   ExternalResourceInfoProvider externalResourceInfoProvider) {
+        super(checkNotNull(env).getTaskInfo(),
                 env.getUserCodeClassLoader(),
                 env.getExecutionConfig(),
                 accumulators,
                 env.getDistributedCacheEntries(),
-                operatorMetricGroup);
+                operatorMetricGroup
+        );
         this.taskEnvironment = env;
         this.streamConfig = new StreamConfig(env.getTaskConfiguration());
         this.operatorUniqueID = checkNotNull(operatorID).toString();
@@ -175,21 +174,17 @@ public class StreamingRuntimeContext extends AbstractRuntimeUDFContext {
 
     @Override
     public boolean hasBroadcastVariable(String name) {
-        throw new UnsupportedOperationException(
-                "Broadcast variables can only be used in DataSet programs");
+        throw new UnsupportedOperationException("Broadcast variables can only be used in DataSet programs");
     }
 
     @Override
     public <RT> List<RT> getBroadcastVariable(String name) {
-        throw new UnsupportedOperationException(
-                "Broadcast variables can only be used in DataSet programs");
+        throw new UnsupportedOperationException("Broadcast variables can only be used in DataSet programs");
     }
 
     @Override
-    public <T, C> C getBroadcastVariableWithInitializer(
-            String name, BroadcastVariableInitializer<T, C> initializer) {
-        throw new UnsupportedOperationException(
-                "Broadcast variables can only be used in DataSet programs");
+    public <T, C> C getBroadcastVariableWithInitializer(String name, BroadcastVariableInitializer<T, C> initializer) {
+        throw new UnsupportedOperationException("Broadcast variables can only be used in DataSet programs");
     }
 
     // ------------------------------------------------------------------------
@@ -218,8 +213,7 @@ public class StreamingRuntimeContext extends AbstractRuntimeUDFContext {
     }
 
     @Override
-    public <IN, ACC, OUT> AggregatingState<IN, OUT> getAggregatingState(
-            AggregatingStateDescriptor<IN, ACC, OUT> stateProperties) {
+    public <IN, ACC, OUT> AggregatingState<IN, OUT> getAggregatingState(AggregatingStateDescriptor<IN, ACC, OUT> stateProperties) {
         KeyedStateStore keyedStateStore = checkPreconditionsAndGetKeyedStateStore(stateProperties);
         stateProperties.initializeSerializerUnlessSet(getExecutionConfig());
         return keyedStateStore.getAggregatingState(stateProperties);
@@ -232,12 +226,11 @@ public class StreamingRuntimeContext extends AbstractRuntimeUDFContext {
         return keyedStateStore.getMapState(stateProperties);
     }
 
-    private KeyedStateStore checkPreconditionsAndGetKeyedStateStore(
-            StateDescriptor<?, ?> stateDescriptor) {
+    private KeyedStateStore checkPreconditionsAndGetKeyedStateStore(StateDescriptor<?, ?> stateDescriptor) {
         checkNotNull(stateDescriptor, "The state properties must not be null");
-        checkNotNull(
-                keyedStateStore,
-                "Keyed state can only be used on a 'keyed stream', i.e., after a 'keyBy()' operation.");
+        checkNotNull(keyedStateStore,
+                "Keyed state can only be used on a 'keyed stream', i.e., after a 'keyBy()' operation."
+        );
         return keyedStateStore;
     }
 

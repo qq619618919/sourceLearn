@@ -951,6 +951,8 @@ public class JobGraphGenerator implements Visitor<PlanNode> {
             // create task vertex
             vertex = new JobVertex(taskName);
             vertex.setResources(node.getMinResources(), node.getPreferredResources());
+
+            // TODO_MA 马中华 注释： 批处理
             vertex.setInvokableClass(
                     (this.currentIteration != null && node.isOnDynamicPath())
                             ? IterationIntermediateTask.class

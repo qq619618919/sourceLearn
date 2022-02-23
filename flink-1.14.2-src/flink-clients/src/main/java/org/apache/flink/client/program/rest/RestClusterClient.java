@@ -146,17 +146,19 @@ public class RestClusterClient<T> implements ClusterClient<T> {
     private final RestClient restClient;
 
     private final ExecutorService executorService = Executors.newFixedThreadPool(4,
-            new ExecutorThreadFactory("Flink-RestClusterClient-IO")
-    );
+            new ExecutorThreadFactory("Flink-RestClusterClient-IO"));
 
     private final WaitStrategy waitStrategy;
 
     private final T clusterId;
 
+    // TODO_MA 马中华 注释：
     private final ClientHighAvailabilityServices clientHAServices;
 
+    // TODO_MA 马中华 注释：
     private final LeaderRetrievalService webMonitorRetrievalService;
 
+    // TODO_MA 马中华 注释：
     private final LeaderRetriever webMonitorLeaderRetriever = new LeaderRetriever();
 
     private final AtomicBoolean running = new AtomicBoolean(true);
@@ -164,17 +166,25 @@ public class RestClusterClient<T> implements ClusterClient<T> {
     /** ExecutorService to run operations that can be retried on exceptions. */
     private final ScheduledExecutorService retryExecutorService;
 
-    private final Predicate<Throwable> unknownJobStateRetryable = exception -> ExceptionUtils
-            .findThrowable(exception, JobStateUnknownException.class)
-            .isPresent();
+    private final Predicate<Throwable> unknownJobStateRetryable = exception -> ExceptionUtils.findThrowable(exception,
+            JobStateUnknownException.class).isPresent();
 
-    public RestClusterClient(Configuration config, T clusterId) throws Exception {
+    public RestClusterClient(Configuration config,
+                             T clusterId) throws Exception {
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释：
+         */
         this(config, clusterId, DefaultClientHighAvailabilityServicesFactory.INSTANCE);
     }
 
     public RestClusterClient(Configuration config,
                              T clusterId,
                              ClientHighAvailabilityServicesFactory factory) throws Exception {
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释：
+         */
         this(config, null, clusterId, new ExponentialWaitStrategy(10L, 2000L), factory);
     }
 
@@ -193,8 +203,14 @@ public class RestClusterClient<T> implements ClusterClient<T> {
                               ClientHighAvailabilityServicesFactory clientHAServicesFactory) throws Exception {
         this.configuration = checkNotNull(configuration);
 
+        // TODO_MA 马中华 注释： 配置信息
         this.restClusterClientConfiguration = RestClusterClientConfiguration.fromConfiguration(configuration);
 
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释： 创建一个 RestClient
+         *  netty 客户端， restful 客户端
+         */
         if (restClient != null) {
             this.restClient = restClient;
         } else {
@@ -204,20 +220,32 @@ public class RestClusterClient<T> implements ClusterClient<T> {
         this.waitStrategy = checkNotNull(waitStrategy);
         this.clusterId = checkNotNull(clusterId);
 
-        this.clientHAServices = clientHAServicesFactory.create(configuration,
-                exception -> webMonitorLeaderRetriever.handleError(new FlinkException(
-                        "Fatal error happened with client HA " + "services.",
-                        exception
-                ))
-        );
+        // TODO_MA 马中华 注释： ZooKeeperClientHAServices
+        this.clientHAServices = clientHAServicesFactory.create(configuration, exception -> webMonitorLeaderRetriever.handleError(
+                new FlinkException("Fatal error happened with client HA " + "services.", exception)));
 
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释： DefaultLeaderRetrievalService
+         */
         this.webMonitorRetrievalService = clientHAServices.getClusterRestEndpointLeaderRetriever();
-        this.retryExecutorService = Executors.newSingleThreadScheduledExecutor(new ExecutorThreadFactory(
-                "Flink-RestClusterClient-Retry"));
+
+        // TODO_MA 马中华 注释：
+        this.retryExecutorService = Executors.newSingleThreadScheduledExecutor(
+                new ExecutorThreadFactory("Flink-RestClusterClient-Retry"));
+
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释：
+         */
         startLeaderRetrievers();
     }
 
     private void startLeaderRetrievers() throws Exception {
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释： DefaultLeaderRetrievalService
+         */
         this.webMonitorRetrievalService.start(webMonitorLeaderRetriever);
     }
 
@@ -229,10 +257,8 @@ public class RestClusterClient<T> implements ClusterClient<T> {
     @Override
     public void close() {
         if (running.compareAndSet(true, false)) {
-            ExecutorUtils.gracefulShutdown(restClusterClientConfiguration.getRetryDelay(),
-                    TimeUnit.MILLISECONDS,
-                    retryExecutorService
-            );
+            ExecutorUtils.gracefulShutdown(restClusterClientConfiguration.getRetryDelay(), TimeUnit.MILLISECONDS,
+                    retryExecutorService);
 
             this.restClient.shutdown(Time.seconds(5));
             ExecutorUtils.gracefulShutdown(5, TimeUnit.SECONDS, this.executorService);
@@ -287,6 +313,13 @@ public class RestClusterClient<T> implements ClusterClient<T> {
         return retry(operation, unknownJobStateRetryable);
     }
 
+    /*************************************************
+     * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+     *  注释： 提交流程：
+     *  1、 把 JobGraph 变成一个文件
+     *  2、 通过 RestClient 提交一个 Http 请求给 主节点（StandaloneSessionClusterEntryPoint）中的 RestServer（WebMonitorEndpoint）
+     *  这个 http 请求体中，包含了这个文件，同时还有 jar 包之类的
+     */
     @Override
     public CompletableFuture<JobID> submitJob(@Nonnull JobGraph jobGraph) {
 
@@ -296,6 +329,8 @@ public class RestClusterClient<T> implements ClusterClient<T> {
          */
         CompletableFuture<java.nio.file.Path> jobGraphFileFuture = CompletableFuture.supplyAsync(() -> {
             try {
+                // TODO_MA 马中华 注释： flink-jobgraph-xxx.bin
+                // TODO_MA 马中华 注释： 将 JobGraph 序列化到这个文件中
                 final java.nio.file.Path jobGraphFile = Files.createTempFile("flink-jobgraph", ".bin");
                 try (ObjectOutputStream objectOut = new ObjectOutputStream(Files.newOutputStream(jobGraphFile))) {
                     objectOut.writeObject(jobGraph);
@@ -306,6 +341,8 @@ public class RestClusterClient<T> implements ClusterClient<T> {
             }
         }, executorService);
 
+        // TODO_MA 马中华 注释： 返回一个结果：Tuple2<JobSubmitRequestBody, Collection<FileUpload>>
+        // TODO_MA 马中华 注释： Tuple2.of(requestBody, Collections.unmodifiableCollection(filesToUpload));
         CompletableFuture<Tuple2<JobSubmitRequestBody, Collection<FileUpload>>> requestFuture = jobGraphFileFuture.thenApply(
                 jobGraphFile -> {
                     List<String> jarFileNames = new ArrayList<>(8);
@@ -315,73 +352,64 @@ public class RestClusterClient<T> implements ClusterClient<T> {
                     // TODO_MA 马中华 注释： 加到待上传文件集合
                     filesToUpload.add(new FileUpload(jobGraphFile, RestConstants.CONTENT_TYPE_BINARY));
 
+                    // TODO_MA 马中华 注释： 处理 jar包
                     for (Path jar : jobGraph.getUserJars()) {
                         jarFileNames.add(jar.getName());
                         filesToUpload.add(new FileUpload(Paths.get(jar.toUri()), RestConstants.CONTENT_TYPE_JAR));
                     }
 
-                    for (Map.Entry<String, DistributedCache.DistributedCacheEntry> artifacts : jobGraph
-                            .getUserArtifacts()
+                    // TODO_MA 马中华 注释： 处理依赖jar包
+                    for (Map.Entry<String, DistributedCache.DistributedCacheEntry> artifacts : jobGraph.getUserArtifacts()
                             .entrySet()) {
                         final Path artifactFilePath = new Path(artifacts.getValue().filePath);
                         try {
                             // Only local artifacts need to be uploaded.
                             if (!artifactFilePath.getFileSystem().isDistributedFS()) {
                                 artifactFileNames.add(new JobSubmitRequestBody.DistributedCacheFile(artifacts.getKey(),
-                                        artifactFilePath.getName()
-                                ));
+                                        artifactFilePath.getName()));
                                 filesToUpload.add(new FileUpload(Paths.get(artifacts.getValue().filePath),
-                                        RestConstants.CONTENT_TYPE_BINARY
-                                ));
+                                        RestConstants.CONTENT_TYPE_BINARY));
                             }
                         } catch (IOException e) {
-                            throw new CompletionException(new FlinkException(
-                                    "Failed to get the FileSystem of artifact " + artifactFilePath + ".", e));
+                            throw new CompletionException(
+                                    new FlinkException("Failed to get the FileSystem of artifact " + artifactFilePath + ".", e));
                         }
                     }
 
-                    // TODO_MA 马中华 注释： 构建请求头
-                    final JobSubmitRequestBody requestBody = new JobSubmitRequestBody(jobGraphFile
-                            .getFileName()
-                            .toString(), jarFileNames, artifactFileNames);
+                    // TODO_MA 马中华 注释： 构建请求头，包含 jobgraph文件名，jar文件名，依赖jar文件名等
+                    final JobSubmitRequestBody requestBody = new JobSubmitRequestBody(jobGraphFile.getFileName().toString(),
+                            jarFileNames, artifactFileNames);
 
                     // TODO_MA 马中华 注释： 请求头 和 待上传文件集合
                     return Tuple2.of(requestBody, Collections.unmodifiableCollection(filesToUpload));
                 });
 
-        final CompletableFuture<JobSubmitResponseBody> submissionFuture = requestFuture.thenCompose(
-                requestAndFileUploads -> {
-                    LOG.info("Submitting job '{}' ({}).", jobGraph.getName(), jobGraph.getJobID());
+        final CompletableFuture<JobSubmitResponseBody> submissionFuture = requestFuture.thenCompose(requestAndFileUploads -> {
+            LOG.info("Submitting job '{}' ({}).", jobGraph.getName(), jobGraph.getJobID());
 
-                    /*************************************************
-                     * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-                     *  注释：
-                     */
-                    return sendRetriableRequest(JobSubmitHeaders.getInstance(),
-                            EmptyMessageParameters.getInstance(),
-                            // TODO_MA 马中华 注释： 请求头
-                            requestAndFileUploads.f0,
-                            // TODO_MA 马中华 注释： 待上传文件集合
-                            requestAndFileUploads.f1,
-                            isConnectionProblemOrServiceUnavailable(),
-                            (receiver, error) -> {
-                                if (error != null) {
-                                    LOG.warn("Attempt to submit job '{}' ({}) to '{}' has failed.",
-                                            jobGraph.getName(),
-                                            jobGraph.getJobID(),
-                                            receiver,
-                                            error
-                                    );
-                                } else {
-                                    LOG.info("Successfully submitted job '{}' ({}) to '{}'.",
-                                            jobGraph.getName(),
-                                            jobGraph.getJobID(),
-                                            receiver
-                                    );
-                                }
-                            }
-                    );
-                });
+            /*************************************************
+             * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+             *  注释： 真正提交    Http 请求
+             *  在这之前：做了一件非常重要的事情：
+             *  jar， 依赖 jar， JobGraph 的序列化文件  统统准备好
+             */
+            return sendRetriableRequest(
+                    // TODO_MA 马中华 注释： 请求头
+                    JobSubmitHeaders.getInstance(), EmptyMessageParameters.getInstance(),
+                    // TODO_MA 马中华 注释： 请求体
+                    requestAndFileUploads.f0,
+                    // TODO_MA 马中华 注释： 待上传文件集合
+                    // TODO_MA 马中华 注释： jar， 依赖 jar， JobGraph 的序列化文件
+                    requestAndFileUploads.f1, isConnectionProblemOrServiceUnavailable(), (receiver, error) -> {
+                        if (error != null) {
+                            LOG.warn("Attempt to submit job '{}' ({}) to '{}' has failed.", jobGraph.getName(), jobGraph.getJobID(),
+                                    receiver, error);
+                        } else {
+                            LOG.info("Successfully submitted job '{}' ({}) to '{}'.", jobGraph.getName(), jobGraph.getJobID(),
+                                    receiver);
+                        }
+                    });
+        });
 
         /*************************************************
          * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
@@ -396,10 +424,8 @@ public class RestClusterClient<T> implements ClusterClient<T> {
         });
 
         return submissionFuture.thenApply(ignore -> jobGraph.getJobID()).exceptionally((Throwable throwable) -> {
-            throw new CompletionException(new JobSubmissionException(jobGraph.getJobID(),
-                    "Failed to submit JobGraph.",
-                    ExceptionUtils.stripCompletionException(throwable)
-            ));
+            throw new CompletionException(new JobSubmissionException(jobGraph.getJobID(), "Failed to submit JobGraph.",
+                    ExceptionUtils.stripCompletionException(throwable)));
         });
     }
 
@@ -407,7 +433,8 @@ public class RestClusterClient<T> implements ClusterClient<T> {
     public CompletableFuture<Acknowledge> cancel(JobID jobID) {
         JobCancellationMessageParameters params = new JobCancellationMessageParameters();
         params.jobPathParameter.resolve(jobID);
-        params.terminationModeQueryParameter.resolve(Collections.singletonList(TerminationModeQueryParameter.TerminationMode.CANCEL));
+        params.terminationModeQueryParameter.resolve(
+                Collections.singletonList(TerminationModeQueryParameter.TerminationMode.CANCEL));
         CompletableFuture<EmptyResponseBody> responseFuture = sendRequest(JobCancellationHeaders.getInstance(), params);
         return responseFuture.thenApply(ignore -> Acknowledge.get());
     }
@@ -424,8 +451,7 @@ public class RestClusterClient<T> implements ClusterClient<T> {
 
         final CompletableFuture<TriggerResponse> responseFuture = sendRequest(stopWithSavepointTriggerHeaders,
                 stopWithSavepointTriggerMessageParameters,
-                new StopWithSavepointRequestBody(savepointDirectory, advanceToEndOfTime)
-        );
+                new StopWithSavepointRequestBody(savepointDirectory, advanceToEndOfTime));
 
         return responseFuture.thenCompose(savepointTriggerResponseBody -> {
             final TriggerId savepointTriggerId = savepointTriggerResponseBody.getTriggerId();
@@ -439,12 +465,14 @@ public class RestClusterClient<T> implements ClusterClient<T> {
     }
 
     @Override
-    public CompletableFuture<String> cancelWithSavepoint(JobID jobId, @Nullable String savepointDirectory) {
+    public CompletableFuture<String> cancelWithSavepoint(JobID jobId,
+                                                         @Nullable String savepointDirectory) {
         return triggerSavepoint(jobId, savepointDirectory, true);
     }
 
     @Override
-    public CompletableFuture<String> triggerSavepoint(final JobID jobId, final @Nullable String savepointDirectory) {
+    public CompletableFuture<String> triggerSavepoint(final JobID jobId,
+                                                      final @Nullable String savepointDirectory) {
         return triggerSavepoint(jobId, savepointDirectory, false);
     }
 
@@ -482,9 +510,7 @@ public class RestClusterClient<T> implements ClusterClient<T> {
         savepointTriggerMessageParameters.jobID.resolve(jobId);
 
         final CompletableFuture<TriggerResponse> responseFuture = sendRequest(savepointTriggerHeaders,
-                savepointTriggerMessageParameters,
-                new SavepointTriggerRequestBody(savepointDirectory, cancelJob)
-        );
+                savepointTriggerMessageParameters, new SavepointTriggerRequestBody(savepointDirectory, cancelJob));
 
         return responseFuture.thenCompose(savepointTriggerResponseBody -> {
             final TriggerId savepointTriggerId = savepointTriggerResponseBody.getTriggerId();
@@ -498,7 +524,8 @@ public class RestClusterClient<T> implements ClusterClient<T> {
     }
 
     @Override
-    public CompletableFuture<Map<String, Object>> getAccumulators(JobID jobID, ClassLoader loader) {
+    public CompletableFuture<Map<String, Object>> getAccumulators(JobID jobID,
+                                                                  ClassLoader loader) {
         final JobAccumulatorsHeaders accumulatorsHeaders = JobAccumulatorsHeaders.getInstance();
         final JobAccumulatorsMessageParameters accMsgParams = accumulatorsHeaders.getUnresolvedMessageParameters();
         accMsgParams.jobPathParameter.resolve(jobID);
@@ -515,7 +542,8 @@ public class RestClusterClient<T> implements ClusterClient<T> {
         });
     }
 
-    private CompletableFuture<SavepointInfo> pollSavepointAsync(final JobID jobId, final TriggerId triggerID) {
+    private CompletableFuture<SavepointInfo> pollSavepointAsync(final JobID jobId,
+                                                                final TriggerId triggerID) {
         return pollResourceAsync(() -> {
             final SavepointStatusHeaders savepointStatusHeaders = SavepointStatusHeaders.getInstance();
             final SavepointStatusMessageParameters savepointStatusMessageParameters = savepointStatusHeaders.getUnresolvedMessageParameters();
@@ -527,15 +555,10 @@ public class RestClusterClient<T> implements ClusterClient<T> {
 
     @Override
     public CompletableFuture<Collection<JobStatusMessage>> listJobs() {
-        return sendRequest(JobsOverviewHeaders.getInstance()).thenApply((multipleJobsDetails) -> multipleJobsDetails
-                .getJobs()
-                .stream()
-                .map(detail -> new JobStatusMessage(detail.getJobId(),
-                        detail.getJobName(),
-                        detail.getStatus(),
-                        detail.getStartTime()
-                ))
-                .collect(Collectors.toList()));
+        return sendRequest(JobsOverviewHeaders.getInstance()).thenApply(
+                (multipleJobsDetails) -> multipleJobsDetails.getJobs().stream()
+                        .map(detail -> new JobStatusMessage(detail.getJobId(), detail.getJobName(), detail.getStatus(),
+                                detail.getStartTime())).collect(Collectors.toList()));
     }
 
     @Override
@@ -548,9 +571,7 @@ public class RestClusterClient<T> implements ClusterClient<T> {
         final SavepointDisposalRequest savepointDisposalRequest = new SavepointDisposalRequest(savepointPath);
 
         final CompletableFuture<TriggerResponse> savepointDisposalTriggerFuture = sendRequest(
-                SavepointDisposalTriggerHeaders.getInstance(),
-                savepointDisposalRequest
-        );
+                SavepointDisposalTriggerHeaders.getInstance(), savepointDisposalRequest);
 
         final CompletableFuture<AsynchronousOperationInfo> savepointDisposalFuture = savepointDisposalTriggerFuture.thenCompose(
                 (TriggerResponse triggerResponse) -> {
@@ -559,9 +580,8 @@ public class RestClusterClient<T> implements ClusterClient<T> {
                     final SavepointDisposalStatusMessageParameters savepointDisposalStatusMessageParameters = savepointDisposalStatusHeaders.getUnresolvedMessageParameters();
                     savepointDisposalStatusMessageParameters.triggerIdPathParameter.resolve(triggerId);
 
-                    return pollResourceAsync(() -> sendRequest(savepointDisposalStatusHeaders,
-                            savepointDisposalStatusMessageParameters
-                    ));
+                    return pollResourceAsync(
+                            () -> sendRequest(savepointDisposalStatusHeaders, savepointDisposalStatusMessageParameters));
                 });
 
         return savepointDisposalFuture.thenApply((AsynchronousOperationInfo asynchronousOperationInfo) -> {
@@ -670,59 +690,44 @@ public class RestClusterClient<T> implements ClusterClient<T> {
         });
     }
 
-    private <M extends MessageHeaders<EmptyRequestBody, P, U>, U extends MessageParameters, P extends ResponseBody> CompletableFuture<P> sendRequest(
-            M messageHeaders,
-            U messageParameters) {
+    private <M extends MessageHeaders<EmptyRequestBody, P, U>, U extends MessageParameters, P extends ResponseBody> CompletableFuture<P> sendRequest(M messageHeaders,
+                                                                                                                                                     U messageParameters) {
         return sendRequest(messageHeaders, messageParameters, EmptyRequestBody.getInstance());
     }
 
-    private <M extends MessageHeaders<R, P, EmptyMessageParameters>, R extends RequestBody, P extends ResponseBody> CompletableFuture<P> sendRequest(
-            M messageHeaders,
-            R request) {
+    private <M extends MessageHeaders<R, P, EmptyMessageParameters>, R extends RequestBody, P extends ResponseBody> CompletableFuture<P> sendRequest(M messageHeaders,
+                                                                                                                                                     R request) {
         return sendRequest(messageHeaders, EmptyMessageParameters.getInstance(), request);
     }
 
     @VisibleForTesting
-    <M extends MessageHeaders<EmptyRequestBody, P, EmptyMessageParameters>, P extends ResponseBody> CompletableFuture<P> sendRequest(
-            M messageHeaders) {
+    <M extends MessageHeaders<EmptyRequestBody, P, EmptyMessageParameters>, P extends ResponseBody> CompletableFuture<P> sendRequest(M messageHeaders) {
         return sendRequest(messageHeaders, EmptyMessageParameters.getInstance(), EmptyRequestBody.getInstance());
     }
 
     @VisibleForTesting
-    public <M extends MessageHeaders<R, P, U>, U extends MessageParameters, R extends RequestBody, P extends ResponseBody> CompletableFuture<P> sendRequest(
-            M messageHeaders,
-            U messageParameters,
-            R request) {
-        return sendRetriableRequest(messageHeaders,
-                messageParameters,
-                request,
-                isConnectionProblemOrServiceUnavailable()
-        );
+    public <M extends MessageHeaders<R, P, U>, U extends MessageParameters, R extends RequestBody, P extends ResponseBody> CompletableFuture<P> sendRequest(M messageHeaders,
+                                                                                                                                                            U messageParameters,
+                                                                                                                                                            R request) {
+        return sendRetriableRequest(messageHeaders, messageParameters, request, isConnectionProblemOrServiceUnavailable());
     }
 
-    private <M extends MessageHeaders<R, P, U>, U extends MessageParameters, R extends RequestBody, P extends ResponseBody> CompletableFuture<P> sendRetriableRequest(
-            M messageHeaders,
-            U messageParameters,
-            R request,
-            Predicate<Throwable> retryPredicate) {
-        return sendRetriableRequest(messageHeaders,
-                messageParameters,
-                request,
-                Collections.emptyList(),
-                retryPredicate,
+    private <M extends MessageHeaders<R, P, U>, U extends MessageParameters, R extends RequestBody, P extends ResponseBody> CompletableFuture<P> sendRetriableRequest(M messageHeaders,
+                                                                                                                                                                      U messageParameters,
+                                                                                                                                                                      R request,
+                                                                                                                                                                      Predicate<Throwable> retryPredicate) {
+        return sendRetriableRequest(messageHeaders, messageParameters, request, Collections.emptyList(), retryPredicate,
                 (receiver, error) -> {
                     // no-op
-                }
-        );
+                });
     }
 
-    private <M extends MessageHeaders<R, P, U>, U extends MessageParameters, R extends RequestBody, P extends ResponseBody> CompletableFuture<P> sendRetriableRequest(
-            M messageHeaders,
-            U messageParameters,
-            R request,
-            Collection<FileUpload> filesToUpload,
-            Predicate<Throwable> retryPredicate,
-            BiConsumer<String, Throwable> consumer) {
+    private <M extends MessageHeaders<R, P, U>, U extends MessageParameters, R extends RequestBody, P extends ResponseBody> CompletableFuture<P> sendRetriableRequest(M messageHeaders,
+                                                                                                                                                                      U messageParameters,
+                                                                                                                                                                      R request,
+                                                                                                                                                                      Collection<FileUpload> filesToUpload,
+                                                                                                                                                                      Predicate<Throwable> retryPredicate,
+                                                                                                                                                                      BiConsumer<String, Throwable> consumer) {
 
         /*************************************************
          * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
@@ -731,36 +736,33 @@ public class RestClusterClient<T> implements ClusterClient<T> {
         return retry(
                 // TODO_MA 马中华 注释： 获取 HTTP 的提交 URL ， 获取 JobManager 中的 HttpServer 的地址
                 () -> getWebMonitorBaseUrl().thenCompose(webMonitorBaseUrl -> {
-            try {
+                    try {
 
-                /*************************************************
-                 * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-                 *  注释：  客户端到这儿结束
-                 *  restClient 提交 JobGraph 到了 JobMangaer 中
-                 */
-                final CompletableFuture<P> future = restClient.sendRequest(webMonitorBaseUrl.getHost(),
-                        webMonitorBaseUrl.getPort(),
-                        messageHeaders,
-                        messageParameters,
-                        request,
-                        filesToUpload
-                );
-                future.whenComplete((result, error) -> consumer.accept(webMonitorBaseUrl.toString(), error));
-                return future;
-            } catch (IOException e) {
-                throw new CompletionException(e);
-            }
-        }), retryPredicate);
+                        /*************************************************
+                         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+                         *  注释：  客户端到这儿结束
+                         *  restClient 提交 JobGraph 到了 JobMangaer 中
+                         *  -
+                         *  服务端如何处理呢？
+                         *  服务端是一个 Netty Server，绑定了很多的 Handler，不同的 URL 对应到不同的 Handler
+                         *  提交job:  JobSubmitHandler
+                         */
+                        final CompletableFuture<P> future = restClient.sendRequest(webMonitorBaseUrl.getHost(),
+                                webMonitorBaseUrl.getPort(), messageHeaders, messageParameters, request, filesToUpload);
+                        future.whenComplete((result, error) -> consumer.accept(webMonitorBaseUrl.toString(), error));
+                        return future;
+                    } catch (IOException e) {
+                        throw new CompletionException(e);
+                    }
+                }), retryPredicate);
     }
 
     private <C> CompletableFuture<C> retry(CheckedSupplier<CompletableFuture<C>> operation,
                                            Predicate<Throwable> retryPredicate) {
         return FutureUtils.retryWithDelay(CheckedSupplier.unchecked(operation),
                 restClusterClientConfiguration.getRetryMaxAttempts(),
-                Time.milliseconds(restClusterClientConfiguration.getRetryDelay()),
-                retryPredicate,
-                new ScheduledExecutorServiceAdapter(retryExecutorService)
-        );
+                Time.milliseconds(restClusterClientConfiguration.getRetryDelay()), retryPredicate,
+                new ScheduledExecutorServiceAdapter(retryExecutorService));
     }
 
     private static Predicate<Throwable> isConnectionProblemOrServiceUnavailable() {
@@ -768,11 +770,10 @@ public class RestClusterClient<T> implements ClusterClient<T> {
     }
 
     private static Predicate<Throwable> isConnectionProblemException() {
-        return (throwable) -> ExceptionUtils.findThrowable(throwable, java.net.ConnectException.class).isPresent()
-                || ExceptionUtils.findThrowable(throwable, java.net.SocketTimeoutException.class).isPresent()
-                || ExceptionUtils.findThrowable(throwable, ConnectTimeoutException.class).isPresent() || ExceptionUtils
-                .findThrowable(throwable, IOException.class)
-                .isPresent();
+        return (throwable) -> ExceptionUtils.findThrowable(throwable, java.net.ConnectException.class)
+                .isPresent() || ExceptionUtils.findThrowable(throwable, java.net.SocketTimeoutException.class)
+                .isPresent() || ExceptionUtils.findThrowable(throwable, ConnectTimeoutException.class)
+                .isPresent() || ExceptionUtils.findThrowable(throwable, IOException.class).isPresent();
     }
 
     private static Predicate<Throwable> isServiceUnavailable() {
@@ -780,22 +781,16 @@ public class RestClusterClient<T> implements ClusterClient<T> {
     }
 
     private static Predicate<Throwable> httpExceptionCodePredicate(Predicate<Integer> statusCodePredicate) {
-        return (throwable) -> ExceptionUtils
-                .findThrowable(throwable, RestClientException.class)
-                .map(restClientException -> {
-                    final int code = restClientException.getHttpResponseStatus().code();
-                    return statusCodePredicate.test(code);
-                })
-                .orElse(false);
+        return (throwable) -> ExceptionUtils.findThrowable(throwable, RestClientException.class).map(restClientException -> {
+            final int code = restClientException.getHttpResponseStatus().code();
+            return statusCodePredicate.test(code);
+        }).orElse(false);
     }
 
     @VisibleForTesting
     CompletableFuture<URL> getWebMonitorBaseUrl() {
-        return FutureUtils
-                .orTimeout(webMonitorLeaderRetriever.getLeaderFuture(),
-                        restClusterClientConfiguration.getAwaitLeaderTimeout(),
-                        TimeUnit.MILLISECONDS
-                )
+        return FutureUtils.orTimeout(webMonitorLeaderRetriever.getLeaderFuture(),
+                        restClusterClientConfiguration.getAwaitLeaderTimeout(), TimeUnit.MILLISECONDS)
                 .thenApplyAsync(leaderAddressSessionId -> {
                     final String url = leaderAddressSessionId.f0;
                     try {

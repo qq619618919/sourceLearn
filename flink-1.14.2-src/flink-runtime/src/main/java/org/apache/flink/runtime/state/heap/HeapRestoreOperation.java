@@ -68,21 +68,21 @@ public class HeapRestoreOperation<K> implements RestoreOperation<Void> {
     private final Map<String, StateTable<K, ?, ?>> registeredKVStates;
     private final Map<String, HeapPriorityQueueSnapshotRestoreWrapper<?>> registeredPQStates;
     private final CloseableRegistry cancelStreamRegistry;
-    @Nonnull private final KeyGroupRange keyGroupRange;
+    @Nonnull
+    private final KeyGroupRange keyGroupRange;
     private final HeapMetaInfoRestoreOperation<K> heapMetaInfoRestoreOperation;
 
-    HeapRestoreOperation(
-            @Nonnull Collection<KeyedStateHandle> restoreStateHandles,
-            StateSerializerProvider<K> keySerializerProvider,
-            ClassLoader userCodeClassLoader,
-            Map<String, StateTable<K, ?, ?>> registeredKVStates,
-            Map<String, HeapPriorityQueueSnapshotRestoreWrapper<?>> registeredPQStates,
-            CloseableRegistry cancelStreamRegistry,
-            HeapPriorityQueueSetFactory priorityQueueSetFactory,
-            @Nonnull KeyGroupRange keyGroupRange,
-            int numberOfKeyGroups,
-            StateTableFactory<K> stateTableFactory,
-            InternalKeyContext<K> keyContext) {
+    HeapRestoreOperation(@Nonnull Collection<KeyedStateHandle> restoreStateHandles,
+                         StateSerializerProvider<K> keySerializerProvider,
+                         ClassLoader userCodeClassLoader,
+                         Map<String, StateTable<K, ?, ?>> registeredKVStates,
+                         Map<String, HeapPriorityQueueSnapshotRestoreWrapper<?>> registeredPQStates,
+                         CloseableRegistry cancelStreamRegistry,
+                         HeapPriorityQueueSetFactory priorityQueueSetFactory,
+                         @Nonnull KeyGroupRange keyGroupRange,
+                         int numberOfKeyGroups,
+                         StateTableFactory<K> stateTableFactory,
+                         InternalKeyContext<K> keyContext) {
         this.restoreStateHandles = restoreStateHandles;
         this.keySerializerProvider = keySerializerProvider;
         this.userCodeClassLoader = userCodeClassLoader;
@@ -90,14 +90,13 @@ public class HeapRestoreOperation<K> implements RestoreOperation<Void> {
         this.registeredPQStates = registeredPQStates;
         this.cancelStreamRegistry = cancelStreamRegistry;
         this.keyGroupRange = keyGroupRange;
-        this.heapMetaInfoRestoreOperation =
-                new HeapMetaInfoRestoreOperation<>(
-                        keySerializerProvider,
-                        priorityQueueSetFactory,
-                        keyGroupRange,
-                        numberOfKeyGroups,
-                        stateTableFactory,
-                        keyContext);
+        this.heapMetaInfoRestoreOperation = new HeapMetaInfoRestoreOperation<>(keySerializerProvider,
+                priorityQueueSetFactory,
+                keyGroupRange,
+                numberOfKeyGroups,
+                stateTableFactory,
+                keyContext
+        );
     }
 
     @Override
@@ -115,8 +114,7 @@ public class HeapRestoreOperation<K> implements RestoreOperation<Void> {
             }
 
             if (!(keyedStateHandle instanceof KeyGroupsStateHandle)) {
-                throw unexpectedStateHandleException(
-                        KeyGroupsStateHandle.class, keyedStateHandle.getClass());
+                throw unexpectedStateHandleException(KeyGroupsStateHandle.class, keyedStateHandle.getClass());
             }
 
             LOG.info("Starting to restore from state handle: {}.", keyedStateHandle);
@@ -125,52 +123,51 @@ public class HeapRestoreOperation<K> implements RestoreOperation<Void> {
             cancelStreamRegistry.registerCloseable(fsDataInputStream);
 
             try {
-                DataInputViewStreamWrapper inView =
-                        new DataInputViewStreamWrapper(fsDataInputStream);
+                DataInputViewStreamWrapper inView = new DataInputViewStreamWrapper(fsDataInputStream);
 
-                KeyedBackendSerializationProxy<K> serializationProxy =
-                        new KeyedBackendSerializationProxy<>(userCodeClassLoader);
+                KeyedBackendSerializationProxy<K> serializationProxy = new KeyedBackendSerializationProxy<>(
+                        userCodeClassLoader);
 
                 serializationProxy.read(inView);
 
                 if (!keySerializerRestored) {
                     // fetch current serializer now because if it is incompatible, we can't access
                     // it anymore to improve the error message
-                    TypeSerializer<K> currentSerializer =
-                            keySerializerProvider.currentSchemaSerializer();
+                    TypeSerializer<K> currentSerializer = keySerializerProvider.currentSchemaSerializer();
                     // check for key serializer compatibility; this also reconfigures the
                     // key serializer to be compatible, if it is required and is possible
-                    TypeSerializerSchemaCompatibility<K> keySerializerSchemaCompat =
-                            keySerializerProvider.setPreviousSerializerSnapshotForRestoredState(
-                                    serializationProxy.getKeySerializerSnapshot());
+                    TypeSerializerSchemaCompatibility<K> keySerializerSchemaCompat = keySerializerProvider.setPreviousSerializerSnapshotForRestoredState(
+                            serializationProxy.getKeySerializerSnapshot());
                     if (keySerializerSchemaCompat.isCompatibleAfterMigration()
                             || keySerializerSchemaCompat.isIncompatible()) {
-                        throw new StateMigrationException(
-                                "The new key serializer ("
-                                        + currentSerializer
-                                        + ") must be compatible with the previous key serializer ("
-                                        + keySerializerProvider.previousSchemaSerializer()
-                                        + ").");
+                        throw new StateMigrationException("The new key serializer (" + currentSerializer
+                                + ") must be compatible with the previous key serializer ("
+                                + keySerializerProvider.previousSchemaSerializer() + ").");
                     }
 
                     keySerializerRestored = true;
                 }
 
-                List<StateMetaInfoSnapshot> restoredMetaInfos =
-                        serializationProxy.getStateMetaInfoSnapshots();
+                List<StateMetaInfoSnapshot> restoredMetaInfos = serializationProxy.getStateMetaInfoSnapshots();
 
-                final Map<Integer, StateMetaInfoSnapshot> kvStatesById =
-                        this.heapMetaInfoRestoreOperation.createOrCheckStateForMetaInfo(
-                                restoredMetaInfos, registeredKVStates, registeredPQStates);
+                final Map<Integer, StateMetaInfoSnapshot> kvStatesById = this.heapMetaInfoRestoreOperation.createOrCheckStateForMetaInfo(
+                        restoredMetaInfos,
+                        registeredKVStates,
+                        registeredPQStates
+                );
 
-                readStateHandleStateData(
-                        fsDataInputStream,
+                /*************************************************
+                 * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+                 *  注释：
+                 */
+                readStateHandleStateData(fsDataInputStream,
                         inView,
                         keyGroupsStateHandle.getGroupRangeOffsets(),
                         kvStatesById,
                         restoredMetaInfos.size(),
                         serializationProxy.getReadVersion(),
-                        serializationProxy.isUsingKeyGroupCompression());
+                        serializationProxy.isUsingKeyGroupCompression()
+                );
                 LOG.info("Finished restoring from state handle: {}.", keyedStateHandle);
             } finally {
                 if (cancelStreamRegistry.unregisterCloseable(fsDataInputStream)) {
@@ -181,55 +178,46 @@ public class HeapRestoreOperation<K> implements RestoreOperation<Void> {
         return null;
     }
 
-    private void readStateHandleStateData(
-            FSDataInputStream fsDataInputStream,
-            DataInputViewStreamWrapper inView,
-            KeyGroupRangeOffsets keyGroupOffsets,
-            Map<Integer, StateMetaInfoSnapshot> kvStatesById,
-            int numStates,
-            int readVersion,
-            boolean isCompressed)
-            throws IOException {
+    private void readStateHandleStateData(FSDataInputStream fsDataInputStream,
+                                          DataInputViewStreamWrapper inView,
+                                          KeyGroupRangeOffsets keyGroupOffsets,
+                                          Map<Integer, StateMetaInfoSnapshot> kvStatesById,
+                                          int numStates,
+                                          int readVersion,
+                                          boolean isCompressed) throws IOException {
 
-        final StreamCompressionDecorator streamCompressionDecorator =
-                isCompressed
-                        ? SnappyStreamCompressionDecorator.INSTANCE
-                        : UncompressedStreamCompressionDecorator.INSTANCE;
+        final StreamCompressionDecorator streamCompressionDecorator = isCompressed ? SnappyStreamCompressionDecorator.INSTANCE : UncompressedStreamCompressionDecorator.INSTANCE;
 
         for (Tuple2<Integer, Long> groupOffset : keyGroupOffsets) {
             int keyGroupIndex = groupOffset.f0;
             long offset = groupOffset.f1;
 
             if (!keyGroupRange.contains(keyGroupIndex)) {
-                LOG.debug(
-                        "Key group {} doesn't belong to this backend with key group range: {}",
+                LOG.debug("Key group {} doesn't belong to this backend with key group range: {}",
                         keyGroupIndex,
-                        keyGroupRange);
+                        keyGroupRange
+                );
                 continue;
             }
 
             fsDataInputStream.seek(offset);
 
             int writtenKeyGroupIndex = inView.readInt();
-            Preconditions.checkState(
-                    writtenKeyGroupIndex == keyGroupIndex, "Unexpected key-group in restore.");
+            Preconditions.checkState(writtenKeyGroupIndex == keyGroupIndex, "Unexpected key-group in restore.");
 
-            try (InputStream kgCompressionInStream =
-                    streamCompressionDecorator.decorateWithCompression(fsDataInputStream)) {
+            try (InputStream kgCompressionInStream = streamCompressionDecorator.decorateWithCompression(
+                    fsDataInputStream)) {
 
-                readKeyGroupStateData(
-                        kgCompressionInStream, kvStatesById, keyGroupIndex, numStates, readVersion);
+                readKeyGroupStateData(kgCompressionInStream, kvStatesById, keyGroupIndex, numStates, readVersion);
             }
         }
     }
 
-    private void readKeyGroupStateData(
-            InputStream inputStream,
-            Map<Integer, StateMetaInfoSnapshot> kvStatesById,
-            int keyGroupIndex,
-            int numStates,
-            int readVersion)
-            throws IOException {
+    private void readKeyGroupStateData(InputStream inputStream,
+                                       Map<Integer, StateMetaInfoSnapshot> kvStatesById,
+                                       int keyGroupIndex,
+                                       int numStates,
+                                       int readVersion) throws IOException {
 
         DataInputViewStreamWrapper inView = new DataInputViewStreamWrapper(inputStream);
 
@@ -248,13 +236,10 @@ public class HeapRestoreOperation<K> implements RestoreOperation<Void> {
                     break;
                 default:
                     throw new IllegalStateException(
-                            "Unexpected state type: "
-                                    + stateMetaInfoSnapshot.getBackendStateType()
-                                    + ".");
+                            "Unexpected state type: " + stateMetaInfoSnapshot.getBackendStateType() + ".");
             }
 
-            StateSnapshotKeyGroupReader keyGroupReader =
-                    registeredState.keyGroupReader(readVersion);
+            StateSnapshotKeyGroupReader keyGroupReader = registeredState.keyGroupReader(readVersion);
             keyGroupReader.readMappingsInKeyGroup(inView, keyGroupIndex);
         }
     }

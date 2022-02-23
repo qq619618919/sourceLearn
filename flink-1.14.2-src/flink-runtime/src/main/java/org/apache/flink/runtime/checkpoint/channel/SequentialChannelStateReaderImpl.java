@@ -58,58 +58,57 @@ public class SequentialChannelStateReaderImpl implements SequentialChannelStateR
 
     @Override
     public void readInputData(InputGate[] inputGates) throws IOException, InterruptedException {
-        try (InputChannelRecoveredStateHandler stateHandler =
-                new InputChannelRecoveredStateHandler(
-                        inputGates, taskStateSnapshot.getInputRescalingDescriptor())) {
-            read(
-                    stateHandler,
-                    groupByDelegate(
-                            streamSubtaskStates(), OperatorSubtaskState::getInputChannelState));
+        try (InputChannelRecoveredStateHandler stateHandler = new InputChannelRecoveredStateHandler(inputGates,
+                taskStateSnapshot.getInputRescalingDescriptor()
+        )) {
+            /*************************************************
+             * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+             *  注释：
+             */
+            read(stateHandler, groupByDelegate(streamSubtaskStates(), OperatorSubtaskState::getInputChannelState));
         }
     }
 
     @Override
-    public void readOutputData(ResultPartitionWriter[] writers, boolean notifyAndBlockOnCompletion)
-            throws IOException, InterruptedException {
-        try (ResultSubpartitionRecoveredStateHandler stateHandler =
-                new ResultSubpartitionRecoveredStateHandler(
-                        writers,
-                        notifyAndBlockOnCompletion,
-                        taskStateSnapshot.getOutputRescalingDescriptor())) {
-            read(
-                    stateHandler,
-                    groupByDelegate(
-                            streamSubtaskStates(),
-                            OperatorSubtaskState::getResultSubpartitionState));
+    public void readOutputData(ResultPartitionWriter[] writers,
+                               boolean notifyAndBlockOnCompletion) throws IOException, InterruptedException {
+        try (ResultSubpartitionRecoveredStateHandler stateHandler = new ResultSubpartitionRecoveredStateHandler(writers,
+                notifyAndBlockOnCompletion,
+                taskStateSnapshot.getOutputRescalingDescriptor()
+        )) {
+            read(stateHandler,
+                    groupByDelegate(streamSubtaskStates(), OperatorSubtaskState::getResultSubpartitionState)
+            );
         }
     }
 
-    private <Info, Context, Handle extends AbstractChannelStateHandle<Info>> void read(
-            RecoveredChannelStateHandler<Info, Context> stateHandler,
-            Map<StreamStateHandle, List<Handle>> streamStateHandleListMap)
-            throws IOException, InterruptedException {
-        for (Map.Entry<StreamStateHandle, List<Handle>> delegateAndHandles :
-                streamStateHandleListMap.entrySet()) {
-            readSequentially(
-                    delegateAndHandles.getKey(), delegateAndHandles.getValue(), stateHandler);
+    private <Info, Context, Handle extends AbstractChannelStateHandle<Info>> void read(RecoveredChannelStateHandler<Info, Context> stateHandler,
+                                                                                       Map<StreamStateHandle, List<Handle>> streamStateHandleListMap) throws IOException, InterruptedException {
+        for (Map.Entry<StreamStateHandle, List<Handle>> delegateAndHandles : streamStateHandleListMap.entrySet()) {
+            /*************************************************
+             * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+             *  注释：
+             */
+            readSequentially(delegateAndHandles.getKey(), delegateAndHandles.getValue(), stateHandler);
         }
     }
 
-    private <Info, Context, Handle extends AbstractChannelStateHandle<Info>> void readSequentially(
-            StreamStateHandle streamStateHandle,
-            List<Handle> channelStateHandles,
-            RecoveredChannelStateHandler<Info, Context> stateHandler)
-            throws IOException, InterruptedException {
+    private <Info, Context, Handle extends AbstractChannelStateHandle<Info>> void readSequentially(StreamStateHandle streamStateHandle,
+                                                                                                   List<Handle> channelStateHandles,
+                                                                                                   RecoveredChannelStateHandler<Info, Context> stateHandler) throws IOException, InterruptedException {
         try (FSDataInputStream is = streamStateHandle.openInputStream()) {
             serializer.readHeader(is);
-            for (RescaledOffset<Info> offsetAndChannelInfo :
-                    extractOffsetsSorted(channelStateHandles)) {
-                chunkReader.readChunk(
-                        is,
+            for (RescaledOffset<Info> offsetAndChannelInfo : extractOffsetsSorted(channelStateHandles)) {
+                /*************************************************
+                 * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+                 *  注释：
+                 */
+                chunkReader.readChunk(is,
                         offsetAndChannelInfo.offset,
                         stateHandler,
                         offsetAndChannelInfo.channelInfo,
-                        offsetAndChannelInfo.oldSubtaskIndex);
+                        offsetAndChannelInfo.oldSubtaskIndex
+                );
             }
         }
     }
@@ -118,19 +117,17 @@ public class SequentialChannelStateReaderImpl implements SequentialChannelStateR
         return taskStateSnapshot.getSubtaskStateMappings().stream().map(Map.Entry::getValue);
     }
 
-    private static <Info, Handle extends AbstractChannelStateHandle<Info>>
-            Map<StreamStateHandle, List<Handle>> groupByDelegate(
-                    Stream<OperatorSubtaskState> states,
-                    Function<OperatorSubtaskState, StateObjectCollection<Handle>>
-                            stateHandleExtractor) {
-        return states.map(stateHandleExtractor)
+    private static <Info, Handle extends AbstractChannelStateHandle<Info>> Map<StreamStateHandle, List<Handle>> groupByDelegate(
+            Stream<OperatorSubtaskState> states,
+            Function<OperatorSubtaskState, StateObjectCollection<Handle>> stateHandleExtractor) {
+        return states
+                .map(stateHandleExtractor)
                 .flatMap(Collection::stream)
                 .peek(validate())
                 .collect(groupingBy(AbstractChannelStateHandle::getDelegate));
     }
 
-    private static <Info, Handle extends AbstractChannelStateHandle<Info>>
-            Consumer<Handle> validate() {
+    private static <Info, Handle extends AbstractChannelStateHandle<Info>> Consumer<Handle> validate() {
         Set<Tuple2<Info, Integer>> seen = new HashSet<>();
         // expect each channel/subtask to be described only once; otherwise, buffers in channel
         // could be
@@ -142,25 +139,26 @@ public class SequentialChannelStateReaderImpl implements SequentialChannelStateR
         };
     }
 
-    private static <Info, Handle extends AbstractChannelStateHandle<Info>>
-            List<RescaledOffset<Info>> extractOffsetsSorted(List<Handle> channelStateHandles) {
-        return channelStateHandles.stream()
+    private static <Info, Handle extends AbstractChannelStateHandle<Info>> List<RescaledOffset<Info>> extractOffsetsSorted(
+            List<Handle> channelStateHandles) {
+        return channelStateHandles
+                .stream()
                 .flatMap(SequentialChannelStateReaderImpl::extractOffsets)
                 .sorted(comparingLong(offsetAndInfo -> offsetAndInfo.offset))
                 .collect(toList());
     }
 
-    private static <Info, Handle extends AbstractChannelStateHandle<Info>>
-            Stream<RescaledOffset<Info>> extractOffsets(Handle handle) {
-        return handle.getOffsets().stream()
-                .map(
-                        offset ->
-                                new RescaledOffset<>(
-                                        offset, handle.getInfo(), handle.getSubtaskIndex()));
+    private static <Info, Handle extends AbstractChannelStateHandle<Info>> Stream<RescaledOffset<Info>> extractOffsets(
+            Handle handle) {
+        return handle
+                .getOffsets()
+                .stream()
+                .map(offset -> new RescaledOffset<>(offset, handle.getInfo(), handle.getSubtaskIndex()));
     }
 
     @Override
-    public void close() throws Exception {}
+    public void close() throws Exception {
+    }
 
     static class RescaledOffset<Info> {
         final Long offset;
@@ -182,23 +180,25 @@ class ChannelStateChunkReader {
         this.serializer = serializer;
     }
 
-    <Info, Context> void readChunk(
-            FSDataInputStream source,
-            long sourceOffset,
-            RecoveredChannelStateHandler<Info, Context> stateHandler,
-            Info channelInfo,
-            int oldSubtaskIndex)
-            throws IOException, InterruptedException {
+    <Info, Context> void readChunk(FSDataInputStream source,
+                                   long sourceOffset,
+                                   RecoveredChannelStateHandler<Info, Context> stateHandler,
+                                   Info channelInfo,
+                                   int oldSubtaskIndex) throws IOException, InterruptedException {
         if (source.getPos() != sourceOffset) {
             source.seek(sourceOffset);
         }
         int length = serializer.readLength(source);
         while (length > 0) {
-            RecoveredChannelStateHandler.BufferWithContext<Context> bufferWithContext =
-                    stateHandler.getBuffer(channelInfo);
-            try (Closeable ignored =
-                    NetworkActionsLogger.measureIO(
-                            "ChannelStateChunkReader#readChunk", bufferWithContext.buffer)) {
+            RecoveredChannelStateHandler.BufferWithContext<Context> bufferWithContext = stateHandler.getBuffer(
+                    channelInfo);
+            try (Closeable ignored = NetworkActionsLogger.measureIO("ChannelStateChunkReader#readChunk",
+                    bufferWithContext.buffer
+            )) {
+                /*************************************************
+                 * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+                 *  注释：
+                 */
                 while (length > 0 && bufferWithContext.buffer.isWritable()) {
                     length -= serializer.readData(source, bufferWithContext.buffer, length);
                 }

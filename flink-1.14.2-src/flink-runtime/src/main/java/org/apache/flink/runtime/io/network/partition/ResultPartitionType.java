@@ -108,12 +108,11 @@ public enum ResultPartitionType {
     private final boolean isReconnectable;
 
     /** Specifies the behaviour of an intermediate result partition at runtime. */
-    ResultPartitionType(
-            boolean isPipelined,
-            boolean hasBackPressure,
-            boolean isBounded,
-            boolean isPersistent,
-            boolean isReconnectable) {
+    ResultPartitionType(boolean isPipelined,
+                        boolean hasBackPressure,
+                        boolean isBounded,
+                        boolean isPersistent,
+                        boolean isReconnectable) {
         this.isPipelined = isPipelined;
         this.hasBackPressure = hasBackPressure;
         this.isBounded = isBounded;

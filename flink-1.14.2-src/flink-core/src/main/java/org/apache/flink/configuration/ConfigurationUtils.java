@@ -138,7 +138,6 @@ public class ConfigurationUtils {
         for (String propertyName : propertyNames) {
             configuration.setString(propertyName, properties.getProperty(propertyName));
         }
-
         return configuration;
     }
 

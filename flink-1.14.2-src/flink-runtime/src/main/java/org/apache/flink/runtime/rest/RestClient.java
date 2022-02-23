@@ -184,6 +184,7 @@ public class RestClient implements AutoCloseableAsync {
                                     restConfiguration.getIdlenessTimeout(),
                                     restConfiguration.getIdlenessTimeout(),
                                     TimeUnit.MILLISECONDS
+                                    // TODO_MA 马中华 注释： 读取响应的处理器
                             )).addLast(new ClientHandler());
                 } catch (Throwable t) {
                     t.printStackTrace();
@@ -195,7 +196,7 @@ public class RestClient implements AutoCloseableAsync {
 
         /*************************************************
          * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-         *  注释：
+         *  注释： Netty 的 客户端的 启动引导程序。 启动给一个客户端
          */
         bootstrap = new Bootstrap();
         bootstrap

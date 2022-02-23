@@ -121,6 +121,10 @@ public class HeartbeatManagerImpl<I, O> implements HeartbeatManager<I, O> {
         return heartbeatListener;
     }
 
+    /*************************************************
+     * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+     *  注释：
+     */
     Map<ResourceID, HeartbeatMonitor<O>> getHeartbeatTargets() {
         return heartbeatTargets;
     }
@@ -138,7 +142,7 @@ public class HeartbeatManagerImpl<I, O> implements HeartbeatManager<I, O> {
                 );
             } else {
 
-                // TODO_MA 马中华 注释：
+                // TODO_MA 马中华 注释： HeartbeatTarget 被封装成了 heartbeatMonitor
                 HeartbeatMonitor<O> heartbeatMonitor = heartbeatMonitorFactory.createHeartbeatMonitor(resourceID,
                         heartbeatTarget,
                         mainThreadExecutor,
@@ -149,7 +153,8 @@ public class HeartbeatManagerImpl<I, O> implements HeartbeatManager<I, O> {
 
                 /*************************************************
                  * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-                 *  注释：
+                 *  注释： heartbeatTargets = 就是心跳机制中的 心跳目标对象集合， 一个 Map
+                 *  心跳集合
                  */
                 heartbeatTargets.put(resourceID, heartbeatMonitor);
 
@@ -207,10 +212,25 @@ public class HeartbeatManagerImpl<I, O> implements HeartbeatManager<I, O> {
     public CompletableFuture<Void> receiveHeartbeat(ResourceID heartbeatOrigin, I heartbeatPayload) {
         if (!stopped) {
             log.debug("Received heartbeat from {}.", heartbeatOrigin);
+
+            /*************************************************
+             * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+             *  注释：
+             *  1、A 向 B 发送 心跳请求， B 会记录 A 的最近一次心跳时间
+             *  2、B 向 A 返回 响应请求， A 也会记录和 B 的最近一次心跳时间
+             */
             reportHeartbeat(heartbeatOrigin);
 
+            /*************************************************
+             * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+             *  注释： Payload 就是负载
+             *  心跳请求中，有可能携带了负载汇报，如果有的话，则需要执行处理
+             *  就是处理 Slot 的状态
+             */
             if (heartbeatPayload != null) {
                 heartbeatListener.reportPayload(heartbeatOrigin, heartbeatPayload);
+            }else{
+
             }
         }
 
@@ -222,13 +242,23 @@ public class HeartbeatManagerImpl<I, O> implements HeartbeatManager<I, O> {
         if (!stopped) {
             log.debug("Received heartbeat request from {}.", requestOrigin);
 
+            /*************************************************
+             * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+             *  注释： 做心跳的处理，其实就是一个登记： 登记刚才这一次心跳的时间
+             */
             final HeartbeatTarget<O> heartbeatTarget = reportHeartbeat(requestOrigin);
+            // TODO_MA 马中华 注释： 心跳请求处理完了，需要干嘛：返回响应！
 
             if (heartbeatTarget != null) {
                 if (heartbeatPayload != null) {
                     heartbeatListener.reportPayload(requestOrigin, heartbeatPayload);
                 }
 
+                /*************************************************
+                 * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+                 *  注释： RPC 请求： 地位低的在接收到地位高的组件的心跳 RPC 请求之后完成了处理，需要给对方返回响应
+                 *  发送 心跳处理的 RPC 响应请求给 心跳发送方
+                 */
                 heartbeatTarget
                         .receiveHeartbeat(getOwnResourceID(), heartbeatListener.retrievePayload(requestOrigin))
                         .whenCompleteAsync(handleHeartbeatRpc(requestOrigin), mainThreadExecutor);
@@ -273,6 +303,11 @@ public class HeartbeatManagerImpl<I, O> implements HeartbeatManager<I, O> {
     HeartbeatTarget<O> reportHeartbeat(ResourceID resourceID) {
         if (heartbeatTargets.containsKey(resourceID)) {
             HeartbeatMonitor<O> heartbeatMonitor = heartbeatTargets.get(resourceID);
+
+            /*************************************************
+             * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+             *  注释：
+             */
             heartbeatMonitor.reportHeartbeat();
 
             return heartbeatMonitor.getHeartbeatTarget();

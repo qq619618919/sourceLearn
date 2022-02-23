@@ -39,6 +39,11 @@ public abstract class AbstractPartitionTracker<K, M> implements PartitionTracker
 
     void startTrackingPartition(K key, ResultPartitionID resultPartitionId, M metaInfo) {
         partitionInfos.put(resultPartitionId, new PartitionInfo<>(key, metaInfo));
+
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释：
+         */
         partitionTable.startTrackingPartitions(key, Collections.singletonList(resultPartitionId));
     }
 
@@ -47,18 +52,17 @@ public abstract class AbstractPartitionTracker<K, M> implements PartitionTracker
         Preconditions.checkNotNull(key);
 
         // this is a bit icky since we make 2 calls to pT#stopTrackingPartitions
-        final Collection<ResultPartitionID> resultPartitionIds =
-                partitionTable.stopTrackingPartitions(key);
+        final Collection<ResultPartitionID> resultPartitionIds = partitionTable.stopTrackingPartitions(key);
 
         return stopTrackingPartitions(resultPartitionIds);
     }
 
     @Override
-    public Collection<PartitionTrackerEntry<K, M>> stopTrackingPartitions(
-            Collection<ResultPartitionID> resultPartitionIds) {
+    public Collection<PartitionTrackerEntry<K, M>> stopTrackingPartitions(Collection<ResultPartitionID> resultPartitionIds) {
         Preconditions.checkNotNull(resultPartitionIds);
 
-        return resultPartitionIds.stream()
+        return resultPartitionIds
+                .stream()
                 .map(this::internalStopTrackingPartition)
                 .flatMap(AbstractPartitionTracker::asStream)
                 .collect(Collectors.toList());
@@ -78,20 +82,19 @@ public abstract class AbstractPartitionTracker<K, M> implements PartitionTracker
         return partitionInfos.containsKey(resultPartitionID);
     }
 
-    private Optional<PartitionTrackerEntry<K, M>> internalStopTrackingPartition(
-            ResultPartitionID resultPartitionId) {
+    private Optional<PartitionTrackerEntry<K, M>> internalStopTrackingPartition(ResultPartitionID resultPartitionId) {
         Preconditions.checkNotNull(resultPartitionId);
 
         final PartitionInfo<K, M> partitionInfo = partitionInfos.remove(resultPartitionId);
         if (partitionInfo == null) {
             return Optional.empty();
         }
-        partitionTable.stopTrackingPartitions(
-                partitionInfo.getKey(), Collections.singletonList(resultPartitionId));
+        partitionTable.stopTrackingPartitions(partitionInfo.getKey(), Collections.singletonList(resultPartitionId));
 
-        return Optional.of(
-                new PartitionTrackerEntry<>(
-                        resultPartitionId, partitionInfo.key, partitionInfo.getMetaInfo()));
+        return Optional.of(new PartitionTrackerEntry<>(resultPartitionId,
+                partitionInfo.key,
+                partitionInfo.getMetaInfo()
+        ));
     }
 
     /** Information of tracked partition. */

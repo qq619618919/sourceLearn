@@ -32,8 +32,7 @@ import static org.apache.flink.util.Preconditions.checkArgument;
 import static org.apache.flink.util.Preconditions.checkNotNull;
 
 /** A storage location for checkpoints on a file system. */
-public class FsCheckpointStorageLocation extends FsCheckpointStreamFactory
-        implements CheckpointStorageLocation {
+public class FsCheckpointStorageLocation extends FsCheckpointStreamFactory implements CheckpointStorageLocation {
 
     private final FileSystem fileSystem;
 
@@ -51,14 +50,13 @@ public class FsCheckpointStorageLocation extends FsCheckpointStreamFactory
 
     private final int writeBufferSize;
 
-    public FsCheckpointStorageLocation(
-            FileSystem fileSystem,
-            Path checkpointDir,
-            Path sharedStateDir,
-            Path taskOwnedStateDir,
-            CheckpointStorageLocationReference reference,
-            int fileStateSizeThreshold,
-            int writeBufferSize) {
+    public FsCheckpointStorageLocation(FileSystem fileSystem,
+                                       Path checkpointDir,
+                                       Path sharedStateDir,
+                                       Path taskOwnedStateDir,
+                                       CheckpointStorageLocationReference reference,
+                                       int fileStateSizeThreshold,
+                                       int writeBufferSize) {
 
         super(fileSystem, checkpointDir, sharedStateDir, fileStateSizeThreshold, writeBufferSize);
 
@@ -74,8 +72,9 @@ public class FsCheckpointStorageLocation extends FsCheckpointStreamFactory
         // the metadata file should not have entropy in its path
         Path metadataDir = EntropyInjector.removeEntropyMarkerIfPresent(fileSystem, checkpointDir);
 
-        this.metadataFilePath =
-                new Path(metadataDir, AbstractFsCheckpointStorageAccess.METADATA_FILE_NAME);
+        // TODO_MA 马中华 注释： _metadata 元信息文件
+        this.metadataFilePath = new Path(metadataDir, AbstractFsCheckpointStorageAccess.METADATA_FILE_NAME);
+
         this.fileStateSizeThreshold = fileStateSizeThreshold;
         this.writeBufferSize = writeBufferSize;
     }
@@ -106,8 +105,7 @@ public class FsCheckpointStorageLocation extends FsCheckpointStreamFactory
 
     @Override
     public CheckpointMetadataOutputStream createMetadataOutputStream() throws IOException {
-        return new FsCheckpointMetadataOutputStream(
-                fileSystem, metadataFilePath, checkpointDirectory);
+        return new FsCheckpointMetadataOutputStream(fileSystem, metadataFilePath, checkpointDirectory);
     }
 
     @Override
@@ -128,24 +126,10 @@ public class FsCheckpointStorageLocation extends FsCheckpointStreamFactory
 
     @Override
     public String toString() {
-        return "FsCheckpointStorageLocation {"
-                + "fileSystem="
-                + fileSystem
-                + ", checkpointDirectory="
-                + checkpointDirectory
-                + ", sharedStateDirectory="
-                + sharedStateDirectory
-                + ", taskOwnedStateDirectory="
-                + taskOwnedStateDirectory
-                + ", metadataFilePath="
-                + metadataFilePath
-                + ", reference="
-                + reference
-                + ", fileStateSizeThreshold="
-                + fileStateSizeThreshold
-                + ", writeBufferSize="
-                + writeBufferSize
-                + '}';
+        return "FsCheckpointStorageLocation {" + "fileSystem=" + fileSystem + ", checkpointDirectory="
+                + checkpointDirectory + ", sharedStateDirectory=" + sharedStateDirectory + ", taskOwnedStateDirectory="
+                + taskOwnedStateDirectory + ", metadataFilePath=" + metadataFilePath + ", reference=" + reference
+                + ", fileStateSizeThreshold=" + fileStateSizeThreshold + ", writeBufferSize=" + writeBufferSize + '}';
     }
 
     @VisibleForTesting

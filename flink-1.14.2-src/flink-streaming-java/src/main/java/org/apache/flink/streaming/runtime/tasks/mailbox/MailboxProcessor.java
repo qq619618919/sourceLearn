@@ -112,7 +112,8 @@ public class MailboxProcessor implements Closeable {
         this(mailboxDefaultAction, new TaskMailboxImpl(Thread.currentThread()), actionExecutor);
     }
 
-    public MailboxProcessor(MailboxDefaultAction mailboxDefaultAction, TaskMailbox mailbox,
+    public MailboxProcessor(MailboxDefaultAction mailboxDefaultAction,
+                            TaskMailbox mailbox,
                             StreamTaskActionExecutor actionExecutor) {
         this.mailboxDefaultAction = Preconditions.checkNotNull(mailboxDefaultAction);
         this.actionExecutor = Preconditions.checkNotNull(actionExecutor);
@@ -187,16 +188,33 @@ public class MailboxProcessor implements Closeable {
 
         assert localMailbox.getState() == TaskMailbox.State.OPEN : "Mailbox must be opened!";
 
-        final MailboxController defaultActionContext = new MailboxController(this);
-
         /*************************************************
          * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
          *  注释：
          */
+        final MailboxController defaultActionContext = new MailboxController(this);
+
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释： 开启循环
+         */
         while (isNextLoopPossible()) {
             // The blocking `processMail` call will not return until default action is available.
+
+            /*************************************************
+             * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+             *  注释： Checkpint 的算法执行中： CheckpointBarrier  嵌入在数据流中的
+             *  CheckpointBarrier 就是 Mail ，但是 Mail 不只是包含这一个
+             */
             processMail(localMailbox, false);
+
+            /*************************************************
+             * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+             *  注释：
+             */
             if (isNextLoopPossible()) {
+
+                // TODO_MA 马中华 注释：
                 mailboxDefaultAction.runDefaultAction(defaultActionContext); // lock is acquired inside default action as needed
             }
         }
@@ -281,7 +299,11 @@ public class MailboxProcessor implements Closeable {
      * to control this <code>MailboxProcessor</code>; no interaction with tasks should be performed;
      */
     private void sendControlMail(RunnableWithException mail, String descriptionFormat, Object... descriptionArgs) {
-        mailbox.putFirst(new Mail(mail, Integer.MAX_VALUE /*not used with putFirst*/, descriptionFormat, descriptionArgs));
+        mailbox.putFirst(new Mail(mail,
+                Integer.MAX_VALUE /*not used with putFirst*/,
+                descriptionFormat,
+                descriptionArgs
+        ));
     }
 
     /**

@@ -46,10 +46,9 @@ import static org.apache.flink.util.Preconditions.checkState;
 
 class NettyServer {
 
-    private static final ThreadFactoryBuilder THREAD_FACTORY_BUILDER =
-            new ThreadFactoryBuilder()
-                    .setDaemon(true)
-                    .setUncaughtExceptionHandler(FatalExitExceptionHandler.INSTANCE);
+    private static final ThreadFactoryBuilder THREAD_FACTORY_BUILDER = new ThreadFactoryBuilder()
+            .setDaemon(true)
+            .setUncaughtExceptionHandler(FatalExitExceptionHandler.INSTANCE);
 
     private static final Logger LOG = LoggerFactory.getLogger(NettyServer.class);
 
@@ -67,19 +66,24 @@ class NettyServer {
     }
 
     int init(final NettyProtocol protocol, NettyBufferPool nettyBufferPool) throws IOException {
-        return init(
-                nettyBufferPool,
-                sslHandlerFactory -> new ServerChannelInitializer(protocol, sslHandlerFactory));
+
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释：
+         */
+        return init(nettyBufferPool, sslHandlerFactory -> new ServerChannelInitializer(protocol, sslHandlerFactory));
     }
 
-    int init(
-            NettyBufferPool nettyBufferPool,
-            Function<SSLHandlerFactory, ServerChannelInitializer> channelInitializer)
-            throws IOException {
+    int init(NettyBufferPool nettyBufferPool,
+             Function<SSLHandlerFactory, ServerChannelInitializer> channelInitializer) throws IOException {
         checkState(bootstrap == null, "Netty server has already been initialized.");
 
         final long start = System.nanoTime();
 
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释：
+         */
         bootstrap = new ServerBootstrap();
 
         // --------------------------------------------------------------------
@@ -87,6 +91,11 @@ class NettyServer {
         // --------------------------------------------------------------------
 
         switch (config.getTransportType()) {
+
+            /*************************************************
+             * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+             *  注释：
+             */
             case NIO:
                 initNioBootstrap();
                 break;
@@ -145,15 +154,16 @@ class NettyServer {
         // Start Server
         // --------------------------------------------------------------------
 
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释： Netty 服务端启动
+         */
         bindFuture = bootstrap.bind().syncUninterruptibly();
 
         localAddress = (InetSocketAddress) bindFuture.channel().localAddress();
 
         final long duration = (System.nanoTime() - start) / 1_000_000;
-        LOG.info(
-                "Successful initialization (took {} ms). Listening on SocketAddress {}.",
-                duration,
-                localAddress);
+        LOG.info("Successful initialization (took {} ms). Listening on SocketAddress {}.", duration, localAddress);
 
         return localAddress.getPort();
     }
@@ -188,8 +198,11 @@ class NettyServer {
         // multiple servers running on the same host.
         String name = NettyConfig.SERVER_THREAD_GROUP_NAME + " (" + config.getServerPort() + ")";
 
-        NioEventLoopGroup nioGroup =
-                new NioEventLoopGroup(config.getServerNumThreads(), getNamedThreadFactory(name));
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释：
+         */
+        NioEventLoopGroup nioGroup = new NioEventLoopGroup(config.getServerNumThreads(), getNamedThreadFactory(name));
         bootstrap.group(nioGroup).channel(NioServerSocketChannel.class);
     }
 
@@ -198,8 +211,9 @@ class NettyServer {
         // multiple servers running on the same host.
         String name = NettyConfig.SERVER_THREAD_GROUP_NAME + " (" + config.getServerPort() + ")";
 
-        EpollEventLoopGroup epollGroup =
-                new EpollEventLoopGroup(config.getServerNumThreads(), getNamedThreadFactory(name));
+        EpollEventLoopGroup epollGroup = new EpollEventLoopGroup(config.getServerNumThreads(),
+                getNamedThreadFactory(name)
+        );
         bootstrap.group(epollGroup).channel(EpollServerSocketChannel.class);
     }
 
@@ -209,11 +223,11 @@ class NettyServer {
 
     @VisibleForTesting
     static class ServerChannelInitializer extends ChannelInitializer<SocketChannel> {
+
         private final NettyProtocol protocol;
         private final SSLHandlerFactory sslHandlerFactory;
 
-        public ServerChannelInitializer(
-                NettyProtocol protocol, SSLHandlerFactory sslHandlerFactory) {
+        public ServerChannelInitializer(NettyProtocol protocol, SSLHandlerFactory sslHandlerFactory) {
             this.protocol = protocol;
             this.sslHandlerFactory = sslHandlerFactory;
         }
@@ -221,10 +235,8 @@ class NettyServer {
         @Override
         public void initChannel(SocketChannel channel) throws Exception {
             if (sslHandlerFactory != null) {
-                channel.pipeline()
-                        .addLast("ssl", sslHandlerFactory.createNettySSLHandler(channel.alloc()));
+                channel.pipeline().addLast("ssl", sslHandlerFactory.createNettySSLHandler(channel.alloc()));
             }
-
             channel.pipeline().addLast(protocol.getServerChannelHandlers());
         }
     }

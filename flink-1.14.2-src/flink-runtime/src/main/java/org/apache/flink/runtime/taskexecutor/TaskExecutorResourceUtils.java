@@ -41,22 +41,13 @@ public class TaskExecutorResourceUtils {
     private static final Logger LOG = LoggerFactory.getLogger(TaskExecutorResourceUtils.class);
 
     static final List<ConfigOption<?>> CONFIG_OPTIONS = Arrays.asList(TaskManagerOptions.CPU_CORES,
-            TaskManagerOptions.TASK_HEAP_MEMORY,
-            TaskManagerOptions.TASK_OFF_HEAP_MEMORY,
-            TaskManagerOptions.NETWORK_MEMORY_MIN,
-            TaskManagerOptions.NETWORK_MEMORY_MAX,
-            TaskManagerOptions.MANAGED_MEMORY_SIZE
-    );
+            TaskManagerOptions.TASK_HEAP_MEMORY, TaskManagerOptions.TASK_OFF_HEAP_MEMORY, TaskManagerOptions.NETWORK_MEMORY_MIN,
+            TaskManagerOptions.NETWORK_MEMORY_MAX, TaskManagerOptions.MANAGED_MEMORY_SIZE);
 
     private static final List<ConfigOption<?>> UNUSED_CONFIG_OPTIONS = Arrays.asList(TaskManagerOptions.TOTAL_PROCESS_MEMORY,
-            TaskManagerOptions.TOTAL_FLINK_MEMORY,
-            TaskManagerOptions.FRAMEWORK_HEAP_MEMORY,
-            TaskManagerOptions.FRAMEWORK_OFF_HEAP_MEMORY,
-            TaskManagerOptions.JVM_METASPACE,
-            TaskManagerOptions.JVM_OVERHEAD_MIN,
-            TaskManagerOptions.JVM_OVERHEAD_MAX,
-            TaskManagerOptions.JVM_OVERHEAD_FRACTION
-    );
+            TaskManagerOptions.TOTAL_FLINK_MEMORY, TaskManagerOptions.FRAMEWORK_HEAP_MEMORY,
+            TaskManagerOptions.FRAMEWORK_OFF_HEAP_MEMORY, TaskManagerOptions.JVM_METASPACE, TaskManagerOptions.JVM_OVERHEAD_MIN,
+            TaskManagerOptions.JVM_OVERHEAD_MAX, TaskManagerOptions.JVM_OVERHEAD_FRACTION);
 
     private static final MemorySize LOCAL_EXECUTION_TASK_MEMORY = MemorySize.ofMebiBytes(1024 * 1024);
     private static final double LOCAL_EXECUTION_CPU_CORES = 1000000.0;
@@ -75,15 +66,19 @@ public class TaskExecutorResourceUtils {
         }
         /*************************************************
          * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-         *  注释：
+         *  注释： TaskExecutorResourceSpec 表示这个从节点的所有资源
          */
-        return new TaskExecutorResourceSpec(new CPUResource(config.getDouble(TaskManagerOptions.CPU_CORES)),
+        return new TaskExecutorResourceSpec(
+                // TODO_MA 马中华 注释： CPU
+                new CPUResource(config.getDouble(TaskManagerOptions.CPU_CORES)),
+                // TODO_MA 马中华 注释： TaskExecutor Heap 内存
                 config.get(TaskManagerOptions.TASK_HEAP_MEMORY),
+                // TODO_MA 马中华 注释： TaskExecutor Off-heap 内存
                 config.get(TaskManagerOptions.TASK_OFF_HEAP_MEMORY),
+                // TODO_MA 马中华 注释： NETWORK_MEMORY
                 config.get(TaskManagerOptions.NETWORK_MEMORY_MIN),
-                config.get(TaskManagerOptions.MANAGED_MEMORY_SIZE),
-                ExternalResourceUtils.getExternalResourcesCollection(config)
-        );
+                // TODO_MA 马中华 注释： MANAGED_MEMORY
+                config.get(TaskManagerOptions.MANAGED_MEMORY_SIZE), ExternalResourceUtils.getExternalResourcesCollection(config));
     }
 
     private static void checkTaskExecutorResourceConfigSet(Configuration config) {
@@ -98,14 +93,11 @@ public class TaskExecutorResourceUtils {
     }
 
     private static void checkTaskExecutorNetworkConfigSet(ReadableConfig config) {
-        if (!config
-                .get(TaskManagerOptions.NETWORK_MEMORY_MIN)
-                .equals(config.get(TaskManagerOptions.NETWORK_MEMORY_MAX))) {
-            throw new IllegalConfigurationException("The network memory min (%s) and max (%s) mismatch, "
-                    + "the network memory has to be resolved and set to a fixed value before task executor starts",
-                    config.get(TaskManagerOptions.NETWORK_MEMORY_MIN),
-                    config.get(TaskManagerOptions.NETWORK_MEMORY_MAX)
-            );
+        if (!config.get(TaskManagerOptions.NETWORK_MEMORY_MIN)
+                   .equals(config.get(TaskManagerOptions.NETWORK_MEMORY_MAX))) {
+            throw new IllegalConfigurationException(
+                    "The network memory min (%s) and max (%s) mismatch, " + "the network memory has to be resolved and set to a fixed value before task executor starts",
+                    config.get(TaskManagerOptions.NETWORK_MEMORY_MIN), config.get(TaskManagerOptions.NETWORK_MEMORY_MAX));
         }
     }
 
@@ -116,30 +108,39 @@ public class TaskExecutorResourceUtils {
     @VisibleForTesting
     public static ResourceProfile generateDefaultSlotResourceProfile(TaskExecutorResourceSpec taskExecutorResourceSpec,
                                                                      int numberOfSlots) {
-        final ResourceProfile.Builder resourceProfileBuilder = ResourceProfile
-                .newBuilder()
-                .setCpuCores(taskExecutorResourceSpec.getCpuCores().divide(numberOfSlots))
-                .setTaskHeapMemory(taskExecutorResourceSpec.getTaskHeapSize().divide(numberOfSlots))
-                .setTaskOffHeapMemory(taskExecutorResourceSpec.getTaskOffHeapSize().divide(numberOfSlots))
-                .setManagedMemory(taskExecutorResourceSpec.getManagedMemorySize().divide(numberOfSlots))
-                .setNetworkMemory(taskExecutorResourceSpec.getNetworkMemSize().divide(numberOfSlots));
-        taskExecutorResourceSpec
-                .getExtendedResources()
-                .forEach((name, resource) -> resourceProfileBuilder.setExtendedResource(resource.divide(numberOfSlots)));
+        final ResourceProfile.Builder resourceProfileBuilder = ResourceProfile.newBuilder()
+                                                                              // TODO_MA 马中华 注释： 下述各种资源，评分
+                                                                              .setCpuCores(taskExecutorResourceSpec.getCpuCores()
+                                                                                                                   .divide(numberOfSlots))
+                                                                              .setTaskHeapMemory(
+                                                                                      taskExecutorResourceSpec.getTaskHeapSize()
+                                                                                                              .divide(numberOfSlots))
+                                                                              .setTaskOffHeapMemory(
+                                                                                      taskExecutorResourceSpec.getTaskOffHeapSize()
+                                                                                                              .divide(numberOfSlots))
+                                                                              .setManagedMemory(
+                                                                                      taskExecutorResourceSpec.getManagedMemorySize()
+                                                                                                              .divide(numberOfSlots))
+                                                                              .setNetworkMemory(
+                                                                                      taskExecutorResourceSpec.getNetworkMemSize()
+                                                                                                              .divide(numberOfSlots));
+        taskExecutorResourceSpec.getExtendedResources()
+                                .forEach((name, resource) -> resourceProfileBuilder.setExtendedResource(
+                                        resource.divide(numberOfSlots)));
         return resourceProfileBuilder.build();
     }
 
     @VisibleForTesting
     public static ResourceProfile generateTotalAvailableResourceProfile(TaskExecutorResourceSpec taskExecutorResourceSpec) {
-        return ResourceProfile
-                .newBuilder()
-                .setCpuCores(taskExecutorResourceSpec.getCpuCores())
-                .setTaskHeapMemory(taskExecutorResourceSpec.getTaskHeapSize())
-                .setTaskOffHeapMemory(taskExecutorResourceSpec.getTaskOffHeapSize())
-                .setManagedMemory(taskExecutorResourceSpec.getManagedMemorySize())
-                .setNetworkMemory(taskExecutorResourceSpec.getNetworkMemSize())
-                .setExtendedResources(taskExecutorResourceSpec.getExtendedResources().values())
-                .build();
+        return ResourceProfile.newBuilder()
+                              .setCpuCores(taskExecutorResourceSpec.getCpuCores())
+                              .setTaskHeapMemory(taskExecutorResourceSpec.getTaskHeapSize())
+                              .setTaskOffHeapMemory(taskExecutorResourceSpec.getTaskOffHeapSize())
+                              .setManagedMemory(taskExecutorResourceSpec.getManagedMemorySize())
+                              .setNetworkMemory(taskExecutorResourceSpec.getNetworkMemSize())
+                              .setExtendedResources(taskExecutorResourceSpec.getExtendedResources()
+                                                                            .values())
+                              .build();
     }
 
     @VisibleForTesting
@@ -155,30 +156,26 @@ public class TaskExecutorResourceUtils {
         Preconditions.checkArgument(config.contains(TaskManagerOptions.MANAGED_MEMORY_SIZE));
         Preconditions.checkArgument(config.contains(TaskManagerOptions.FRAMEWORK_HEAP_MEMORY));
         Preconditions.checkArgument(config.contains(TaskManagerOptions.FRAMEWORK_OFF_HEAP_MEMORY));
-        Preconditions.checkArgument(config
-                .get(TaskManagerOptions.NETWORK_MEMORY_MAX)
-                .equals(config.get(TaskManagerOptions.NETWORK_MEMORY_MIN)));
-        return config
-                .get(TaskManagerOptions.TASK_HEAP_MEMORY)
-                .add(config.get(TaskManagerOptions.TASK_OFF_HEAP_MEMORY))
-                .add(config.get(TaskManagerOptions.NETWORK_MEMORY_MAX))
-                .add(config.get(TaskManagerOptions.MANAGED_MEMORY_SIZE))
-                .add(config.get(TaskManagerOptions.FRAMEWORK_HEAP_MEMORY))
-                .add(config.get(TaskManagerOptions.FRAMEWORK_OFF_HEAP_MEMORY))
-                .getBytes();
+        Preconditions.checkArgument(config.get(TaskManagerOptions.NETWORK_MEMORY_MAX)
+                                          .equals(config.get(TaskManagerOptions.NETWORK_MEMORY_MIN)));
+        return config.get(TaskManagerOptions.TASK_HEAP_MEMORY)
+                     .add(config.get(TaskManagerOptions.TASK_OFF_HEAP_MEMORY))
+                     .add(config.get(TaskManagerOptions.NETWORK_MEMORY_MAX))
+                     .add(config.get(TaskManagerOptions.MANAGED_MEMORY_SIZE))
+                     .add(config.get(TaskManagerOptions.FRAMEWORK_HEAP_MEMORY))
+                     .add(config.get(TaskManagerOptions.FRAMEWORK_OFF_HEAP_MEMORY))
+                     .getBytes();
     }
 
     public static long calculateTotalProcessMemoryFromComponents(Configuration config) {
         Preconditions.checkArgument(config.contains(TaskManagerOptions.JVM_METASPACE));
         Preconditions.checkArgument(config.contains(TaskManagerOptions.JVM_OVERHEAD_MAX));
         Preconditions.checkArgument(config.contains(TaskManagerOptions.JVM_OVERHEAD_MIN));
-        Preconditions.checkArgument(config
-                .get(TaskManagerOptions.JVM_OVERHEAD_MAX)
-                .equals(config.get(TaskManagerOptions.JVM_OVERHEAD_MIN)));
-        return calculateTotalFlinkMemoryFromComponents(config) + config
-                .get(TaskManagerOptions.JVM_METASPACE)
-                .add(config.get(TaskManagerOptions.JVM_OVERHEAD_MAX))
-                .getBytes();
+        Preconditions.checkArgument(config.get(TaskManagerOptions.JVM_OVERHEAD_MAX)
+                                          .equals(config.get(TaskManagerOptions.JVM_OVERHEAD_MIN)));
+        return calculateTotalFlinkMemoryFromComponents(config) + config.get(TaskManagerOptions.JVM_METASPACE)
+                                                                       .add(config.get(TaskManagerOptions.JVM_OVERHEAD_MAX))
+                                                                       .getBytes();
     }
 
     public static Configuration adjustForLocalExecution(Configuration config) {
@@ -186,44 +183,28 @@ public class TaskExecutorResourceUtils {
 
         setConfigOptionToPassedMaxIfNotSet(config, TaskManagerOptions.CPU_CORES, LOCAL_EXECUTION_CPU_CORES);
         setConfigOptionToPassedMaxIfNotSet(config, TaskManagerOptions.TASK_HEAP_MEMORY, LOCAL_EXECUTION_TASK_MEMORY);
-        setConfigOptionToPassedMaxIfNotSet(config,
-                TaskManagerOptions.TASK_OFF_HEAP_MEMORY,
-                LOCAL_EXECUTION_TASK_MEMORY
-        );
+        setConfigOptionToPassedMaxIfNotSet(config, TaskManagerOptions.TASK_OFF_HEAP_MEMORY, LOCAL_EXECUTION_TASK_MEMORY);
 
         adjustNetworkMemoryForLocalExecution(config);
         setConfigOptionToDefaultIfNotSet(config, TaskManagerOptions.MANAGED_MEMORY_SIZE, DEFAULT_MANAGED_MEMORY_SIZE);
-        silentlySetConfigOptionIfNotSet(config,
-                TaskManagerOptions.FRAMEWORK_HEAP_MEMORY,
-                TaskManagerOptions.FRAMEWORK_HEAP_MEMORY.defaultValue()
-        );
-        silentlySetConfigOptionIfNotSet(config,
-                TaskManagerOptions.FRAMEWORK_OFF_HEAP_MEMORY,
-                TaskManagerOptions.FRAMEWORK_OFF_HEAP_MEMORY.defaultValue()
-        );
-        silentlySetConfigOptionIfNotSet(config,
-                TaskManagerOptions.JVM_METASPACE,
-                TaskManagerOptions.JVM_METASPACE.defaultValue()
-        );
-        silentlySetConfigOptionIfNotSet(config,
-                TaskManagerOptions.JVM_OVERHEAD_MAX,
-                TaskManagerOptions.JVM_OVERHEAD_MAX.defaultValue()
-        );
-        silentlySetConfigOptionIfNotSet(config,
-                TaskManagerOptions.JVM_OVERHEAD_MIN,
-                TaskManagerOptions.JVM_OVERHEAD_MAX.defaultValue()
-        );
+        silentlySetConfigOptionIfNotSet(config, TaskManagerOptions.FRAMEWORK_HEAP_MEMORY,
+                TaskManagerOptions.FRAMEWORK_HEAP_MEMORY.defaultValue());
+        silentlySetConfigOptionIfNotSet(config, TaskManagerOptions.FRAMEWORK_OFF_HEAP_MEMORY,
+                TaskManagerOptions.FRAMEWORK_OFF_HEAP_MEMORY.defaultValue());
+        silentlySetConfigOptionIfNotSet(config, TaskManagerOptions.JVM_METASPACE, TaskManagerOptions.JVM_METASPACE.defaultValue());
+        silentlySetConfigOptionIfNotSet(config, TaskManagerOptions.JVM_OVERHEAD_MAX,
+                TaskManagerOptions.JVM_OVERHEAD_MAX.defaultValue());
+        silentlySetConfigOptionIfNotSet(config, TaskManagerOptions.JVM_OVERHEAD_MIN,
+                TaskManagerOptions.JVM_OVERHEAD_MAX.defaultValue());
 
         return config;
     }
 
     private static void adjustNetworkMemoryForLocalExecution(Configuration config) {
-        if (!config.contains(TaskManagerOptions.NETWORK_MEMORY_MIN)
-                && config.contains(TaskManagerOptions.NETWORK_MEMORY_MAX)) {
+        if (!config.contains(TaskManagerOptions.NETWORK_MEMORY_MIN) && config.contains(TaskManagerOptions.NETWORK_MEMORY_MAX)) {
             config.set(TaskManagerOptions.NETWORK_MEMORY_MIN, config.get(TaskManagerOptions.NETWORK_MEMORY_MAX));
         }
-        if (!config.contains(TaskManagerOptions.NETWORK_MEMORY_MAX)
-                && config.contains(TaskManagerOptions.NETWORK_MEMORY_MIN)) {
+        if (!config.contains(TaskManagerOptions.NETWORK_MEMORY_MAX) && config.contains(TaskManagerOptions.NETWORK_MEMORY_MIN)) {
             config.set(TaskManagerOptions.NETWORK_MEMORY_MAX, config.get(TaskManagerOptions.NETWORK_MEMORY_MIN));
         }
         setConfigOptionToDefaultIfNotSet(config, TaskManagerOptions.NETWORK_MEMORY_MIN, DEFAULT_SHUFFLE_MEMORY_SIZE);
@@ -232,11 +213,9 @@ public class TaskExecutorResourceUtils {
 
     private static void warnOptionHasNoEffectIfSet(Configuration config, ConfigOption<?> option) {
         if (config.contains(option)) {
-            LOG.warn("The resource configuration option {} is set but it will have no effect for local execution, "
-                            + "only the following options matter for the resource configuration: {}",
-                    option,
-                    UNUSED_CONFIG_OPTIONS
-            );
+            LOG.warn(
+                    "The resource configuration option {} is set but it will have no effect for local execution, " + "only the following options matter for the resource configuration: {}",
+                    option, UNUSED_CONFIG_OPTIONS);
         }
     }
 
@@ -246,27 +225,19 @@ public class TaskExecutorResourceUtils {
         }
     }
 
-    private static <T> void setConfigOptionToDefaultIfNotSet(Configuration config,
-                                                             ConfigOption<T> option,
-                                                             T defaultValue) {
+    private static <T> void setConfigOptionToDefaultIfNotSet(Configuration config, ConfigOption<T> option, T defaultValue) {
         setConfigOptionToDefaultIfNotSet(config, option, defaultValue, "its default value " + defaultValue);
     }
 
-    private static <T> void setConfigOptionToPassedMaxIfNotSet(Configuration config,
-                                                               ConfigOption<T> option,
-                                                               T maxValue) {
+    private static <T> void setConfigOptionToPassedMaxIfNotSet(Configuration config, ConfigOption<T> option, T maxValue) {
         setConfigOptionToDefaultIfNotSet(config, option, maxValue, "the maximal possible value");
     }
 
-    private static <T> void setConfigOptionToDefaultIfNotSet(Configuration config,
-                                                             ConfigOption<T> option,
-                                                             T defaultValue,
+    private static <T> void setConfigOptionToDefaultIfNotSet(Configuration config, ConfigOption<T> option, T defaultValue,
                                                              String defaultValueLogExt) {
         if (!config.contains(option)) {
-            LOG.info("The configuration option {} required for local execution is not set, setting it to {}.",
-                    option.key(),
-                    defaultValueLogExt
-            );
+            LOG.info("The configuration option {} required for local execution is not set, setting it to {}.", option.key(),
+                    defaultValueLogExt);
             config.set(option, defaultValue);
         }
     }

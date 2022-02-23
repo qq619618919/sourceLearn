@@ -51,12 +51,11 @@ public class MasterHooks {
      * Resets the master hooks.
      *
      * @param hooks The hooks to reset
+     *
      * @throws FlinkException Thrown, if the hooks throw an exception.
      */
-    public static void reset(
-            final Collection<MasterTriggerRestoreHook<?>> hooks,
-            @SuppressWarnings("unused") final Logger log)
-            throws FlinkException {
+    public static void reset(final Collection<MasterTriggerRestoreHook<?>> hooks,
+                             @SuppressWarnings("unused") final Logger log) throws FlinkException {
 
         for (MasterTriggerRestoreHook<?> hook : hooks) {
             final String id = hook.getIdentifier();
@@ -64,8 +63,7 @@ public class MasterHooks {
                 hook.reset();
             } catch (Throwable t) {
                 ExceptionUtils.rethrowIfFatalErrorOrOOM(t);
-                throw new FlinkException(
-                        "Error while resetting checkpoint master hook '" + id + '\'', t);
+                throw new FlinkException("Error while resetting checkpoint master hook '" + id + '\'', t);
             }
         }
     }
@@ -75,18 +73,13 @@ public class MasterHooks {
      *
      * @param hooks The hooks to close
      */
-    public static void close(
-            final Collection<MasterTriggerRestoreHook<?>> hooks, final Logger log) {
+    public static void close(final Collection<MasterTriggerRestoreHook<?>> hooks, final Logger log) {
 
         for (MasterTriggerRestoreHook<?> hook : hooks) {
             try {
                 hook.close();
             } catch (Throwable t) {
-                log.warn(
-                        "Failed to cleanly close a checkpoint master hook ("
-                                + hook.getIdentifier()
-                                + ")",
-                        t);
+                log.warn("Failed to cleanly close a checkpoint master hook (" + hook.getIdentifier() + ")", t);
             }
         }
     }
@@ -103,68 +96,53 @@ public class MasterHooks {
      * @param timestamp The (informational) timestamp for the triggering checkpoint
      * @param executor An executor that can be used for asynchronous I/O calls
      * @param <T> The type of data produced by the hook
+     *
      * @return the completable future with state
      */
-    public static <T> CompletableFuture<MasterState> triggerHook(
-            MasterTriggerRestoreHook<T> hook,
-            long checkpointId,
-            long timestamp,
-            Executor executor) {
+    public static <T> CompletableFuture<MasterState> triggerHook(MasterTriggerRestoreHook<T> hook,
+                                                                 long checkpointId,
+                                                                 long timestamp,
+                                                                 Executor executor) {
 
         final String id = hook.getIdentifier();
         final SimpleVersionedSerializer<T> serializer = hook.createCheckpointDataSerializer();
 
         try {
             // call the hook!
-            final CompletableFuture<T> resultFuture =
-                    hook.triggerCheckpoint(checkpointId, timestamp, executor);
+            final CompletableFuture<T> resultFuture = hook.triggerCheckpoint(checkpointId, timestamp, executor);
 
             if (resultFuture == null) {
                 return CompletableFuture.completedFuture(null);
             }
 
-            return resultFuture
-                    .thenApply(
-                            result -> {
-                                // if the result of the future is not null, return it as state
-                                if (result == null) {
-                                    return null;
-                                } else if (serializer != null) {
-                                    try {
-                                        final int version = serializer.getVersion();
-                                        final byte[] bytes = serializer.serialize(result);
+            return resultFuture.thenApply(result -> {
+                // if the result of the future is not null, return it as state
+                if (result == null) {
+                    return null;
+                } else if (serializer != null) {
+                    try {
+                        final int version = serializer.getVersion();
+                        final byte[] bytes = serializer.serialize(result);
 
-                                        return new MasterState(id, bytes, version);
-                                    } catch (Throwable t) {
-                                        ExceptionUtils.rethrowIfFatalErrorOrOOM(t);
-                                        throw new CompletionException(
-                                                new FlinkException(
-                                                        "Failed to serialize state of master hook '"
-                                                                + id
-                                                                + '\'',
-                                                        t));
-                                    }
-                                } else {
-                                    throw new CompletionException(
-                                            new FlinkException(
-                                                    "Checkpoint hook '"
-                                                            + id
-                                                            + " is stateful but creates no serializer"));
-                                }
-                            })
-                    .exceptionally(
-                            (throwable) -> {
-                                throw new CompletionException(
-                                        new FlinkException(
-                                                "Checkpoint master hook '"
-                                                        + id
-                                                        + "' produced an exception",
-                                                throwable.getCause()));
-                            });
+                        return new MasterState(id, bytes, version);
+                    } catch (Throwable t) {
+                        ExceptionUtils.rethrowIfFatalErrorOrOOM(t);
+                        throw new CompletionException(new FlinkException(
+                                "Failed to serialize state of master hook '" + id + '\'', t));
+                    }
+                } else {
+                    throw new CompletionException(new FlinkException(
+                            "Checkpoint hook '" + id + " is stateful but creates no serializer"));
+                }
+            }).exceptionally((throwable) -> {
+                throw new CompletionException(new FlinkException(
+                        "Checkpoint master hook '" + id + "' produced an exception", throwable.getCause()));
+            });
         } catch (Throwable t) {
-            return FutureUtils.completedExceptionally(
-                    new FlinkException(
-                            "Error while triggering checkpoint master hook '" + id + '\'', t));
+            return FutureUtils.completedExceptionally(new FlinkException(
+                    "Error while triggering checkpoint master hook '" + id + '\'',
+                    t
+            ));
         }
     }
 
@@ -183,18 +161,17 @@ public class MasterHooks {
      * @param states The state to pass to the hooks
      * @param checkpointId The checkpoint ID of the restored checkpoint
      * @param allowUnmatchedState If true, the method fails if not all states are picked up by a
-     *     hook.
+     *         hook.
      * @param log The logger for log messages
+     *
      * @throws FlinkException Thrown, if the hooks throw an exception, or the state+ deserialization
-     *     fails.
+     *         fails.
      */
-    public static void restoreMasterHooks(
-            final Map<String, MasterTriggerRestoreHook<?>> masterHooks,
-            final Collection<MasterState> states,
-            final long checkpointId,
-            final boolean allowUnmatchedState,
-            final Logger log)
-            throws FlinkException {
+    public static void restoreMasterHooks(final Map<String, MasterTriggerRestoreHook<?>> masterHooks,
+                                          final Collection<MasterState> states,
+                                          final long checkpointId,
+                                          final boolean allowUnmatchedState,
+                                          final Logger log) throws FlinkException {
 
         // early out
         if (states == null || states.isEmpty() || masterHooks == null || masterHooks.isEmpty()) {
@@ -205,12 +182,10 @@ public class MasterHooks {
         log.info("Calling master restore hooks");
 
         // collect the hooks
-        final LinkedHashMap<String, MasterTriggerRestoreHook<?>> allHooks =
-                new LinkedHashMap<>(masterHooks);
+        final LinkedHashMap<String, MasterTriggerRestoreHook<?>> allHooks = new LinkedHashMap<>(masterHooks);
 
         // first, deserialize all hook state
-        final ArrayList<Tuple2<MasterTriggerRestoreHook<?>, Object>> hooksAndStates =
-                new ArrayList<>();
+        final ArrayList<Tuple2<MasterTriggerRestoreHook<?>, Object>> hooksAndStates = new ArrayList<>();
 
         for (MasterState state : states) {
             if (state != null) {
@@ -242,18 +217,14 @@ public class MasterHooks {
         }
     }
 
-    private static <T> T deserializeState(MasterState state, MasterTriggerRestoreHook<?> hook)
-            throws FlinkException {
-        @SuppressWarnings("unchecked")
-        final MasterTriggerRestoreHook<T> typedHook = (MasterTriggerRestoreHook<T>) hook;
+    private static <T> T deserializeState(MasterState state, MasterTriggerRestoreHook<?> hook) throws FlinkException {
+        @SuppressWarnings("unchecked") final MasterTriggerRestoreHook<T> typedHook = (MasterTriggerRestoreHook<T>) hook;
         final String id = hook.getIdentifier();
 
         try {
-            final SimpleVersionedSerializer<T> deserializer =
-                    typedHook.createCheckpointDataSerializer();
+            final SimpleVersionedSerializer<T> deserializer = typedHook.createCheckpointDataSerializer();
             if (deserializer == null) {
-                throw new FlinkException(
-                        "null serializer for state of hook " + hook.getIdentifier());
+                throw new FlinkException("null serializer for state of hook " + hook.getIdentifier());
             }
 
             return deserializer.deserialize(state.version(), state.bytes());
@@ -262,15 +233,13 @@ public class MasterHooks {
         }
     }
 
-    private static <T> void restoreHook(
-            final Object state, final MasterTriggerRestoreHook<?> hook, final long checkpointId)
-            throws FlinkException {
+    private static <T> void restoreHook(final Object state,
+                                        final MasterTriggerRestoreHook<?> hook,
+                                        final long checkpointId) throws FlinkException {
 
-        @SuppressWarnings("unchecked")
-        final T typedState = (T) state;
+        @SuppressWarnings("unchecked") final T typedState = (T) state;
 
-        @SuppressWarnings("unchecked")
-        final MasterTriggerRestoreHook<T> typedHook = (MasterTriggerRestoreHook<T>) hook;
+        @SuppressWarnings("unchecked") final MasterTriggerRestoreHook<T> typedHook = (MasterTriggerRestoreHook<T>) hook;
 
         try {
             typedHook.restoreCheckpoint(checkpointId, typedState);
@@ -280,10 +249,7 @@ public class MasterHooks {
             // catch all here, including Errors that may come from dependency and classpath issues
             ExceptionUtils.rethrowIfFatalError(t);
             throw new FlinkException(
-                    "Error while calling restoreCheckpoint on checkpoint hook '"
-                            + hook.getIdentifier()
-                            + '\'',
-                    t);
+                    "Error while calling restoreCheckpoint on checkpoint hook '" + hook.getIdentifier() + '\'', t);
         }
     }
 
@@ -297,8 +263,8 @@ public class MasterHooks {
      * @param hook the hook to wrap
      * @param userClassLoader the classloader to use
      */
-    public static <T> MasterTriggerRestoreHook<T> wrapHook(
-            MasterTriggerRestoreHook<T> hook, ClassLoader userClassLoader) {
+    public static <T> MasterTriggerRestoreHook<T> wrapHook(MasterTriggerRestoreHook<T> hook,
+                                                           ClassLoader userClassLoader) {
 
         return new WrappedMasterHook<>(hook, userClassLoader);
     }
@@ -330,28 +296,27 @@ public class MasterHooks {
 
         @Nullable
         @Override
-        public CompletableFuture<T> triggerCheckpoint(
-                long checkpointId, long timestamp, final Executor executor) throws Exception {
-            final Executor wrappedExecutor =
-                    command -> executor.execute(new WrappedCommand(userClassLoader, command));
+        public CompletableFuture<T> triggerCheckpoint(long checkpointId,
+                                                      long timestamp,
+                                                      final Executor executor) throws Exception {
+            final Executor wrappedExecutor = command -> executor.execute(new WrappedCommand(userClassLoader, command));
 
-            return LambdaUtil.withContextClassLoader(
-                    userClassLoader,
-                    () -> hook.triggerCheckpoint(checkpointId, timestamp, wrappedExecutor));
+            return LambdaUtil.withContextClassLoader(userClassLoader,
+                    () -> hook.triggerCheckpoint(checkpointId, timestamp, wrappedExecutor)
+            );
         }
 
         @Override
-        public void restoreCheckpoint(long checkpointId, @Nullable T checkpointData)
-                throws Exception {
-            LambdaUtil.withContextClassLoader(
-                    userClassLoader, () -> hook.restoreCheckpoint(checkpointId, checkpointData));
+        public void restoreCheckpoint(long checkpointId, @Nullable T checkpointData) throws Exception {
+            LambdaUtil.withContextClassLoader(userClassLoader,
+                    () -> hook.restoreCheckpoint(checkpointId, checkpointData)
+            );
         }
 
         @Nullable
         @Override
         public SimpleVersionedSerializer<T> createCheckpointDataSerializer() {
-            return LambdaUtil.withContextClassLoader(
-                    userClassLoader, hook::createCheckpointDataSerializer);
+            return LambdaUtil.withContextClassLoader(userClassLoader, hook::createCheckpointDataSerializer);
         }
 
         private static class WrappedCommand implements Runnable {
@@ -374,5 +339,6 @@ public class MasterHooks {
     // ------------------------------------------------------------------------
 
     /** This class is not meant to be instantiated. */
-    private MasterHooks() {}
+    private MasterHooks() {
+    }
 }

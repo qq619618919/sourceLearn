@@ -143,13 +143,22 @@ import static org.apache.flink.util.concurrent.FutureUtils.assertNoException;
  * thread and hence on the same stream partition. A common case for these chains are successive
  * map/flatmap/filter tasks.
  *
+ * 所有streaming tasks的基类。 task 是有taskmanagr部署和执行的本地处理单元。
+ * 每个task运行了一个或者多个 streamOperator，它们构成了task 的operator chain。
+ * chaine 在一起的 operators 在一个线程中同步执行，因此在同一个流分区中。
+ * chains 常见的的情况是 连续的 map/flatmap/filter 任务。
+ *
  * <p>The task chain contains one "head" operator and multiple chained operators. The StreamTask is
  * specialized for the type of the head operator: one-input and two-input tasks, as well as for
  * sources, iteration heads and iteration tails.
  *
+ *  任务链包含一个“头”操作符和多个链式操作符。StreamTask专门用于头操作符的类型:一个输入和两个输入任务，以及 source、迭代头和迭代尾。
+ *
  * <p>The Task class deals with the setup of the streams read by the head operator, and the streams
  * produced by the operators at the ends of the operator chain. Note that the chain may fork and
  * thus have multiple ends.
+ *
+ *
  *
  * <p>The life cycle of the task is set up as follows:
  *
@@ -365,7 +374,7 @@ public abstract class StreamTask<OUT, OP extends StreamOperator<OUT>> implements
 
         /*************************************************
          * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-         *  注释：
+         *  注释： 处理输入
          */
         this.mailboxProcessor = new MailboxProcessor(this::processInput, mailbox, actionExecutor);
 
@@ -380,13 +389,13 @@ public abstract class StreamTask<OUT, OP extends StreamOperator<OUT>> implements
 
         /*************************************************
          * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-         *  注释：
+         *  注释： 创建 StateBackend
          */
         this.stateBackend = createStateBackend();
 
         /*************************************************
          * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-         *  注释：
+         *  注释： 创建 CheckpointStorage
          */
         this.checkpointStorage = createCheckpointStorage(stateBackend);
 
@@ -419,6 +428,10 @@ public abstract class StreamTask<OUT, OP extends StreamOperator<OUT>> implements
         this.systemTimerService = createTimerService("System Time Trigger for " + getName());
         this.channelIOExecutor = Executors.newSingleThreadExecutor(new ExecutorThreadFactory("channel-state-unspilling"));
 
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释：
+         */
         injectChannelStateWriterIntoChannels();
 
         environment.getMetricGroup().getIOMetricGroup().setEnableBusyTime(true);
@@ -447,10 +460,21 @@ public abstract class StreamTask<OUT, OP extends StreamOperator<OUT>> implements
 
     private void injectChannelStateWriterIntoChannels() {
         final Environment env = getEnvironment();
+
         final ChannelStateWriter channelStateWriter = subtaskCheckpointCoordinator.getChannelStateWriter();
+
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释：
+         */
         for (final InputGate gate : env.getAllInputGates()) {
             gate.setChannelStateWriter(channelStateWriter);
         }
+
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释：
+         */
         for (ResultPartitionWriter writer : env.getAllWriters()) {
             if (writer instanceof ChannelStateHolder) {
                 ((ChannelStateHolder) writer).setChannelStateWriter(channelStateWriter);
@@ -495,6 +519,7 @@ public abstract class StreamTask<OUT, OP extends StreamOperator<OUT>> implements
          *  注释：
          */
         DataInputStatus status = inputProcessor.processInput();
+
         switch (status) {
             case MORE_AVAILABLE:
                 if (recordWriter.isAvailable()) {
@@ -644,6 +669,10 @@ public abstract class StreamTask<OUT, OP extends StreamOperator<OUT>> implements
 
     @Override
     public final void restore() throws Exception {
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释：
+         */
         restoreInternal();
     }
 
@@ -655,6 +684,10 @@ public abstract class StreamTask<OUT, OP extends StreamOperator<OUT>> implements
         closedOperators = false;
         LOG.debug("Initializing {}.", getName());
 
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释： 获取该 Task 的 OpeartorChain
+         */
         operatorChain = getEnvironment().getTaskStateManager().isFinishedOnRestore() ? new FinishedOperatorChain<>(this,
                 recordWriter
         ) : new RegularOperatorChain<>(this, recordWriter);
@@ -666,6 +699,10 @@ public abstract class StreamTask<OUT, OP extends StreamOperator<OUT>> implements
                 .ifPresent(restoreId -> latestReportCheckpointId = restoreId);
 
         // task specific initialization
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释： 重点1： 初始化
+         */
         init();
 
         // save the work of reloading state, etc, if the task is already canceled
@@ -676,43 +713,72 @@ public abstract class StreamTask<OUT, OP extends StreamOperator<OUT>> implements
 
         // we need to make sure that any triggers scheduled in open() cannot be
         // executed before all operators are opened
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释： 重点2： 初始化 InputGate 和恢复 State
+         */
         CompletableFuture<Void> allGatesRecoveredFuture = actionExecutor.call(this::restoreGates);
 
         // Run mailbox until all gates will be recovered.
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释： 重点3： 运行该 Task 的核心处理逻辑
+         */
         mailboxProcessor.runMailboxLoop();
 
         ensureNotCanceled();
 
         checkState(allGatesRecoveredFuture.isDone(), "Mailbox loop interrupted before recovery was finished.");
 
-        // we recovered all the gates, we can close the channel IO executor as it is no longer
-        // needed
+        // we recovered all the gates, we can close the channel IO executor as it is no longer needed
         channelIOExecutor.shutdown();
 
         isRunning = true;
     }
 
     private CompletableFuture<Void> restoreGates() throws Exception {
+
+        // TODO_MA 马中华 注释：
         SequentialChannelStateReader reader = getEnvironment().getTaskStateManager().getSequentialChannelStateReader();
+
+        // TODO_MA 马中华 注释：
         reader.readOutputData(getEnvironment().getAllWriters(), !configuration.isGraphContainingLoops());
 
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释： 恢复状态
+         */
         operatorChain.initializeStateAndOpenOperators(createStreamTaskStateInitializer());
 
         IndexedInputGate[] inputGates = getEnvironment().getAllInputGates();
         channelIOExecutor.execute(() -> {
             try {
+                /*************************************************
+                 * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+                 *  注释：
+                 */
                 reader.readInputData(inputGates);
             } catch (Exception e) {
                 asyncExceptionHandler.handleAsyncException("Unable to read channel state", e);
             }
         });
 
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释： 去链接上游 NettyServer
+         */
         List<CompletableFuture<?>> recoveredFutures = new ArrayList<>(inputGates.length);
+
+        // TODO_MA 马中华 注释： 遍历每个 InputGate
         for (InputGate inputGate : inputGates) {
             recoveredFutures.add(inputGate.getStateConsumedFuture());
-
+            // TODO_MA 马中华 注释： 建立连接
             inputGate
                     .getStateConsumedFuture()
+                    /*************************************************
+                     * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+                     *  注释： 让 InputGate 中的每个 InputChannel 去建立和上游 的链接
+                     */
                     .thenRun(() -> mainMailboxExecutor.execute(inputGate::requestPartitions,
                             "Input gate request partitions"
                     ));
@@ -745,7 +811,8 @@ public abstract class StreamTask<OUT, OP extends StreamOperator<OUT>> implements
         // let the task do its work
         /*************************************************
          * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-         *  注释：
+         *  注释： 这个地方，其实内部就是运行了一个 死循环，不停的接收 mail 然后执行处理
+         *  由 邮件处理器 MailboxProcessor 来对 mail 执行处理
          */
         runMailboxLoop();
 
@@ -755,7 +822,7 @@ public abstract class StreamTask<OUT, OP extends StreamOperator<OUT>> implements
 
         /*************************************************
          * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-         *  注释：
+         *  注释：  stop  close  finish  flush 等等
          */
         afterInvoke();
     }
@@ -1126,19 +1193,19 @@ public abstract class StreamTask<OUT, OP extends StreamOperator<OUT>> implements
 
             /*************************************************
              * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-             *  注释：
+             *  注释： 初始化 checkpoint 相关
              */
             subtaskCheckpointCoordinator.initInputsCheckpoint(checkpointMetaData.getCheckpointId(), checkpointOptions);
 
             /*************************************************
              * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-             *  注释：
+             *  注释： 执行 checkpoint
              */
             boolean success = performCheckpoint(checkpointMetaData, checkpointOptions, checkpointMetrics);
 
             /*************************************************
              * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-             *  注释：
+             *  注释： 如果上述 checkpoint 执行报错，则拒绝此次 checkpoint
              */
             if (!success) {
                 declineCheckpoint(checkpointMetaData.getCheckpointId());
@@ -1293,12 +1360,10 @@ public abstract class StreamTask<OUT, OP extends StreamOperator<OUT>> implements
         } else {
             actionExecutor.runThrowing(() -> {
                 // we cannot perform our checkpoint - let the downstream operators know that
-                // they
-                // should not wait for any input from this operator
+                // they should not wait for any input from this operator
 
                 // we cannot broadcast the cancellation markers on the 'operator chain',
-                // because it may not
-                // yet be created
+                // because it may not yet be created
                 final CancelCheckpointMarker message = new CancelCheckpointMarker(checkpointMetaData.getCheckpointId());
                 recordWriter.broadcastEvent(message);
             });
@@ -1418,10 +1483,18 @@ public abstract class StreamTask<OUT, OP extends StreamOperator<OUT>> implements
     // ------------------------------------------------------------------------
 
     private StateBackend createStateBackend() throws Exception {
+
+        // TODO_MA 马中华 注释： statebackend
         final StateBackend fromApplication = configuration.getStateBackend(getUserCodeClassLoader());
+
+        // TODO_MA 马中华 注释： enablechangelog
         final TernaryBoolean isChangelogStateBackendEnableFromApplication = configuration.isChangelogStateBackendEnabled(
                 getUserCodeClassLoader());
 
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释： 创建 StateBackend
+         */
         return StateBackendLoader.fromApplicationOrConfigOrDefault(fromApplication,
                 isChangelogStateBackendEnableFromApplication
                         == null ? TernaryBoolean.UNDEFINED : isChangelogStateBackendEnableFromApplication,
@@ -1432,9 +1505,14 @@ public abstract class StreamTask<OUT, OP extends StreamOperator<OUT>> implements
     }
 
     private CheckpointStorage createCheckpointStorage(StateBackend backend) throws Exception {
+
         final CheckpointStorage fromApplication = configuration.getCheckpointStorage(getUserCodeClassLoader());
         final Path savepointDir = configuration.getSavepointDir(getUserCodeClassLoader());
 
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释：
+         */
         return CheckpointStorageLoader.load(fromApplication,
                 savepointDir,
                 backend,
@@ -1535,8 +1613,9 @@ public abstract class StreamTask<OUT, OP extends StreamOperator<OUT>> implements
         }
     }
 
-    private static <OUT> List<RecordWriter<SerializationDelegate<StreamRecord<OUT>>>> createRecordWriters(StreamConfig configuration,
-                                                                                                          Environment environment) {
+    private static <OUT> List<RecordWriter<SerializationDelegate<StreamRecord<OUT>>>> createRecordWriters(
+            StreamConfig configuration,
+            Environment environment) {
         List<RecordWriter<SerializationDelegate<StreamRecord<OUT>>>> recordWriters = new ArrayList<>();
         List<StreamEdge> outEdgesInOrder = configuration.getOutEdgesInOrder(environment
                 .getUserCodeClassLoader()

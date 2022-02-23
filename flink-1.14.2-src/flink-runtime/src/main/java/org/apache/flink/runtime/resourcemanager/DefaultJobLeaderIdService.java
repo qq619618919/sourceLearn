@@ -36,6 +36,7 @@ import javax.annotation.Nullable;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
+import java.util.TreeMap;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
@@ -43,10 +44,13 @@ import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 
 /**
+ * // TODO_MA 马中华 注释：
  * Service which retrieves for a registered job the current job leader id (the leader id of the job
- * manager responsible for the job). The leader id will be exposed as a future via the {@link
- * #getLeaderId(JobID)}. The future will only be completed with an exception in case the service
- * will be stopped.
+ * manager responsible for the job).
+ * <p>
+ * The leader id will be exposed as a future via the {@link#getLeaderId(JobID)}.
+ * <p>
+ * The future will only be completed with an exception in case the service  will be stopped.
  */
 public class DefaultJobLeaderIdService implements JobLeaderIdService {
 
@@ -60,17 +64,21 @@ public class DefaultJobLeaderIdService implements JobLeaderIdService {
     private final Time jobTimeout;
 
     /** Map of currently monitored jobs. */
+    /*************************************************
+     * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+     *  注释： 注册集合
+     */
     private final Map<JobID, JobLeaderIdListener> jobLeaderIdListeners;
 
     /** Actions to call when the job leader changes. */
     private JobLeaderIdActions jobLeaderIdActions;
 
-    public DefaultJobLeaderIdService(
-            HighAvailabilityServices highAvailabilityServices,
-            ScheduledExecutor scheduledExecutor,
-            Time jobTimeout) {
-        this.highAvailabilityServices =
-                Preconditions.checkNotNull(highAvailabilityServices, "highAvailabilityServices");
+    public DefaultJobLeaderIdService(HighAvailabilityServices highAvailabilityServices,
+                                     ScheduledExecutor scheduledExecutor,
+                                     Time jobTimeout) {
+        this.highAvailabilityServices = Preconditions.checkNotNull(highAvailabilityServices,
+                "highAvailabilityServices"
+        );
         this.scheduledExecutor = Preconditions.checkNotNull(scheduledExecutor, "scheduledExecutor");
         this.jobTimeout = Preconditions.checkNotNull(jobTimeout, "jobTimeout");
 
@@ -116,11 +124,9 @@ public class DefaultJobLeaderIdService implements JobLeaderIdService {
         }
 
         if (exception != null) {
-            ExceptionUtils.rethrowException(
-                    exception,
-                    "Could not properly stop the "
-                            + DefaultJobLeaderIdService.class.getSimpleName()
-                            + '.');
+            ExceptionUtils.rethrowException(exception,
+                    "Could not properly stop the " + DefaultJobLeaderIdService.class.getSimpleName() + '.'
+            );
         }
 
         jobLeaderIdListeners.clear();
@@ -132,12 +138,19 @@ public class DefaultJobLeaderIdService implements JobLeaderIdService {
 
         LOG.debug("Add job {} to job leader id monitoring.", jobId);
 
+        // TODO_MA 马中华 注释： 先判断是否注册过
         if (!jobLeaderIdListeners.containsKey(jobId)) {
-            LeaderRetrievalService leaderRetrievalService =
-                    highAvailabilityServices.getJobManagerLeaderRetriever(jobId);
 
-            JobLeaderIdListener jobIdListener =
-                    new JobLeaderIdListener(jobId, jobLeaderIdActions, leaderRetrievalService);
+            // TODO_MA 马中华 注释： 获取到一个 DefaultLeaderRetrievalService
+            LeaderRetrievalService leaderRetrievalService = highAvailabilityServices.getJobManagerLeaderRetriever(jobId);
+
+            // TODO_MA 马中华 注释： 构建一个 JobLeaderIdListener
+            JobLeaderIdListener jobIdListener = new JobLeaderIdListener(jobId,
+                    jobLeaderIdActions,
+                    leaderRetrievalService
+            );
+
+            // TODO_MA 马中华 注释： 完成注册
             jobLeaderIdListeners.put(jobId, jobIdListener);
         }
     }
@@ -146,8 +159,13 @@ public class DefaultJobLeaderIdService implements JobLeaderIdService {
     public void removeJob(JobID jobId) throws Exception {
         LOG.debug("Remove job {} from job leader id monitoring.", jobId);
 
+        // TODO_MA 马中华 注释： 移除注册信息
         JobLeaderIdListener listener = jobLeaderIdListeners.remove(jobId);
 
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释： JobLeaderIdListener 停止
+         */
         if (listener != null) {
             listener.stop();
         }
@@ -199,26 +217,30 @@ public class DefaultJobLeaderIdService implements JobLeaderIdService {
         private volatile boolean running = true;
 
         /** Null if no timeout has been scheduled; otherwise non null. */
-        @Nullable private volatile ScheduledFuture<?> timeoutFuture;
+        @Nullable
+        private volatile ScheduledFuture<?> timeoutFuture;
 
         /** Null if no timeout has been scheduled; otherwise non null. */
-        @Nullable private volatile UUID timeoutId;
+        @Nullable
+        private volatile UUID timeoutId;
 
-        private JobLeaderIdListener(
-                JobID jobId,
-                JobLeaderIdActions listenerJobLeaderIdActions,
-                LeaderRetrievalService leaderRetrievalService)
-                throws Exception {
+        private JobLeaderIdListener(JobID jobId,
+                                    JobLeaderIdActions listenerJobLeaderIdActions,
+                                    LeaderRetrievalService leaderRetrievalService) throws Exception {
             this.jobId = Preconditions.checkNotNull(jobId);
-            this.listenerJobLeaderIdActions =
-                    Preconditions.checkNotNull(listenerJobLeaderIdActions);
+            this.listenerJobLeaderIdActions = Preconditions.checkNotNull(listenerJobLeaderIdActions);
             this.leaderRetrievalService = Preconditions.checkNotNull(leaderRetrievalService);
 
             leaderIdFuture = new CompletableFuture<>();
 
+            // TODO_MA 马中华 注释：
             activateTimeout();
 
             // start the leader service we're listening to
+            /*************************************************
+             * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+             *  注释： 开启 JobMaster 的监听
+             */
             leaderRetrievalService.start(this);
         }
 
@@ -233,15 +255,19 @@ public class DefaultJobLeaderIdService implements JobLeaderIdService {
 
         public void stop() throws Exception {
             running = false;
+
+            /*************************************************
+             * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+             *  注释： 停止
+             */
             leaderRetrievalService.stop();
+
             cancelTimeout();
-            leaderIdFuture.completeExceptionally(
-                    new Exception("Job leader id service has been stopped."));
+            leaderIdFuture.completeExceptionally(new Exception("Job leader id service has been stopped."));
         }
 
         @Override
-        public void notifyLeaderAddress(
-                @Nullable String leaderAddress, @Nullable UUID leaderSessionId) {
+        public void notifyLeaderAddress(@Nullable String leaderAddress, @Nullable UUID leaderSessionId) {
             if (running) {
                 UUID previousJobLeaderId = null;
 
@@ -259,29 +285,26 @@ public class DefaultJobLeaderIdService implements JobLeaderIdService {
                         leaderIdFuture = new CompletableFuture<>();
                     } else {
                         // there was an active leader, but we now have a new leader
-                        LOG.debug(
-                                "Job {} has a new job leader {}@{}.",
-                                jobId,
-                                leaderSessionId,
-                                leaderAddress);
+                        LOG.debug("Job {} has a new job leader {}@{}.", jobId, leaderSessionId, leaderAddress);
                         leaderIdFuture = CompletableFuture.completedFuture(leaderSessionId);
                     }
                 } else {
                     if (leaderSessionId != null) {
                         // there was no active leader, but we now have a new leader
-                        LOG.debug(
-                                "Job {} has a new job leader {}@{}.",
-                                jobId,
-                                leaderSessionId,
-                                leaderAddress);
+                        LOG.debug("Job {} has a new job leader {}@{}.", jobId, leaderSessionId, leaderAddress);
                         leaderIdFuture.complete(leaderSessionId);
                     }
                 }
 
+                /*************************************************
+                 * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+                 *  注释： 如果 jobID 和 sessionID 信息匹配不上，则关闭 JobMaster 的链接
+                 */
                 if (previousJobLeaderId != null && !previousJobLeaderId.equals(leaderSessionId)) {
+
                     // we had a previous job leader, so notify about his lost leadership
-                    listenerJobLeaderIdActions.jobLeaderLostLeadership(
-                            jobId, new JobMasterId(previousJobLeaderId));
+                    // TODO_MA 马中华 注释： 通知关闭链接
+                    listenerJobLeaderIdActions.jobLeaderLostLeadership(jobId, new JobMasterId(previousJobLeaderId));
 
                     if (null == leaderSessionId) {
                         // No current leader active ==> Set a timeout for the job
@@ -297,10 +320,10 @@ public class DefaultJobLeaderIdService implements JobLeaderIdService {
                     cancelTimeout();
                 }
             } else {
-                LOG.debug(
-                        "A leader id change {}@{} has been detected after the listener has been stopped.",
+                LOG.debug("A leader id change {}@{} has been detected after the listener has been stopped.",
                         leaderSessionId,
-                        leaderAddress);
+                        leaderAddress
+                );
             }
         }
 
@@ -309,31 +332,33 @@ public class DefaultJobLeaderIdService implements JobLeaderIdService {
             if (running) {
                 listenerJobLeaderIdActions.handleError(exception);
             } else {
-                LOG.debug(
-                        "An error occurred in the {} after the listener has been stopped.",
+                LOG.debug("An error occurred in the {} after the listener has been stopped.",
                         JobLeaderIdListener.class.getSimpleName(),
-                        exception);
+                        exception
+                );
             }
         }
 
         private void activateTimeout() {
             synchronized (timeoutLock) {
+
+                // TODO_MA 马中华 注释： 取消超时任务
                 cancelTimeout();
 
                 final UUID newTimeoutId = UUID.randomUUID();
-
                 timeoutId = newTimeoutId;
-                timeoutFuture =
-                        scheduledExecutor.schedule(
-                                new Runnable() {
-                                    @Override
-                                    public void run() {
-                                        listenerJobLeaderIdActions.notifyJobTimeout(
-                                                jobId, newTimeoutId);
-                                    }
-                                },
-                                jobTimeout.toMilliseconds(),
-                                TimeUnit.MILLISECONDS);
+
+                // TODO_MA 马中华 注释： 重新调度超时任务
+                timeoutFuture = scheduledExecutor.schedule(new Runnable() {
+                    @Override
+                    public void run() {
+                        /*************************************************
+                         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+                         *  注释： job 超时
+                         */
+                        listenerJobLeaderIdActions.notifyJobTimeout(jobId, newTimeoutId);
+                    }
+                }, jobTimeout.toMilliseconds(), TimeUnit.MILLISECONDS);
             }
         }
 

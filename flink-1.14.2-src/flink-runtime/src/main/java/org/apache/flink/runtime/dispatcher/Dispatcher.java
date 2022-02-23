@@ -114,6 +114,10 @@ public abstract class Dispatcher extends PermanentlyFencedRpcEndpoint<Dispatcher
 
     private final FatalErrorHandler fatalErrorHandler;
 
+    /*************************************************
+     * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+     *  注释： 登记 Dispatcher 启动的  JobMaster
+     */
     private final Map<JobID, JobManagerRunner> runningJobs;
 
     private final Collection<JobGraph> recoveredJobs;
@@ -140,9 +144,10 @@ public abstract class Dispatcher extends PermanentlyFencedRpcEndpoint<Dispatcher
     private DispatcherBootstrap dispatcherBootstrap;
 
     /** Enum to distinguish between initial job submission and re-submission for recovery. */
+    // TODO_MA 马中华 注释： 执行模式
     protected enum ExecutionType {
-        SUBMISSION,
-        RECOVERY
+        SUBMISSION,     // TODO_MA 马中华 注释： 提交
+        RECOVERY        // TODO_MA 马中华 注释： 恢复
     }
 
     public Dispatcher(RpcService rpcService,
@@ -214,7 +219,7 @@ public abstract class Dispatcher extends PermanentlyFencedRpcEndpoint<Dispatcher
         try {
             /*************************************************
              * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-             *  注释：
+             *  注释： 没有重点
              */
             startDispatcherServices();
         } catch (Throwable t) {
@@ -228,13 +233,15 @@ public abstract class Dispatcher extends PermanentlyFencedRpcEndpoint<Dispatcher
 
         /*************************************************
          * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-         *  注释：
+         *  注释： 其实，这就是启动 Disptacher
+         *  1、其实就是恢复 集群停服之前未执行完毕的 job 的恢复执行
+         *  背景知识： 在这之前，已经从 ZK 中拿到了未执行完毕的 job 的 JObGraph 信息
          */
         startRecoveredJobs();
 
         /*************************************************
          * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-         *  注释：
+         *  注释： 用来做 RPC 通信的
          */
         this.dispatcherBootstrap = this.dispatcherBootstrapFactory.create(getSelfGateway(DispatcherGateway.class),
                 this.getRpcService().getScheduledExecutor(),
@@ -260,7 +267,7 @@ public abstract class Dispatcher extends PermanentlyFencedRpcEndpoint<Dispatcher
 
             /*************************************************
              * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-             *  注释：
+             *  注释： 把 job 恢复运行起来
              */
             runRecoveredJob(recoveredJob);
         }
@@ -272,7 +279,7 @@ public abstract class Dispatcher extends PermanentlyFencedRpcEndpoint<Dispatcher
         try {
             /*************************************************
              * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-             *  注释：
+             *  注释： 运行一个 job
              */
             runJob(recoveredJob, ExecutionType.RECOVERY);
         } catch (Throwable throwable) {
@@ -324,8 +331,13 @@ public abstract class Dispatcher extends PermanentlyFencedRpcEndpoint<Dispatcher
     // RPCs
     // ------------------------------------------------------
 
+    /*************************************************
+     * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+     *  注释： 今天内容的入口！ 第四节课！
+     */
     @Override
     public CompletableFuture<Acknowledge> submitJob(JobGraph jobGraph, Time timeout) {
+
         log.info("Received JobGraph submission '{}' ({}).", jobGraph.getName(), jobGraph.getJobID());
 
         try {
@@ -401,18 +413,30 @@ public abstract class Dispatcher extends PermanentlyFencedRpcEndpoint<Dispatcher
         return false;
     }
 
+    /*************************************************
+     * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+     *  注释： 到此为止，其实是说： 主节点已经接收到了 Job 和 Job 的相关信息
+     *  接下来：
+     *  为这个 job 启动 JobMaster
+     *  1、 把 JobGraph 构造成 ExecutioinGraph
+     *  2、 向 ResourceManager 申请资源
+     *  3、 部署 Task 到 TaskExecutor 上执行
+     */
     private CompletableFuture<Acknowledge> internalSubmitJob(JobGraph jobGraph) {
         log.info("Submitting job '{}' ({}).", jobGraph.getName(), jobGraph.getJobID());
 
-        // TODO_MA 马中华 注释：
+        // TODO_MA 马中华 注释： 通过异步的方式进行提交
         final CompletableFuture<Acknowledge> persistAndRunFuture = waitForTerminatingJob(jobGraph.getJobID(), jobGraph,
                 /*************************************************
                  * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-                 *  注释：
+                 *  注释： 重点工作
+                 *  1、 persist() 先持久化
+                 *  2、 runJob() 然后运行这个 Job
                  */
                 this::persistAndRunJob
         ).thenApply(ignored -> Acknowledge.get());
 
+        // TODO_MA 马中华 注释： 处理提交之后的结果
         return persistAndRunFuture.handleAsync((acknowledge, throwable) -> {
             if (throwable != null) {
                 cleanUpHighAvailabilityJobData(jobGraph.getJobID());
@@ -429,18 +453,34 @@ public abstract class Dispatcher extends PermanentlyFencedRpcEndpoint<Dispatcher
         }, ioExecutor);
     }
 
+    // TODO_MA 马中华 注释： 到了这儿，还是 Dispatcher 在提交，走流程，还没有初始化 JobMaster
     private void persistAndRunJob(JobGraph jobGraph) throws Exception {
 
-        // TODO_MA 马中华 注释：
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释： 完成注册
+         *  1、 JobGraph 持久化到 HDFS ，然后返回一个 StateHandle 句柄 = 元数据
+         *  2、 把 StateHandle 写到 ZK 中
+         */
         jobGraphWriter.putJobGraph(jobGraph);
 
         /*************************************************
          * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-         *  注释：
+         *  注释： 运行 Job
          */
         runJob(jobGraph, ExecutionType.SUBMISSION);
     }
 
+    /*************************************************
+     * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+     *  注释：
+     *  1、不管是恢复 job 执行
+     *  2、提交一个新的 job 执行，
+     *  最终都到这儿
+     *  -
+     *  结论： Dispatcher 负责给 Job  拉起 JobMaster
+     *  负责 JobGraph 的持久化， 就是为了宕机恢复
+     */
     private void runJob(JobGraph jobGraph, ExecutionType executionType) throws Exception {
         Preconditions.checkState(!runningJobs.containsKey(jobGraph.getJobID()));
         long initializationTimestamp = System.currentTimeMillis();
@@ -451,6 +491,12 @@ public abstract class Dispatcher extends PermanentlyFencedRpcEndpoint<Dispatcher
          */
         JobManagerRunner jobManagerRunner = createJobManagerRunner(jobGraph, initializationTimestamp);
 
+        // TODO_MA 马中华 注释： 主节点
+        // TODO_MA 马中华 注释： JobManager（主节点，JobManager）
+        // TODO_MA 马中华 注释： JobMaster( Job 的 Manager)
+        // TODO_MA 马中华 注释： 我讲的 JobManager 就是指 逻辑主节点！
+
+        // TODO_MA 马中华 注释： job 到 Dispatcher 的登记（登记在 Dispatcher 的内部 内存中）
         runningJobs.put(jobGraph.getJobID(), jobManagerRunner);
 
         final JobID jobId = jobGraph.getJobID();
@@ -461,7 +507,6 @@ public abstract class Dispatcher extends PermanentlyFencedRpcEndpoint<Dispatcher
                     Preconditions.checkState(runningJobs.get(jobId) == jobManagerRunner,
                             "The job entry in runningJobs must be bound to the lifetime of the JobManagerRunner."
                     );
-
                     if (jobManagerRunnerResult != null) {
                         return handleJobManagerRunnerResult(jobManagerRunnerResult, executionType);
                     } else {
@@ -510,14 +555,25 @@ public abstract class Dispatcher extends PermanentlyFencedRpcEndpoint<Dispatcher
         return CleanupJobState.LOCAL;
     }
 
+    /*************************************************
+     * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+     *  注释： 这个方法就两件事：
+     *  但是内部实现，极其复杂，复杂的原因：JobMaster 的内部工作组件极其多
+     *  -
+     *  JobManagerRunner 的内部，你不要去管有多复杂，无论如何记住：
+     *  1、JobManagerRunner 的里面就是封装了 JObMaster
+     *  2、JObMaster 是一个 RpcEndpoint
+     */
     JobManagerRunner createJobManagerRunner(JobGraph jobGraph, long initializationTimestamp) throws Exception {
         final RpcService rpcService = getRpcService();
 
         /*************************************************
          * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
          *  注释： JobMasterServiceLeadershipRunner
+         *  内部主要是创建了 用来创建 JobMaster 的 DefaultJobMasterServiceFactory
          */
         JobManagerRunner runner = jobManagerRunnerFactory.createJobManagerRunner(jobGraph,
+                // TODO_MA 马中华 注释： 下述参数，就是 主节点 中的 基础服务
                 configuration,
                 rpcService,
                 highAvailabilityServices,
@@ -530,9 +586,12 @@ public abstract class Dispatcher extends PermanentlyFencedRpcEndpoint<Dispatcher
 
         /*************************************************
          * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-         *  注释：
+         *  注释： JobMasterServiceLeadershipRunner 启动
          */
         runner.start();
+        // TODO_MA 马中华 注释： 首先 JobMaster初始化好了之后，去监控得到 ResourceManager 的地址，然后链接 ResourceManager
+        // TODO_MA 马中华 注释： 做 注册 + 心跳
+
         return runner;
     }
 
@@ -696,7 +755,13 @@ public abstract class Dispatcher extends PermanentlyFencedRpcEndpoint<Dispatcher
                                                       final boolean cancelJob,
                                                       final Time timeout) {
 
+        // TODO_MA 马中华 注释： 拿到 JobMasterGateway
         return performOperationOnJobMasterGateway(jobId,
+
+                /*************************************************
+                 * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+                 *  注释： 发送 RPC 请求给 JobMaster 触发 savepoint
+                 */
                 gateway -> gateway.triggerSavepoint(targetDirectory, cancelJob, timeout)
         );
     }
@@ -818,9 +883,14 @@ public abstract class Dispatcher extends PermanentlyFencedRpcEndpoint<Dispatcher
     }
 
     private void terminateJob(JobID jobId) {
+        // TODO_MA 马中华 注释： 获取注册的 JobMaster
         final JobManagerRunner jobManagerRunner = runningJobs.get(jobId);
 
         if (jobManagerRunner != null) {
+            /*************************************************
+             * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+             *  注释： 干掉 JobMaster
+             */
             jobManagerRunner.closeAsync();
         }
     }
@@ -978,6 +1048,10 @@ public abstract class Dispatcher extends PermanentlyFencedRpcEndpoint<Dispatcher
     }
 
     public CompletableFuture<Void> onRemovedJobGraph(JobID jobId) {
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释：
+         */
         return CompletableFuture.runAsync(() -> terminateJob(jobId), getMainThreadExecutor());
     }
 }

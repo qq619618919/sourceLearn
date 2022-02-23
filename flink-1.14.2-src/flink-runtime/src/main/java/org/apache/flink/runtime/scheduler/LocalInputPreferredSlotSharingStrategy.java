@@ -58,10 +58,9 @@ class LocalInputPreferredSlotSharingStrategy implements SlotSharingStrategy {
             final Set<SlotSharingGroup> logicalSlotSharingGroups,
             final Set<CoLocationGroup> coLocationGroups) {
 
-        this.executionSlotSharingGroupMap =
-                new ExecutionSlotSharingGroupBuilder(
-                                topology, logicalSlotSharingGroups, coLocationGroups)
-                        .build();
+        this.executionSlotSharingGroupMap = new ExecutionSlotSharingGroupBuilder(
+                topology, logicalSlotSharingGroups, coLocationGroups)
+                .build();
     }
 
     @Override
@@ -82,6 +81,10 @@ class LocalInputPreferredSlotSharingStrategy implements SlotSharingStrategy {
                 final Set<SlotSharingGroup> logicalSlotSharingGroups,
                 final Set<CoLocationGroup> coLocationGroups) {
 
+            /*************************************************
+             * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+             *  注释：
+             */
             return new LocalInputPreferredSlotSharingStrategy(
                     topology, logicalSlotSharingGroups, coLocationGroups);
         }
@@ -294,7 +297,8 @@ class LocalInputPreferredSlotSharingStrategy implements SlotSharingStrategy {
         }
 
         private boolean isExecutionSlotSharingGroupAvailableForVertex(
-                ExecutionSlotSharingGroup executionSlotSharingGroup, ExecutionVertexID vertexId) {
+                ExecutionSlotSharingGroup executionSlotSharingGroup,
+                ExecutionVertexID vertexId) {
 
             Set<ExecutionSlotSharingGroup> availableGroupsForCurrentVertex =
                     availableGroupsForJobVertex.get(vertexId.getJobVertexId());
@@ -304,7 +308,8 @@ class LocalInputPreferredSlotSharingStrategy implements SlotSharingStrategy {
         }
 
         private boolean inSameLogicalSlotSharingGroup(
-                final JobVertexID jobVertexId1, final JobVertexID jobVertexId2) {
+                final JobVertexID jobVertexId1,
+                final JobVertexID jobVertexId2) {
 
             return Objects.equals(
                     getSlotSharingGroup(jobVertexId1).getSlotSharingGroupId(),
@@ -317,7 +322,8 @@ class LocalInputPreferredSlotSharingStrategy implements SlotSharingStrategy {
         }
 
         private void addVertexToExecutionSlotSharingGroup(
-                final SchedulingExecutionVertex vertex, final ExecutionSlotSharingGroup group) {
+                final SchedulingExecutionVertex vertex,
+                final ExecutionSlotSharingGroup group) {
 
             ExecutionVertexID executionVertexId = vertex.getId();
             group.addVertex(executionVertexId);
@@ -405,9 +411,9 @@ class LocalInputPreferredSlotSharingStrategy implements SlotSharingStrategy {
         }
 
         private LinkedHashSet<ExecutionSlotSharingGroup>
-                computeAllCandidateGroupsForConsumedPartitionGroup(
-                        JobVertexID consumerJobVertexId,
-                        ConsumedPartitionGroup consumedPartitionGroup) {
+        computeAllCandidateGroupsForConsumedPartitionGroup(
+                JobVertexID consumerJobVertexId,
+                ConsumedPartitionGroup consumedPartitionGroup) {
 
             // We tend to reserve the order of ExecutionSlotSharingGroups as they are traversed
             // topologically

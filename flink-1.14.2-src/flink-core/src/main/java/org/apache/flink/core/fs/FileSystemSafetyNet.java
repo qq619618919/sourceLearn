@@ -83,12 +83,12 @@ public class FileSystemSafetyNet {
     public static void initializeSafetyNetForThread() {
         SafetyNetCloseableRegistry oldRegistry = REGISTRIES.get();
 
-        checkState(
-                null == oldRegistry,
+        checkState(null == oldRegistry,
                 "Found an existing FileSystem safety net for this thread: %s "
                         + "This may indicate an accidental repeated initialization, or a leak of the"
                         + "(Inheritable)ThreadLocal through a ThreadPool.",
-                oldRegistry);
+                oldRegistry
+        );
 
         SafetyNetCloseableRegistry newRegistry = new SafetyNetCloseableRegistry();
         REGISTRIES.set(newRegistry);

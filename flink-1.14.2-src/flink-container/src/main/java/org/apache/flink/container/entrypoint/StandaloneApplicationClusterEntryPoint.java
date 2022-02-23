@@ -42,23 +42,24 @@ import java.io.File;
 @Internal
 public final class StandaloneApplicationClusterEntryPoint extends ApplicationClusterEntryPoint {
 
-    private StandaloneApplicationClusterEntryPoint(
-            final Configuration configuration, final PackagedProgram program) {
+    private StandaloneApplicationClusterEntryPoint(final Configuration configuration, final PackagedProgram program) {
         super(configuration, program, StandaloneResourceManagerFactory.getInstance());
     }
 
     public static void main(String[] args) {
         // startup checks and logging
-        EnvironmentInformation.logEnvironmentInfo(
-                LOG, StandaloneApplicationClusterEntryPoint.class.getSimpleName(), args);
+        EnvironmentInformation.logEnvironmentInfo(LOG,
+                StandaloneApplicationClusterEntryPoint.class.getSimpleName(),
+                args
+        );
         SignalHandler.register(LOG);
         JvmShutdownSafeguard.installAsShutdownHook(LOG);
 
-        final StandaloneApplicationClusterConfiguration clusterConfiguration =
-                ClusterEntrypointUtils.parseParametersOrExit(
-                        args,
-                        new StandaloneApplicationClusterConfigurationParserFactory(),
-                        StandaloneApplicationClusterEntryPoint.class);
+        final StandaloneApplicationClusterConfiguration clusterConfiguration = ClusterEntrypointUtils.parseParametersOrExit(
+                args,
+                new StandaloneApplicationClusterConfigurationParserFactory(),
+                StandaloneApplicationClusterEntryPoint.class
+        );
 
         Configuration configuration = loadConfigurationFromClusterConfig(clusterConfiguration);
         PackagedProgram program = null;
@@ -76,8 +77,9 @@ public final class StandaloneApplicationClusterEntryPoint extends ApplicationClu
             System.exit(1);
         }
 
-        StandaloneApplicationClusterEntryPoint entrypoint =
-                new StandaloneApplicationClusterEntryPoint(configuration, program);
+        StandaloneApplicationClusterEntryPoint entrypoint = new StandaloneApplicationClusterEntryPoint(configuration,
+                program
+        );
 
         ClusterEntrypoint.runClusterEntrypoint(entrypoint);
     }
@@ -88,32 +90,26 @@ public final class StandaloneApplicationClusterEntryPoint extends ApplicationClu
     }
 
     @VisibleForTesting
-    static Configuration loadConfigurationFromClusterConfig(
-            StandaloneApplicationClusterConfiguration clusterConfiguration) {
+    static Configuration loadConfigurationFromClusterConfig(StandaloneApplicationClusterConfiguration clusterConfiguration) {
         Configuration configuration = loadConfiguration(clusterConfiguration);
         setStaticJobId(clusterConfiguration, configuration);
-        SavepointRestoreSettings.toConfiguration(
-                clusterConfiguration.getSavepointRestoreSettings(), configuration);
+        SavepointRestoreSettings.toConfiguration(clusterConfiguration.getSavepointRestoreSettings(), configuration);
         return configuration;
     }
 
-    private static PackagedProgram getPackagedProgram(
-            final StandaloneApplicationClusterConfiguration clusterConfiguration,
-            Configuration flinkConfiguration)
-            throws FlinkException {
+    private static PackagedProgram getPackagedProgram(final StandaloneApplicationClusterConfiguration clusterConfiguration,
+                                                      Configuration flinkConfiguration) throws FlinkException {
         final File userLibDir = ClusterEntrypointUtils.tryFindUserLibDirectory().orElse(null);
-        final PackagedProgramRetriever programRetriever =
-                DefaultPackagedProgramRetriever.create(
-                        userLibDir,
-                        clusterConfiguration.getJobClassName(),
-                        clusterConfiguration.getArgs(),
-                        flinkConfiguration);
+        final PackagedProgramRetriever programRetriever = DefaultPackagedProgramRetriever.create(userLibDir,
+                clusterConfiguration.getJobClassName(),
+                clusterConfiguration.getArgs(),
+                flinkConfiguration
+        );
         return programRetriever.getPackagedProgram();
     }
 
-    private static void setStaticJobId(
-            StandaloneApplicationClusterConfiguration clusterConfiguration,
-            Configuration configuration) {
+    private static void setStaticJobId(StandaloneApplicationClusterConfiguration clusterConfiguration,
+                                       Configuration configuration) {
         final JobID jobId = clusterConfiguration.getJobId();
         if (jobId != null) {
             configuration.set(PipelineOptionsInternal.PIPELINE_FIXED_JOB_ID, jobId.toHexString());

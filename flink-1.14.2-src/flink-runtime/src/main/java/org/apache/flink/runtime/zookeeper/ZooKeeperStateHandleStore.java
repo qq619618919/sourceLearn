@@ -82,23 +82,16 @@ import static org.apache.flink.util.Preconditions.checkNotNull;
  *
  * @param <T> Type of state
  */
-public class ZooKeeperStateHandleStore<T extends Serializable>
-        implements StateHandleStore<T, IntegerResourceVersion> {
+public class ZooKeeperStateHandleStore<T extends Serializable> implements StateHandleStore<T, IntegerResourceVersion> {
 
     private static final Logger LOG = LoggerFactory.getLogger(ZooKeeperStateHandleStore.class);
 
     @VisibleForTesting
-    static final Set<Class<? extends KeeperException>> PRE_COMMIT_EXCEPTIONS =
-            newHashSet(
-                    KeeperException.NodeExistsException.class,
-                    KeeperException.BadArgumentsException.class,
-                    KeeperException.NoNodeException.class,
-                    KeeperException.NoAuthException.class,
-                    KeeperException.BadVersionException.class,
-                    KeeperException.AuthFailedException.class,
-                    KeeperException.InvalidACLException.class,
-                    KeeperException.SessionMovedException.class,
-                    KeeperException.NotReadOnlyException.class);
+    static final Set<Class<? extends KeeperException>> PRE_COMMIT_EXCEPTIONS = newHashSet(KeeperException.NodeExistsException.class,
+            KeeperException.BadArgumentsException.class, KeeperException.NoNodeException.class,
+            KeeperException.NoAuthException.class, KeeperException.BadVersionException.class,
+            KeeperException.AuthFailedException.class, KeeperException.InvalidACLException.class,
+            KeeperException.SessionMovedException.class, KeeperException.NotReadOnlyException.class);
 
     /** Curator ZooKeeper client. */
     private final CuratorFramework client;
@@ -120,8 +113,8 @@ public class ZooKeeperStateHandleStore<T extends Serializable>
      * @param storage to persist the actual state and whose returned state handle is then written to
      *     ZooKeeper
      */
-    public ZooKeeperStateHandleStore(
-            CuratorFramework client, RetrievableStateStorageHelper<T> storage) {
+    public ZooKeeperStateHandleStore(CuratorFramework client,
+                                     RetrievableStateStorageHelper<T> storage) {
 
         this.client = checkNotNull(client, "Curator client");
         this.storage = checkNotNull(storage, "State storage");
@@ -150,18 +143,28 @@ public class ZooKeeperStateHandleStore<T extends Serializable>
      * @throws Exception If a ZooKeeper or state handle operation fails
      */
     @Override
-    public RetrievableStateHandle<T> addAndLock(String pathInZooKeeper, T state)
-            throws PossibleInconsistentStateException, Exception {
+    public RetrievableStateHandle<T> addAndLock(String pathInZooKeeper,
+                                                T state) throws PossibleInconsistentStateException, Exception {
         checkNotNull(pathInZooKeeper, "Path in ZooKeeper");
         checkNotNull(state, "State");
 
         final String path = normalizePath(pathInZooKeeper);
 
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释： 1、将 JobGraph 写到 FileSystem 然后拿到一个 StateHandle
+         */
         RetrievableStateHandle<T> storeHandle = storage.store(state);
 
+        // TODO_MA 马中华 注释： 将 storeHandle 对象序列化
         byte[] serializedStoreHandle = serializeOrDiscard(storeHandle);
 
         try {
+
+            /*************************************************
+             * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+             *  注释： 2、完成 将 StateHandle 向 ZK 的注册
+             */
             writeStoreHandleTransactionally(path, serializedStoreHandle);
             return storeHandle;
         } catch (Exception e) {
@@ -174,34 +177,22 @@ public class ZooKeeperStateHandleStore<T extends Serializable>
 
             // We wrap the exception here so that it could be caught in DefaultJobGraphStore
             throw ExceptionUtils.findThrowable(e, KeeperException.NodeExistsException.class)
-                    .map(
-                            nee ->
-                                    new AlreadyExistException(
-                                            "ZooKeeper node " + path + " already exists.", nee))
-                    .orElseThrow(() -> e);
+                    .map(nee -> new AlreadyExistException("ZooKeeper node " + path + " already exists.", nee)).orElseThrow(() -> e);
         }
     }
 
     // this method is provided for the sole purpose of easier testing
     @VisibleForTesting
-    protected void writeStoreHandleTransactionally(String path, byte[] serializedStoreHandle)
-            throws Exception {
+    protected void writeStoreHandleTransactionally(String path,
+                                                   byte[] serializedStoreHandle) throws Exception {
         // Write state handle (not the actual state) to ZooKeeper. This is expected to be
         // smaller than the state itself. This level of indirection makes sure that data in
         // ZooKeeper is small, because ZooKeeper is designed for data in the KB range, but
         // the state can be larger.
         // Create the lock node in a transaction with the actual state node. That way we can
         // prevent race conditions with a concurrent delete operation.
-        client.inTransaction()
-                .create()
-                .withMode(CreateMode.PERSISTENT)
-                .forPath(path, serializedStoreHandle)
-                .and()
-                .create()
-                .withMode(CreateMode.EPHEMERAL)
-                .forPath(getLockPath(path))
-                .and()
-                .commit();
+        client.inTransaction().create().withMode(CreateMode.PERSISTENT).forPath(path, serializedStoreHandle).and().create()
+                .withMode(CreateMode.EPHEMERAL).forPath(getLockPath(path)).and().commit();
     }
 
     /**
@@ -213,8 +204,9 @@ public class ZooKeeperStateHandleStore<T extends Serializable>
      * @throws Exception If a ZooKeeper or state handle operation fails
      */
     @Override
-    public void replace(String pathInZooKeeper, IntegerResourceVersion expectedVersion, T state)
-            throws Exception {
+    public void replace(String pathInZooKeeper,
+                        IntegerResourceVersion expectedVersion,
+                        T state) throws Exception {
         checkNotNull(pathInZooKeeper, "Path in ZooKeeper");
         checkNotNull(state, "State");
 
@@ -245,11 +237,7 @@ public class ZooKeeperStateHandleStore<T extends Serializable>
 
             // We wrap the exception here so that it could be caught in DefaultJobGraphStore
             throw ExceptionUtils.findThrowable(e, KeeperException.NoNodeException.class)
-                    .map(
-                            nnee ->
-                                    new NotExistException(
-                                            "ZooKeeper node " + path + " does not exist.", nnee))
-                    .orElseThrow(() -> e);
+                    .map(nnee -> new NotExistException("ZooKeeper node " + path + " does not exist.", nnee)).orElseThrow(() -> e);
         } finally {
             if (discardOldState) {
                 oldStateHandle.discardState();
@@ -263,8 +251,9 @@ public class ZooKeeperStateHandleStore<T extends Serializable>
 
     // this method is provided for the sole purpose of easier testing
     @VisibleForTesting
-    protected void setStateHandle(String path, byte[] serializedStateHandle, int expectedVersion)
-            throws Exception {
+    protected void setStateHandle(String path,
+                                  byte[] serializedStateHandle,
+                                  int expectedVersion) throws Exception {
         // Replace state handle in ZooKeeper.
         client.setData().withVersion(expectedVersion).forPath(path, serializedStateHandle);
     }
@@ -320,9 +309,9 @@ public class ZooKeeperStateHandleStore<T extends Serializable>
     public Collection<String> getAllHandles() throws Exception {
         final String path = "/";
 
+        // TODO_MA 马中华 注释： 从 ZK 上获取每个 job 的 StateHandleStore
         while (true) {
             Stat stat = client.checkExists().forPath(path);
-
             if (stat == null) {
                 return Collections.emptyList();
             } else {
@@ -372,11 +361,8 @@ public class ZooKeeperStateHandleStore<T extends Serializable>
                         // Concurrent deletion, retry
                         continue retry;
                     } catch (IOException ioException) {
-                        LOG.warn(
-                                "Could not get all ZooKeeper children. Node {} contained "
-                                        + "corrupted data. Ignoring this node.",
-                                path,
-                                ioException);
+                        LOG.warn("Could not get all ZooKeeper children. Node {} contained " + "corrupted data. Ignoring this node.",
+                                path, ioException);
                     }
                 }
 
@@ -452,8 +438,7 @@ public class ZooKeeperStateHandleStore<T extends Serializable>
         }
 
         if (exception != null) {
-            throw new Exception(
-                    "Could not properly release and try removing all state nodes.", exception);
+            throw new Exception("Could not properly release and try removing all state nodes.", exception);
         }
     }
 
@@ -473,8 +458,7 @@ public class ZooKeeperStateHandleStore<T extends Serializable>
         } catch (KeeperException.NoNodeException ignored) {
             // we have never locked this node
         } catch (Exception e) {
-            throw new Exception(
-                    "Could not release the lock: " + getLockPath(pathInZooKeeper) + '.', e);
+            throw new Exception("Could not release the lock: " + getLockPath(pathInZooKeeper) + '.', e);
         }
     }
 
@@ -546,7 +530,8 @@ public class ZooKeeperStateHandleStore<T extends Serializable>
      * @throws IOException Thrown if the method failed to deserialize the stored state handle
      * @throws Exception Thrown if a ZooKeeper operation failed
      */
-    private RetrievableStateHandle<T> get(String pathInZooKeeper, boolean lock) throws Exception {
+    private RetrievableStateHandle<T> get(String pathInZooKeeper,
+                                          boolean lock) throws Exception {
         checkNotNull(pathInZooKeeper, "Path in ZooKeeper");
 
         final String path = normalizePath(pathInZooKeeper);
@@ -579,8 +564,7 @@ public class ZooKeeperStateHandleStore<T extends Serializable>
             // We wrap the exception here so that it could be caught in DefaultJobGraphStore
             throw new NotExistException("ZooKeeper node " + path + " does not exist.", ex);
         } catch (IOException | ClassNotFoundException e) {
-            throw new IOException(
-                    "Failed to deserialize state handle from ZooKeeper data from " + path + '.', e);
+            throw new IOException("Failed to deserialize state handle from ZooKeeper data from " + path + '.', e);
         } finally {
             if (!success && lock) {
                 // release the lock

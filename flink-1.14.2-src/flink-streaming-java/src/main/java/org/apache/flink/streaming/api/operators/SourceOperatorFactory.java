@@ -37,8 +37,7 @@ import org.apache.flink.util.function.FunctionWithException;
 import static org.apache.flink.util.Preconditions.checkNotNull;
 
 /** The Factory class for {@link SourceOperator}. */
-public class SourceOperatorFactory<OUT> extends AbstractStreamOperatorFactory<OUT>
-        implements CoordinatedOperatorFactory<OUT>, ProcessingTimeServiceAware {
+public class SourceOperatorFactory<OUT> extends AbstractStreamOperatorFactory<OUT> implements CoordinatedOperatorFactory<OUT>, ProcessingTimeServiceAware {
 
     private static final long serialVersionUID = 1L;
 
@@ -54,23 +53,20 @@ public class SourceOperatorFactory<OUT> extends AbstractStreamOperatorFactory<OU
     /** The number of worker thread for the source coordinator. */
     private final int numCoordinatorWorkerThread;
 
-    public SourceOperatorFactory(
-            Source<OUT, ?, ?> source, WatermarkStrategy<OUT> watermarkStrategy) {
+    public SourceOperatorFactory(Source<OUT, ?, ?> source, WatermarkStrategy<OUT> watermarkStrategy) {
         this(source, watermarkStrategy, true /* emit progressive watermarks */, 1);
     }
 
-    public SourceOperatorFactory(
-            Source<OUT, ?, ?> source,
-            WatermarkStrategy<OUT> watermarkStrategy,
-            boolean emitProgressiveWatermarks) {
+    public SourceOperatorFactory(Source<OUT, ?, ?> source,
+                                 WatermarkStrategy<OUT> watermarkStrategy,
+                                 boolean emitProgressiveWatermarks) {
         this(source, watermarkStrategy, emitProgressiveWatermarks, 1);
     }
 
-    public SourceOperatorFactory(
-            Source<OUT, ?, ?> source,
-            WatermarkStrategy<OUT> watermarkStrategy,
-            boolean emitProgressiveWatermarks,
-            int numCoordinatorWorkerThread) {
+    public SourceOperatorFactory(Source<OUT, ?, ?> source,
+                                 WatermarkStrategy<OUT> watermarkStrategy,
+                                 boolean emitProgressiveWatermarks,
+                                 int numCoordinatorWorkerThread) {
         this.source = checkNotNull(source);
         this.watermarkStrategy = checkNotNull(watermarkStrategy);
         this.emitProgressiveWatermarks = emitProgressiveWatermarks;
@@ -82,49 +78,38 @@ public class SourceOperatorFactory<OUT> extends AbstractStreamOperatorFactory<OU
     }
 
     @Override
-    public <T extends StreamOperator<OUT>> T createStreamOperator(
-            StreamOperatorParameters<OUT> parameters) {
+    public <T extends StreamOperator<OUT>> T createStreamOperator(StreamOperatorParameters<OUT> parameters) {
         final OperatorID operatorId = parameters.getStreamConfig().getOperatorID();
-        final OperatorEventGateway gateway =
-                parameters.getOperatorEventDispatcher().getOperatorEventGateway(operatorId);
+        final OperatorEventGateway gateway = parameters
+                .getOperatorEventDispatcher()
+                .getOperatorEventGateway(operatorId);
 
-        final SourceOperator<OUT, ?> sourceOperator =
-                instantiateSourceOperator(
-                        source::createReader,
-                        gateway,
-                        source.getSplitSerializer(),
-                        watermarkStrategy,
-                        parameters.getProcessingTimeService(),
-                        parameters
-                                .getContainingTask()
-                                .getEnvironment()
-                                .getTaskManagerInfo()
-                                .getConfiguration(),
-                        parameters
-                                .getContainingTask()
-                                .getEnvironment()
-                                .getTaskManagerInfo()
-                                .getTaskManagerExternalAddress(),
-                        emitProgressiveWatermarks);
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释：
+         */
+        final SourceOperator<OUT, ?> sourceOperator = instantiateSourceOperator(source::createReader,
+                gateway,
+                source.getSplitSerializer(),
+                watermarkStrategy,
+                parameters.getProcessingTimeService(),
+                parameters.getContainingTask().getEnvironment().getTaskManagerInfo().getConfiguration(),
+                parameters.getContainingTask().getEnvironment().getTaskManagerInfo().getTaskManagerExternalAddress(),
+                emitProgressiveWatermarks
+        );
 
-        sourceOperator.setup(
-                parameters.getContainingTask(),
-                parameters.getStreamConfig(),
-                parameters.getOutput());
+        sourceOperator.setup(parameters.getContainingTask(), parameters.getStreamConfig(), parameters.getOutput());
         parameters.getOperatorEventDispatcher().registerEventHandler(operatorId, sourceOperator);
 
         // today's lunch is generics spaghetti
-        @SuppressWarnings("unchecked")
-        final T castedOperator = (T) sourceOperator;
+        @SuppressWarnings("unchecked") final T castedOperator = (T) sourceOperator;
 
         return castedOperator;
     }
 
     @Override
-    public OperatorCoordinator.Provider getCoordinatorProvider(
-            String operatorName, OperatorID operatorID) {
-        return new SourceCoordinatorProvider<>(
-                operatorName, operatorID, source, numCoordinatorWorkerThread);
+    public OperatorCoordinator.Provider getCoordinatorProvider(String operatorName, OperatorID operatorID) {
+        return new SourceCoordinatorProvider<>(operatorName, operatorID, source, numCoordinatorWorkerThread);
     }
 
     @SuppressWarnings("rawtypes")
@@ -145,37 +130,34 @@ public class SourceOperatorFactory<OUT> extends AbstractStreamOperatorFactory<OU
      * main code as possible.
      */
     @SuppressWarnings("unchecked")
-    private static <T, SplitT extends SourceSplit>
-            SourceOperator<T, SplitT> instantiateSourceOperator(
-                    FunctionWithException<SourceReaderContext, SourceReader<T, ?>, Exception>
-                            readerFactory,
-                    OperatorEventGateway eventGateway,
-                    SimpleVersionedSerializer<?> splitSerializer,
-                    WatermarkStrategy<T> watermarkStrategy,
-                    ProcessingTimeService timeService,
-                    Configuration config,
-                    String localHostName,
-                    boolean emitProgressiveWatermarks) {
+    private static <T, SplitT extends SourceSplit> SourceOperator<T, SplitT> instantiateSourceOperator(
+            FunctionWithException<SourceReaderContext, SourceReader<T, ?>, Exception> readerFactory,
+            OperatorEventGateway eventGateway,
+            SimpleVersionedSerializer<?> splitSerializer,
+            WatermarkStrategy<T> watermarkStrategy,
+            ProcessingTimeService timeService,
+            Configuration config,
+            String localHostName,
+            boolean emitProgressiveWatermarks) {
 
         // jumping through generics hoops: cast the generics away to then cast them back more
         // strictly typed
-        final FunctionWithException<SourceReaderContext, SourceReader<T, SplitT>, Exception>
-                typedReaderFactory =
-                        (FunctionWithException<
-                                        SourceReaderContext, SourceReader<T, SplitT>, Exception>)
-                                (FunctionWithException<?, ?, ?>) readerFactory;
+        final FunctionWithException<SourceReaderContext, SourceReader<T, SplitT>, Exception> typedReaderFactory = (FunctionWithException<SourceReaderContext, SourceReader<T, SplitT>, Exception>) (FunctionWithException<?, ?, ?>) readerFactory;
 
-        final SimpleVersionedSerializer<SplitT> typedSplitSerializer =
-                (SimpleVersionedSerializer<SplitT>) splitSerializer;
+        final SimpleVersionedSerializer<SplitT> typedSplitSerializer = (SimpleVersionedSerializer<SplitT>) splitSerializer;
 
-        return new SourceOperator<>(
-                typedReaderFactory,
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释：
+         */
+        return new SourceOperator<>(typedReaderFactory,
                 eventGateway,
                 typedSplitSerializer,
                 watermarkStrategy,
                 timeService,
                 config,
                 localHostName,
-                emitProgressiveWatermarks);
+                emitProgressiveWatermarks
+        );
     }
 }

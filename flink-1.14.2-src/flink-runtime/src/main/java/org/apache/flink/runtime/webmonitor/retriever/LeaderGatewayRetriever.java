@@ -33,8 +33,7 @@ import java.util.concurrent.atomic.AtomicReference;
  *
  * @param <T> type of the gateway to retrieve
  */
-public abstract class LeaderGatewayRetriever<T extends RpcGateway> extends LeaderRetriever
-        implements GatewayRetriever<T> {
+public abstract class LeaderGatewayRetriever<T extends RpcGateway> extends LeaderRetriever implements GatewayRetriever<T> {
 
     private final AtomicReference<CompletableFuture<T>> atomicGatewayFuture;
 
@@ -56,12 +55,9 @@ public abstract class LeaderGatewayRetriever<T extends RpcGateway> extends Leade
                 String leaderAddress;
 
                 try {
-                    Tuple2<String, UUID> leaderAddressSessionId =
-                            getLeaderNow()
-                                    .orElse(
-                                            Tuple2.of(
-                                                    "unknown address",
-                                                    HighAvailabilityServices.DEFAULT_LEADER_ID));
+                    Tuple2<String, UUID> leaderAddressSessionId = getLeaderNow().orElse(Tuple2.of("unknown address",
+                            HighAvailabilityServices.DEFAULT_LEADER_ID
+                    ));
 
                     leaderAddress = leaderAddressSessionId.f0;
                 } catch (Exception e) {
@@ -71,14 +67,12 @@ public abstract class LeaderGatewayRetriever<T extends RpcGateway> extends Leade
 
                 if (log.isDebugEnabled() || log.isTraceEnabled()) {
                     // only log exceptions on debug or trace level
-                    log.warn(
-                            "Error while retrieving the leader gateway. Retrying to connect to {}.",
+                    log.warn("Error while retrieving the leader gateway. Retrying to connect to {}.",
                             leaderAddress,
-                            ExceptionUtils.stripExecutionException(executionException));
+                            ExceptionUtils.stripExecutionException(executionException)
+                    );
                 } else {
-                    log.warn(
-                            "Error while retrieving the leader gateway. Retrying to connect to {}.",
-                            leaderAddress);
+                    log.warn("Error while retrieving the leader gateway. Retrying to connect to {}.", leaderAddress);
                 }
             }
 
@@ -97,23 +91,24 @@ public abstract class LeaderGatewayRetriever<T extends RpcGateway> extends Leade
     }
 
     @Override
-    public void notifyNewLeaderAddress(
-            CompletableFuture<Tuple2<String, UUID>> newLeaderAddressFuture) {
+    public void notifyNewLeaderAddress(CompletableFuture<Tuple2<String, UUID>> newLeaderAddressFuture) {
+
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释：
+         */
         final CompletableFuture<T> newGatewayFuture = createGateway(newLeaderAddressFuture);
 
-        final CompletableFuture<T> oldGatewayFuture =
-                atomicGatewayFuture.getAndSet(newGatewayFuture);
+        final CompletableFuture<T> oldGatewayFuture = atomicGatewayFuture.getAndSet(newGatewayFuture);
 
-        newGatewayFuture.whenComplete(
-                (t, throwable) -> {
-                    if (throwable != null) {
-                        oldGatewayFuture.completeExceptionally(throwable);
-                    } else {
-                        oldGatewayFuture.complete(t);
-                    }
-                });
+        newGatewayFuture.whenComplete((t, throwable) -> {
+            if (throwable != null) {
+                oldGatewayFuture.completeExceptionally(throwable);
+            } else {
+                oldGatewayFuture.complete(t);
+            }
+        });
     }
 
-    protected abstract CompletableFuture<T> createGateway(
-            CompletableFuture<Tuple2<String, UUID>> leaderFuture);
+    protected abstract CompletableFuture<T> createGateway(CompletableFuture<Tuple2<String, UUID>> leaderFuture);
 }

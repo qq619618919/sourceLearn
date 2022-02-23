@@ -62,9 +62,9 @@ public interface SlotPoolService extends AutoCloseable {
      * @param mainThreadExecutor mainThreadExecutor to run actions in the main thread
      * @throws Exception if the the service cannot be started
      */
-    void start(
-            JobMasterId jobMasterId, String address, ComponentMainThreadExecutor mainThreadExecutor)
-            throws Exception;
+    void start(JobMasterId jobMasterId,
+               String address,
+               ComponentMainThreadExecutor mainThreadExecutor) throws Exception;
 
     /** Close the slot pool service. */
     void close();
@@ -79,10 +79,9 @@ public interface SlotPoolService extends AutoCloseable {
      * @return A collection of accepted slot offers. The remaining slot offers are implicitly
      *     rejected.
      */
-    Collection<SlotOffer> offerSlots(
-            TaskManagerLocation taskManagerLocation,
-            TaskManagerGateway taskManagerGateway,
-            Collection<SlotOffer> offers);
+    Collection<SlotOffer> offerSlots(TaskManagerLocation taskManagerLocation,
+                                     TaskManagerGateway taskManagerGateway,
+                                     Collection<SlotOffer> offers);
 
     /**
      * Fails the allocation with the given allocationId.
@@ -93,8 +92,9 @@ public interface SlotPoolService extends AutoCloseable {
      * @param cause cause why the allocation failed
      * @return Optional task executor if it has no more slots registered
      */
-    Optional<ResourceID> failAllocation(
-            @Nullable ResourceID taskManagerId, AllocationID allocationId, Exception cause);
+    Optional<ResourceID> failAllocation(@Nullable ResourceID taskManagerId,
+                                        AllocationID allocationId,
+                                        Exception cause);
 
     /**
      * Registers a TaskExecutor with the given {@link ResourceID} at {@link SlotPoolService}.
@@ -111,7 +111,8 @@ public interface SlotPoolService extends AutoCloseable {
      * @param cause for the releasing of the TaskManager
      * @return true iff a given registered resource id was removed
      */
-    boolean releaseTaskManager(ResourceID taskManagerId, Exception cause);
+    boolean releaseTaskManager(ResourceID taskManagerId,
+                               Exception cause);
 
     /**
      * Connects the SlotPool to the given ResourceManager. After this method is called, the SlotPool
@@ -143,6 +144,6 @@ public interface SlotPoolService extends AutoCloseable {
      *
      * @param acquiredResources the resources that have been acquired
      */
-    default void notifyNotEnoughResourcesAvailable(
-            Collection<ResourceRequirement> acquiredResources) {}
+    default void notifyNotEnoughResourcesAvailable(Collection<ResourceRequirement> acquiredResources) {
+    }
 }

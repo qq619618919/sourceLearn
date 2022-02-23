@@ -70,12 +70,11 @@ public class BackendRestorerProcedure<T extends Closeable & Disposable, S extend
      *
      * @param instanceSupplier factory function for new, empty backend instances.
      * @param backendCloseableRegistry registry to allow participation in task lifecycle, e.g. react
-     *     to cancel.
+     *         to cancel.
      */
-    public BackendRestorerProcedure(
-            @Nonnull FunctionWithException<Collection<S>, T, Exception> instanceSupplier,
-            @Nonnull CloseableRegistry backendCloseableRegistry,
-            @Nonnull String logDescription) {
+    public BackendRestorerProcedure(@Nonnull FunctionWithException<Collection<S>, T, Exception> instanceSupplier,
+                                    @Nonnull CloseableRegistry backendCloseableRegistry,
+                                    @Nonnull String logDescription) {
 
         this.instanceSupplier = Preconditions.checkNotNull(instanceSupplier);
         this.backendCloseableRegistry = Preconditions.checkNotNull(backendCloseableRegistry);
@@ -87,12 +86,13 @@ public class BackendRestorerProcedure<T extends Closeable & Disposable, S extend
      * alternatives.
      *
      * @param restoreOptions list of prioritized state snapshot alternatives for recovery.
+     *
      * @return the created (and restored) state backend.
+     *
      * @throws Exception if the backend could not be created or restored.
      */
     @Nonnull
-    public T createAndRestore(@Nonnull List<? extends Collection<S>> restoreOptions)
-            throws Exception {
+    public T createAndRestore(@Nonnull List<? extends Collection<S>> restoreOptions) throws Exception {
 
         if (restoreOptions.isEmpty()) {
             restoreOptions = Collections.singletonList(Collections.emptyList());
@@ -116,50 +116,44 @@ public class BackendRestorerProcedure<T extends Closeable & Disposable, S extend
                 LOG.debug("Creating {} with empty state.", logDescription);
             } else {
                 if (LOG.isTraceEnabled()) {
-                    LOG.trace(
-                            "Creating {} and restoring with state {} from alternative ({}/{}).",
+                    LOG.trace("Creating {} and restoring with state {} from alternative ({}/{}).",
                             logDescription,
                             restoreState,
                             alternativeIdx,
-                            restoreOptions.size());
+                            restoreOptions.size()
+                    );
                 } else {
-                    LOG.debug(
-                            "Creating {} and restoring with state from alternative ({}/{}).",
+                    LOG.debug("Creating {} and restoring with state from alternative ({}/{}).",
                             logDescription,
                             alternativeIdx,
-                            restoreOptions.size());
+                            restoreOptions.size()
+                    );
                 }
             }
 
             try {
+                /*************************************************
+                 * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+                 *  注释：
+                 */
                 return attemptCreateAndRestore(restoreState);
             } catch (Exception ex) {
 
                 collectedException = ExceptionUtils.firstOrSuppressed(ex, collectedException);
 
-                LOG.warn(
-                        "Exception while restoring {} from alternative ({}/{}), will retry while more "
-                                + "alternatives are available.",
-                        logDescription,
-                        alternativeIdx,
-                        restoreOptions.size(),
-                        ex);
+                LOG.warn("Exception while restoring {} from alternative ({}/{}), will retry while more "
+                        + "alternatives are available.", logDescription, alternativeIdx, restoreOptions.size(), ex);
 
                 if (backendCloseableRegistry.isClosed()) {
-                    throw new FlinkException(
-                            "Stopping restore attempts for already cancelled task.",
-                            collectedException);
+                    throw new FlinkException("Stopping restore attempts for already cancelled task.",
+                            collectedException
+                    );
                 }
             }
         }
 
-        throw new FlinkException(
-                "Could not restore "
-                        + logDescription
-                        + " from any of the "
-                        + restoreOptions.size()
-                        + " provided restore options.",
-                collectedException);
+        throw new FlinkException("Could not restore " + logDescription + " from any of the " + restoreOptions.size()
+                + " provided restore options.", collectedException);
     }
 
     private T attemptCreateAndRestore(Collection<S> restoreState) throws Exception {

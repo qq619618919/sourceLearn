@@ -143,6 +143,8 @@ public abstract class RetryingRegistration<F extends Serializable, G extends Rpc
             /*************************************************
              * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
              *  注释： 链接
+             *  真正完成 从节点 TaskExeuctor 到 主节点 ResourceManager 的链接建立
+             *  XXXXConnectioin 逻辑概念，只是包含了完成链接所需要的信息而已
              */
             if (FencedRpcGateway.class.isAssignableFrom(targetType)) {
                 rpcGatewayFuture = (CompletableFuture<G>) rpcService.connect(targetAddress,
@@ -158,12 +160,18 @@ public abstract class RetryingRegistration<F extends Serializable, G extends Rpc
                 log.info("Resolved {} address, beginning registration", targetName);
                 /*************************************************
                  * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-                 *  注释：
+                 *  注释： 初始时间：cluster.registration.initial-timeout = 0.1s
+                 *  -
+                 *  关于注册失败了之后的尝试的间隔时间的机制：
+                 *  1、首先有两个配置： 初始时间间隔 initTimeout ：0.1s  最大时间间隔 maxTimeOut：30s
+                 *  2、currentTimeout = initTimeout
+                 *  2、间隔时间的增长策略： currentTimeout = Math.min(currentTimeout * 2, maxTimeOut)
                  */
                 register(rpcGateway, 1, retryingRegistrationConfiguration.getInitialRegistrationTimeoutMillis());
             }, rpcService.getScheduledExecutor());
 
             // upon failure, retry, unless this is cancelled
+            // TODO_MA 马中华 注释： 如果注册失败，并且注册未取消的话，则等待一段时间之后重试
             rpcGatewayAcceptFuture.whenCompleteAsync((Void v, Throwable failure) -> {
                 if (failure != null && !canceled) {
                     final Throwable strippedFailure = ExceptionUtils.stripCompletionException(failure);
@@ -185,7 +193,8 @@ public abstract class RetryingRegistration<F extends Serializable, G extends Rpc
 
                     /*************************************************
                      * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-                     *  注释：
+                     *  注释： 重试
+                     *  默认 cluster.registration.error-delay = 10s
                      */
                     startRegistrationLater(retryingRegistrationConfiguration.getErrorDelayMillis());
                 }
@@ -211,25 +220,44 @@ public abstract class RetryingRegistration<F extends Serializable, G extends Rpc
             log.debug("Registration at {} attempt {} (timeout={}ms)", targetName, attempt, timeoutMillis);
             /*************************************************
              * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-             *  注释：
+             *  注释： B  执行注册
+             *  RegistrationResponse  = 注册响应
+             *  -
+             *  执行注册：  注册者 向 被注册者 发送一个 RPC 请求，提交 注册对象过去，被注册者完成了注册处理之后，会生成一个注册响应，返回来
+             *  RegistrationResponse = xxxGateway.registerXXXX(XXXRegistion)
              */
             CompletableFuture<RegistrationResponse> registrationFuture = invokeRegistration(gateway,
                     fencingToken,
                     timeoutMillis
             );
 
+            // TODO_MA 马中华 注释：  D  解析影响，生成注册结果
             // if the registration was successful, let the TaskExecutor know
+            // TODO_MA 马中华 注释： 如果注册失败，则进行重试
             CompletableFuture<Void> registrationAcceptFuture = registrationFuture.thenAcceptAsync((RegistrationResponse result) -> {
+
+                /*************************************************
+                 * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+                 *  注释： 解析注册结果
+                 */
                 if (!isCanceled()) {
+
+                    // TODO_MA 马中华 注释： 成功
                     if (result instanceof RegistrationResponse.Success) {
                         log.debug("Registration with {} at {} was successful.", targetName, targetAddress);
                         S success = (S) result;
                         completionFuture.complete(RetryingRegistrationResult.success(gateway, success));
-                    } else if (result instanceof RegistrationResponse.Rejection) {
+                    }
+
+                    // TODO_MA 马中华 注释： 拒绝
+                    else if (result instanceof RegistrationResponse.Rejection) {
                         log.debug("Registration with {} at {} was rejected.", targetName, targetAddress);
                         R rejection = (R) result;
                         completionFuture.complete(RetryingRegistrationResult.rejection(rejection));
-                    } else {
+                    }
+
+                    // TODO_MA 马中华 注释： 失败
+                    else {
                         // registration failure
                         if (result instanceof RegistrationResponse.Failure) {
                             RegistrationResponse.Failure failure = (RegistrationResponse.Failure) result;
@@ -241,6 +269,7 @@ public abstract class RetryingRegistration<F extends Serializable, G extends Rpc
                         log.info("Pausing and re-attempting registration in {} ms",
                                 retryingRegistrationConfiguration.getRefusedDelayMillis()
                         );
+                        // TODO_MA 马中华 注释： 失败重试
                         registerLater(gateway,
                                 1,
                                 retryingRegistrationConfiguration.getInitialRegistrationTimeoutMillis(),
@@ -251,8 +280,11 @@ public abstract class RetryingRegistration<F extends Serializable, G extends Rpc
             }, rpcService.getScheduledExecutor());
 
             // upon failure, retry
+            // TODO_MA 马中华 注释： 如果上述注册失败，重试
             registrationAcceptFuture.whenCompleteAsync((Void v, Throwable failure) -> {
                 if (failure != null && !isCanceled()) {
+
+                    // TODO_MA 马中华 注释： 如果是注册超时异常，则....
                     if (ExceptionUtils.stripCompletionException(failure) instanceof TimeoutException) {
                         // we simply have not received a response in time. maybe the timeout
                         // was
@@ -268,9 +300,12 @@ public abstract class RetryingRegistration<F extends Serializable, G extends Rpc
                             );
                         }
 
+                        // TODO_MA 马中华 注释： 指数级 等待时间 增长， 最大值 = cluster.registration.max-timeout = 30s
                         long newTimeoutMillis = Math.min(2 * timeoutMillis,
                                 retryingRegistrationConfiguration.getMaxRegistrationTimeoutMillis()
                         );
+
+                        // TODO_MA 马中华 注释： 重试次数 + 1
                         register(gateway, attempt + 1, newTimeoutMillis);
                     } else {
                         // a serious failure occurred. we still should not give up, but keep

@@ -34,16 +34,21 @@ public class ZooKeeperClientHAServices implements ClientHighAvailabilityServices
 
     private final Configuration configuration;
 
-    public ZooKeeperClientHAServices(
-            @Nonnull CuratorFramework client, @Nonnull Configuration configuration) {
+    public ZooKeeperClientHAServices(@Nonnull CuratorFramework client, @Nonnull Configuration configuration) {
         this.client = client;
         this.configuration = configuration;
     }
 
     @Override
     public LeaderRetrievalService getClusterRestEndpointLeaderRetriever() {
-        return ZooKeeperUtils.createLeaderRetrievalService(
-                client, ZooKeeperUtils.getLeaderPathForRestServer(), configuration);
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释： DefaultLeaderRetrievalService
+         */
+        return ZooKeeperUtils.createLeaderRetrievalService(client,
+                ZooKeeperUtils.getLeaderPathForRestServer(),
+                configuration
+        );
     }
 
     @Override

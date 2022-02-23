@@ -73,7 +73,6 @@ class BufferResponseDecoder extends NettyMessageDecoder {
                 } else {
                     bufferResponse.getBuffer().asByteBuf().writeBytes(data, actualBytesToDecode);
                 }
-
                 decodedDataBufferSize += actualBytesToDecode;
             }
 

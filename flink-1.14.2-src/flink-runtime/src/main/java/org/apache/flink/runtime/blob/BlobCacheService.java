@@ -51,7 +51,10 @@ public class BlobCacheService implements BlobService {
                             final BlobView blobView,
                             @Nullable final InetSocketAddress serverAddress) throws IOException {
 
-        this(new PermanentBlobCache(blobClientConfig, blobView, serverAddress),
+        this(
+                // TODO_MA 马中华 注释：
+                new PermanentBlobCache(blobClientConfig, blobView, serverAddress),
+                // TODO_MA 马中华 注释：
                 new TransientBlobCache(blobClientConfig, serverAddress)
         );
     }

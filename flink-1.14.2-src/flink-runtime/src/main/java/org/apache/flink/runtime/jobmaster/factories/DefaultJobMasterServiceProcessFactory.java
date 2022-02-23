@@ -58,11 +58,8 @@ public class DefaultJobMasterServiceProcessFactory implements JobMasterServicePr
          * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
          *  注释：
          */
-        return new DefaultJobMasterServiceProcess(jobId,
-                leaderSessionId,
-                jobMasterServiceFactory,
-                cause -> createArchivedExecutionGraph(JobStatus.FAILED, cause)
-        );
+        return new DefaultJobMasterServiceProcess(jobId, leaderSessionId, jobMasterServiceFactory,
+                cause -> createArchivedExecutionGraph(JobStatus.FAILED, cause));
     }
 
     @Override
@@ -71,18 +68,14 @@ public class DefaultJobMasterServiceProcessFactory implements JobMasterServicePr
     }
 
     @Override
-    public ArchivedExecutionGraph createArchivedExecutionGraph(JobStatus jobStatus, @Nullable Throwable cause) {
+    public ArchivedExecutionGraph createArchivedExecutionGraph(JobStatus jobStatus,
+                                                               @Nullable Throwable cause) {
 
         /*************************************************
          * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
          *  注释：
          */
-        return ArchivedExecutionGraph.createFromInitializingJob(jobId,
-                jobName,
-                jobStatus,
-                cause,
-                checkpointingSettings,
-                initializationTimestamp
-        );
+        return ArchivedExecutionGraph.createFromInitializingJob(jobId, jobName, jobStatus, cause, checkpointingSettings,
+                initializationTimestamp);
     }
 }

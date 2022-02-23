@@ -96,7 +96,10 @@ public abstract class ResourceManagerFactory<T extends ResourceIDRetrievable> {
 
         /*************************************************
          * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-         *  注释：
+         *  注释： ResourceManagerRuntimeServices 各种基础服务
+         *  重点：
+         *  1、SlotManager， 存在 ResourceManager 中用来管理整个集群的 slot 资源的
+         *  2、JobLeaderIdService  管理 JobMaster 的
          */
         final ResourceManagerRuntimeServices resourceManagerRuntimeServices = createResourceManagerRuntimeServices(
                 context.getRmRuntimeServicesConfig(),

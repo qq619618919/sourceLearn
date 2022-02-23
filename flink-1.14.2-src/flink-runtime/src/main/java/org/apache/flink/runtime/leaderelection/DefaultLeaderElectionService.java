@@ -84,7 +84,7 @@ public class DefaultLeaderElectionService implements LeaderElectionService, Lead
      *  2、Disaptcher
      *  3、WebMonitorEndpoint
      *  4、JobMaster
-     *  都是存在于主节点中的一些工作组件。
+     *  都是存在于主节点中的一些工作组价。
      *  -
      *  LeaderContender 选举者 = 参与选举的人
      *  111111111111111111111111111111111111111111111111
@@ -98,6 +98,7 @@ public class DefaultLeaderElectionService implements LeaderElectionService, Lead
         synchronized (lock) {
 
             // TODO_MA 马中华 注释： LeaderContender 有四种实现
+            // TODO_MA 马中华 注释： 第一种情况： ResourceMangerServieImpl
             leaderContender = contender;
 
             /*************************************************
@@ -107,6 +108,7 @@ public class DefaultLeaderElectionService implements LeaderElectionService, Lead
              *  这个具体的选举的开启在： ZooKeeperLeaderElectionDriver 的 构造方法里面
              */
             leaderElectionDriver = leaderElectionDriverFactory.createLeaderElectionDriver(this,
+                    // TODO_MA 马中华 注释： 如果选举过程中发生了异常，则回调这个 LeaderElectionFatalErrorHandler
                     new LeaderElectionFatalErrorHandler(),
                     leaderContender.getDescription()
             );
@@ -305,6 +307,10 @@ public class DefaultLeaderElectionService implements LeaderElectionService, Lead
                                     leaderContender.getDescription()
                             );
                         }
+                        /*************************************************
+                         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+                         *  注释：
+                         */
                         leaderElectionDriver.writeLeaderInformation(confirmedLeaderInfo);
                     } else if (!leaderInformation.equals(confirmedLeaderInfo)) {
                         // the data field does not correspond to the expected leader information

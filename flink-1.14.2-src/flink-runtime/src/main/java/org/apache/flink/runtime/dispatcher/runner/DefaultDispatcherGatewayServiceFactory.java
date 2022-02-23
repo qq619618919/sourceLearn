@@ -48,6 +48,10 @@ class DefaultDispatcherGatewayServiceFactory implements AbstractDispatcherLeader
         this.partialDispatcherServices = partialDispatcherServices;
     }
 
+    /*************************************************
+     * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+     *  注释： 关于这两个步骤，都在 step4 中。 拆分成： step4 和 step6
+     */
     @Override
     public AbstractDispatcherLeaderProcess.DispatcherGatewayService create(DispatcherId fencingToken,
                                                                            Collection<JobGraph> recoveredJobs,
@@ -58,7 +62,8 @@ class DefaultDispatcherGatewayServiceFactory implements AbstractDispatcherLeader
 
             /*************************************************
              * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-             *  注释：
+             *  注释： Step4: 第一个重点： 创建了一个 Dispatcher
+             *  具体实现类： StandaloneDispatcher
              */
             dispatcher = dispatcherFactory.createDispatcher(rpcService,
                     fencingToken,
@@ -72,7 +77,7 @@ class DefaultDispatcherGatewayServiceFactory implements AbstractDispatcherLeader
 
         /*************************************************
          * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-         *  注释：
+         *  注释： step6： 第二件重点事情： Dispatcher 启动
          */
         dispatcher.start();
 

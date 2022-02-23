@@ -49,26 +49,28 @@ public class YarnSessionClusterEntrypoint extends SessionClusterEntrypoint {
     }
 
     @Override
-    protected DispatcherResourceManagerComponentFactory
-            createDispatcherResourceManagerComponentFactory(Configuration configuration) {
-        return DefaultDispatcherResourceManagerComponentFactory.createSessionComponentFactory(
-                YarnResourceManagerFactory.getInstance());
+    protected DispatcherResourceManagerComponentFactory createDispatcherResourceManagerComponentFactory(Configuration configuration) {
+
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释：
+         */
+        return DefaultDispatcherResourceManagerComponentFactory.createSessionComponentFactory(YarnResourceManagerFactory.getInstance());
     }
 
     public static void main(String[] args) {
         // startup checks and logging
-        EnvironmentInformation.logEnvironmentInfo(
-                LOG, YarnSessionClusterEntrypoint.class.getSimpleName(), args);
+        EnvironmentInformation.logEnvironmentInfo(LOG, YarnSessionClusterEntrypoint.class.getSimpleName(), args);
         SignalHandler.register(LOG);
         JvmShutdownSafeguard.installAsShutdownHook(LOG);
 
         Map<String, String> env = System.getenv();
 
         final String workingDirectory = env.get(ApplicationConstants.Environment.PWD.key());
-        Preconditions.checkArgument(
-                workingDirectory != null,
+        Preconditions.checkArgument(workingDirectory != null,
                 "Working directory variable (%s) not set",
-                ApplicationConstants.Environment.PWD.key());
+                ApplicationConstants.Environment.PWD.key()
+        );
 
         try {
             YarnEntrypointUtils.logYarnEnvironmentInformation(env, LOG);
@@ -76,16 +78,16 @@ public class YarnSessionClusterEntrypoint extends SessionClusterEntrypoint {
             LOG.warn("Could not log YARN environment information.", e);
         }
 
-        final Configuration dynamicParameters =
-                ClusterEntrypointUtils.parseParametersOrExit(
-                        args,
-                        new DynamicParametersConfigurationParserFactory(),
-                        YarnSessionClusterEntrypoint.class);
-        final Configuration configuration =
-                YarnEntrypointUtils.loadConfiguration(workingDirectory, dynamicParameters, env);
+        final Configuration dynamicParameters = ClusterEntrypointUtils.parseParametersOrExit(args,
+                new DynamicParametersConfigurationParserFactory(),
+                YarnSessionClusterEntrypoint.class
+        );
+        final Configuration configuration = YarnEntrypointUtils.loadConfiguration(workingDirectory,
+                dynamicParameters,
+                env
+        );
 
-        YarnSessionClusterEntrypoint yarnSessionClusterEntrypoint =
-                new YarnSessionClusterEntrypoint(configuration);
+        YarnSessionClusterEntrypoint yarnSessionClusterEntrypoint = new YarnSessionClusterEntrypoint(configuration);
 
         ClusterEntrypoint.runClusterEntrypoint(yarnSessionClusterEntrypoint);
     }

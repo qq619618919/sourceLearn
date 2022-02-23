@@ -49,6 +49,7 @@ import static org.apache.flink.util.Preconditions.checkNotNull;
  * </ol>
  */
 public abstract class InputChannel {
+
     /** The info of the input channel to identify it globally within a task. */
     protected final InputChannelInfo channelInfo;
 
@@ -148,6 +149,11 @@ public abstract class InputChannel {
      * will always be notified about the exception.
      */
     protected void notifyChannelNonEmpty() {
+
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释：
+         */
         inputGate.notifyChannelNonEmpty(this);
     }
 

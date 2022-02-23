@@ -86,11 +86,7 @@ public class JobMasterConfiguration {
          * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
          *  注释：
          */
-        return new JobMasterConfiguration(rpcTimeout,
-                slotRequestTimeout,
-                tmpDirectory,
-                retryingRegistrationConfiguration,
-                configuration
-        );
+        return new JobMasterConfiguration(rpcTimeout, slotRequestTimeout, tmpDirectory, retryingRegistrationConfiguration,
+                configuration);
     }
 }

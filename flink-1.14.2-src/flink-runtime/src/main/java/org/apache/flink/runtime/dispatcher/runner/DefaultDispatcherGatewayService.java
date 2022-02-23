@@ -46,6 +46,11 @@ public class DefaultDispatcherGatewayService
 
     @Override
     public CompletableFuture<Void> onRemovedJobGraph(JobID jobId) {
+
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释：
+         */
         return dispatcher.onRemovedJobGraph(jobId);
     }
 

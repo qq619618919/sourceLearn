@@ -36,12 +36,13 @@ import java.util.List;
 
 /** {@link SinkWriterStateHandler} for stateful sinks. */
 @Internal
-final class StatefulSinkWriterStateHandler<WriterStateT>
-        implements SinkWriterStateHandler<WriterStateT> {
+final class StatefulSinkWriterStateHandler<WriterStateT> implements SinkWriterStateHandler<WriterStateT> {
 
     /** The operator's state descriptor. */
-    private static final ListStateDescriptor<byte[]> WRITER_RAW_STATES_DESC =
-            new ListStateDescriptor<>("writer_raw_states", BytePrimitiveArraySerializer.INSTANCE);
+    private static final ListStateDescriptor<byte[]> WRITER_RAW_STATES_DESC = new ListStateDescriptor<>(
+            "writer_raw_states",
+            BytePrimitiveArraySerializer.INSTANCE
+    );
 
     /** The writer operator's state serializer. */
     private final SimpleVersionedSerializer<WriterStateT> writerStateSimpleVersionedSerializer;
@@ -67,31 +68,27 @@ final class StatefulSinkWriterStateHandler<WriterStateT>
     /** The operator's state. */
     private ListState<WriterStateT> writerState;
 
-    public StatefulSinkWriterStateHandler(
-            final SimpleVersionedSerializer<WriterStateT> writerStateSimpleVersionedSerializer,
-            Collection<String> previousSinkStateNames) {
+    public StatefulSinkWriterStateHandler(final SimpleVersionedSerializer<WriterStateT> writerStateSimpleVersionedSerializer,
+                                          Collection<String> previousSinkStateNames) {
         this.writerStateSimpleVersionedSerializer = writerStateSimpleVersionedSerializer;
         this.previousSinkStateNames = previousSinkStateNames;
     }
 
     public List<WriterStateT> initializeState(StateInitializationContext context) throws Exception {
-        final ListState<byte[]> rawState =
-                context.getOperatorStateStore().getListState(WRITER_RAW_STATES_DESC);
-        writerState =
-                new SimpleVersionedListState<>(rawState, writerStateSimpleVersionedSerializer);
+        final ListState<byte[]> rawState = context.getOperatorStateStore().getListState(WRITER_RAW_STATES_DESC);
+        writerState = new SimpleVersionedListState<>(rawState, writerStateSimpleVersionedSerializer);
         final List<WriterStateT> writerStates = CollectionUtil.iterableToList(writerState.get());
         final List<WriterStateT> states = new ArrayList<>(writerStates);
 
         for (String previousSinkStateName : previousSinkStateNames) {
-            final ListStateDescriptor<byte[]> preSinkStateDesc =
-                    new ListStateDescriptor<>(
-                            previousSinkStateName, BytePrimitiveArraySerializer.INSTANCE);
+            final ListStateDescriptor<byte[]> preSinkStateDesc = new ListStateDescriptor<>(previousSinkStateName,
+                    BytePrimitiveArraySerializer.INSTANCE
+            );
 
-            final ListState<byte[]> preRawState =
-                    context.getOperatorStateStore().getListState(preSinkStateDesc);
-            SimpleVersionedListState<WriterStateT> previousSinkState =
-                    new SimpleVersionedListState<>(
-                            preRawState, writerStateSimpleVersionedSerializer);
+            final ListState<byte[]> preRawState = context.getOperatorStateStore().getListState(preSinkStateDesc);
+            SimpleVersionedListState<WriterStateT> previousSinkState = new SimpleVersionedListState<>(preRawState,
+                    writerStateSimpleVersionedSerializer
+            );
             previousSinkStates.add(previousSinkState);
             Iterables.addAll(states, previousSinkState.get());
         }
@@ -99,10 +96,8 @@ final class StatefulSinkWriterStateHandler<WriterStateT>
     }
 
     @Override
-    public void snapshotState(
-            FunctionWithException<Long, List<WriterStateT>, Exception> stateExtractor,
-            long checkpointId)
-            throws Exception {
+    public void snapshotState(FunctionWithException<Long, List<WriterStateT>, Exception> stateExtractor,
+                              long checkpointId) throws Exception {
         writerState.update(stateExtractor.apply(checkpointId));
         previousSinkStates.forEach(ListState::clear);
     }

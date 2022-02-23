@@ -29,21 +29,30 @@ import java.io.Serializable;
 import java.util.concurrent.CompletableFuture;
 
 /**
+ * // TODO_MA 马中华 注释： OperatorCoordinator 在 master 上运行，与 operator 的 job vertex 相关联。
  * A coordinator for runtime operators. The OperatorCoordinator runs on the master, associated with
- * the job vertex of the operator. It communicates with operators via sending operator events.
+ * the job vertex of the operator.
+ * // TODO_MA 马中华 注释： 它通过发送操作员事件与操作员进行通信。
+ * It communicates with operators via sending operator events.
  *
+ * // TODO_MA 马中华 注释： Operator coordinators 比如 source 或者 sink 的 coordinators 用来
+ * // TODO_MA 马中华 注释： discover and assign work， aggregate and commit metadata
  * <p>Operator coordinators are for example source and sink coordinators that discover and assign
  * work, or aggregate and commit metadata.
  *
  * <h2>Thread Model</h2>
  *
- * <p>All coordinator methods are called by the Job Manager's main thread (mailbox thread). That
- * means that these methods must not, under any circumstances, perform blocking operations (like I/O
- * or waiting on locks or futures). That would run a high risk of bringing down the entire
- * JobManager.
+ * // TODO_MA 马中华 注释： 所有 coordinator 的方法调用，都是运行在 JobMaster 的 主线程中，也就是 MailBox Thread
+ * <p>All coordinator methods are called by the Job Manager's main thread (mailbox thread).
  *
- * <p>Coordinators that involve more complex operations should hence spawn threads to handle the I/O
- * work. The methods on the {@link Context} are safe to be called from another thread than the
+ * // TODO_MA 马中华 注释： 这意味着这些方法在任何情况下都不得执行阻塞操作（如 IO 或等待锁或期货）。这将冒着降低整个 JobManager 的风险。
+ * That means that these methods must not, under any circumstances, perform blocking operations (like I/O
+ * or waiting on locks or futures). That would run a high risk of bringing down the entire JobManager.
+ *
+ * // TODO_MA 马中华 注释： 因此，涉及更复杂操作的协调器应该产生线程来处理 IO 工作。
+ * <p>Coordinators that involve more complex operations should hence spawn threads to handle the I/O work.
+ * // TODO_MA 马中华 注释： {@link Context} 上的方法可以安全地从另一个线程调用，而不是调用协调器方法的线程。
+ * The methods on the {@link Context} are safe to be called from another thread than the
  * thread that calls the Coordinator's methods.
  *
  * <h2>Consistency</h2>
@@ -53,11 +62,14 @@ import java.util.concurrent.CompletableFuture;
  * In particular, the following methods are guaranteed to be called strictly in order:
  *
  * <ol>
+ *     // TODO_MA 马中华 注释： subtaskReady
  *   <li>{@link #subtaskReady(int, SubtaskGateway)}: Called once you can send events to the subtask.
  *       The provided gateway is bound to that specific task. This is the start of interaction with
  *       the operator subtasks.
+ *       // TODO_MA 马中华 注释： subtaskFailed
  *   <li>{@link #subtaskFailed(int, Throwable)}: Called for each subtask as soon as the subtask
  *       execution failed or was cancelled. At this point, interaction with the subtask should stop.
+ *       // TODO_MA 马中华 注释： subtaskReset
  *   <li>{@link #subtaskReset(int, long)} or {@link #resetToCheckpoint(long, byte[])}: Once the
  *       scheduler determined which checkpoint to restore, these methods notify the coordinator of
  *       that. The former method is called in case of a regional failure/recovery (affecting
@@ -65,6 +77,7 @@ import java.util.concurrent.CompletableFuture;
  *       method should be used to determine which actions to recover, because it tells you which
  *       checkpoint to fall back to. The coordinator implementation needs to recover the
  *       interactions with the relevant tasks since the checkpoint that is restored.
+ *       // TODO_MA 马中华 注释： subtaskReady
  *   <li>{@link #subtaskReady(int, SubtaskGateway)}: Called again, once the recovered tasks are
  *       ready to go. This is later than {@link #subtaskReset(int, long)}, because between those
  *       methods, the task are scheduled and deployed.
@@ -136,8 +149,7 @@ public interface OperatorCoordinator extends CheckpointListener, AutoCloseable {
      * @throws Exception Any exception thrown by this method results in a full job failure and
      *     recovery.
      */
-    void checkpointCoordinator(long checkpointId, CompletableFuture<byte[]> resultFuture)
-            throws Exception;
+    void checkpointCoordinator(long checkpointId, CompletableFuture<byte[]> resultFuture) throws Exception;
 
     /**
      * We override the method here to remove the checked exception. Please check the Java docs of
@@ -153,7 +165,8 @@ public interface OperatorCoordinator extends CheckpointListener, AutoCloseable {
      * method.
      */
     @Override
-    default void notifyCheckpointAborted(long checkpointId) {}
+    default void notifyCheckpointAborted(long checkpointId) {
+    }
 
     /**
      * Resets the coordinator to the given checkpoint. When this method is called, the coordinator

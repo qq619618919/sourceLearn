@@ -83,6 +83,7 @@ import java.util.stream.Stream;
 import static org.apache.flink.util.Preconditions.checkNotNull;
 
 /** Class containing helper functions to interact with ZooKeeper. */
+
 /*************************************************
  * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
  *  注释： 我们吧 ZooKeeperHAServices 组件当做是一个 高可用服务
@@ -582,6 +583,11 @@ public class ZooKeeperUtils {
      * @return {@link ZooKeeperCheckpointIDCounter} instance
      */
     public static ZooKeeperCheckpointIDCounter createCheckpointIDCounter(CuratorFramework client) {
+
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释：
+         */
         return new ZooKeeperCheckpointIDCounter(client, new DefaultLastStateConnectionStateListener());
     }
 

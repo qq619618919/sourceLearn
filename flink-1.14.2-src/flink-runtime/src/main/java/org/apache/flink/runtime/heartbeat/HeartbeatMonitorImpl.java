@@ -138,9 +138,24 @@ public class HeartbeatMonitorImpl<O> implements HeartbeatMonitor<O>, Runnable {
         numberFailedRpcRequestsSinceLastSuccess.set(0);
     }
 
+    /*************************************************
+     * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+     *  注释： reportHeartbeat 方法的作用，是更新一次心跳。既然更新了一次心跳，则需要重置 心跳超时任务
+     *  如果上一次心跳登记之后，重置了心跳之后，再也没有心跳，则这个定时任务不会被重置。
+     *  如果这个定时任务经过了 50s 也没有被重置，或者取消，则该定时任务就执行了。
+     *  -
+     *  定时炸弹： 如果 50s 之内没有人取消，则爆炸
+     */
     @Override
     public void reportHeartbeat() {
+
+        // TODO_MA 马中华 注释： 登记刚才的这一次的心跳时间
         lastHeartbeat = System.currentTimeMillis();
+
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释： 重置心跳超时任务
+         */
         resetHeartbeatTimeout(heartbeatTimeoutIntervalMs);
     }
 
@@ -152,6 +167,10 @@ public class HeartbeatMonitorImpl<O> implements HeartbeatMonitor<O>, Runnable {
         }
     }
 
+    // TODO_MA 马中华 注释： 既然没有心跳了，大概率是链接已经断开！
+    // TODO_MA 马中华 注释： 那为什么还要这么做呢？
+    // TODO_MA 马中华 注释： 1、既然确实是因为链接断开导致 心跳超时，早就已经发送 Task 心跳的。
+    // TODO_MA 马中华 注释： 2、为了预防 心跳的丢失不是因为链接断开
     @Override
     public void run() {
         // The heartbeat has timed out if we're in state running
@@ -160,6 +179,14 @@ public class HeartbeatMonitorImpl<O> implements HeartbeatMonitor<O>, Runnable {
              * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
              *  注释： 心跳超时处理
              *  Flink 中的 ResourceManager 和 TaskExecutor 和 JobMaster 的两两之间，都存在心跳
+             *  -
+             *  如果一个 从节点，经过 50s 了也没有给 ResourceManager 心跳回复。
+             *  ResourceManager 都会关闭和这个 TaskExecutor 之间的链接
+             *  1、假设这个 TaskExecutor 还运行着有没有执行完的 Task
+             *      1、关闭这个 Task
+             *      2、做 task 的 failover ： 转移到另外一个 TaskExecutor 去执行
+             *  Task 级别的容错： FailoverStategy
+             *  Job 级别的容错： RestartStrategy
              */
             heartbeatListener.notifyHeartbeatTimeout(resourceID);
         }

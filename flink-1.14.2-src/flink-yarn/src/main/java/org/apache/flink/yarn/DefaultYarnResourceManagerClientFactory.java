@@ -24,18 +24,22 @@ import org.apache.hadoop.yarn.client.api.async.AMRMClientAsync;
 /** Default implementation of {@link YarnResourceManagerClientFactory}. */
 public class DefaultYarnResourceManagerClientFactory implements YarnResourceManagerClientFactory {
 
-    private static final YarnResourceManagerClientFactory INSTANCE =
-            new DefaultYarnResourceManagerClientFactory();
+    /*************************************************
+     * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+     *  注释：
+     */
+    private static final YarnResourceManagerClientFactory INSTANCE = new DefaultYarnResourceManagerClientFactory();
 
-    private DefaultYarnResourceManagerClientFactory() {}
+    private DefaultYarnResourceManagerClientFactory() {
+    }
 
     public static YarnResourceManagerClientFactory getInstance() {
         return INSTANCE;
     }
 
     @Override
-    public AMRMClientAsync<AMRMClient.ContainerRequest> createResourceManagerClient(
-            int yarnHeartbeatIntervalMillis, AMRMClientAsync.CallbackHandler callbackHandler) {
+    public AMRMClientAsync<AMRMClient.ContainerRequest> createResourceManagerClient(int yarnHeartbeatIntervalMillis,
+                                                                                    AMRMClientAsync.CallbackHandler callbackHandler) {
         return AMRMClientAsync.createAMRMClientAsync(yarnHeartbeatIntervalMillis, callbackHandler);
     }
 }

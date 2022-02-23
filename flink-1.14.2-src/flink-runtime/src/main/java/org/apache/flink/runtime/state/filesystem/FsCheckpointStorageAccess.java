@@ -52,31 +52,27 @@ public class FsCheckpointStorageAccess extends AbstractFsCheckpointStorageAccess
 
     private boolean baseLocationsInitialized = false;
 
-    public FsCheckpointStorageAccess(
-            Path checkpointBaseDirectory,
-            @Nullable Path defaultSavepointDirectory,
-            JobID jobId,
-            int fileSizeThreshold,
-            int writeBufferSize)
-            throws IOException {
+    public FsCheckpointStorageAccess(Path checkpointBaseDirectory,
+                                     @Nullable Path defaultSavepointDirectory,
+                                     JobID jobId,
+                                     int fileSizeThreshold,
+                                     int writeBufferSize) throws IOException {
 
-        this(
-                checkpointBaseDirectory.getFileSystem(),
+        this(checkpointBaseDirectory.getFileSystem(),
                 checkpointBaseDirectory,
                 defaultSavepointDirectory,
                 jobId,
                 fileSizeThreshold,
-                writeBufferSize);
+                writeBufferSize
+        );
     }
 
-    public FsCheckpointStorageAccess(
-            FileSystem fs,
-            Path checkpointBaseDirectory,
-            @Nullable Path defaultSavepointDirectory,
-            JobID jobId,
-            int fileSizeThreshold,
-            int writeBufferSize)
-            throws IOException {
+    public FsCheckpointStorageAccess(FileSystem fs,
+                                     Path checkpointBaseDirectory,
+                                     @Nullable Path defaultSavepointDirectory,
+                                     JobID jobId,
+                                     int fileSizeThreshold,
+                                     int writeBufferSize) throws IOException {
 
         super(jobId, defaultSavepointDirectory);
 
@@ -86,8 +82,7 @@ public class FsCheckpointStorageAccess extends AbstractFsCheckpointStorageAccess
         this.fileSystem = checkNotNull(fs);
         this.checkpointsDirectory = getCheckpointDirectoryForJob(checkpointBaseDirectory, jobId);
         this.sharedStateDirectory = new Path(checkpointsDirectory, CHECKPOINT_SHARED_STATE_DIR);
-        this.taskOwnedStateDirectory =
-                new Path(checkpointsDirectory, CHECKPOINT_TASK_OWNED_STATE_DIR);
+        this.taskOwnedStateDirectory = new Path(checkpointsDirectory, CHECKPOINT_TASK_OWNED_STATE_DIR);
         this.fileSizeThreshold = fileSizeThreshold;
         this.writeBufferSize = writeBufferSize;
     }
@@ -116,57 +111,65 @@ public class FsCheckpointStorageAccess extends AbstractFsCheckpointStorageAccess
     }
 
     @Override
-    public CheckpointStorageLocation initializeLocationForCheckpoint(long checkpointId)
-            throws IOException {
+    public CheckpointStorageLocation initializeLocationForCheckpoint(long checkpointId) throws IOException {
         checkArgument(checkpointId >= 0, "Illegal negative checkpoint id: %s.", checkpointId);
-        checkArgument(
-                baseLocationsInitialized, "The base checkpoint location has not been initialized.");
+        checkArgument(baseLocationsInitialized, "The base checkpoint location has not been initialized.");
 
         // prepare all the paths needed for the checkpoints
+        // TODO_MA 马中华 注释： checkpoint Directory
         final Path checkpointDir = createCheckpointDirectory(checkpointsDirectory, checkpointId);
 
         // create the checkpoint exclusive directory
+        // TODO_MA 马中华 注释： 创建文件夹
         fileSystem.mkdirs(checkpointDir);
 
-        return new FsCheckpointStorageLocation(
-                fileSystem,
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释： 生成一个目录管理器： FsCheckpointStorageLocation
+         */
+        return new FsCheckpointStorageLocation(fileSystem,
                 checkpointDir,
                 sharedStateDirectory,
                 taskOwnedStateDirectory,
                 CheckpointStorageLocationReference.getDefault(),
                 fileSizeThreshold,
-                writeBufferSize);
+                writeBufferSize
+        );
     }
 
     @Override
-    public CheckpointStreamFactory resolveCheckpointStorageLocation(
-            long checkpointId, CheckpointStorageLocationReference reference) throws IOException {
+    public CheckpointStreamFactory resolveCheckpointStorageLocation(long checkpointId,
+                                                                    CheckpointStorageLocationReference reference) throws IOException {
 
         if (reference.isDefaultReference()) {
             // default reference, construct the default location for that particular checkpoint
-            final Path checkpointDir =
-                    createCheckpointDirectory(checkpointsDirectory, checkpointId);
+            // TODO_MA 马中华 注释： 创建 checkpoint 文件夹
+            final Path checkpointDir = createCheckpointDirectory(checkpointsDirectory, checkpointId);
 
-            return new FsCheckpointStorageLocation(
-                    fileSystem,
+            /*************************************************
+             * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+             *  注释：
+             */
+            return new FsCheckpointStorageLocation(fileSystem,
                     checkpointDir,
                     sharedStateDirectory,
                     taskOwnedStateDirectory,
                     reference,
                     fileSizeThreshold,
-                    writeBufferSize);
+                    writeBufferSize
+            );
         } else {
             // location encoded in the reference
             final Path path = decodePathFromReference(reference);
 
-            return new FsCheckpointStorageLocation(
-                    path.getFileSystem(),
+            return new FsCheckpointStorageLocation(path.getFileSystem(),
                     path,
                     path,
                     path,
                     reference,
                     fileSizeThreshold,
-                    writeBufferSize);
+                    writeBufferSize
+            );
         }
     }
 
@@ -175,14 +178,23 @@ public class FsCheckpointStorageAccess extends AbstractFsCheckpointStorageAccess
         // as the comment of CheckpointStorageWorkerView#createTaskOwnedStateStream said we may
         // change into shared state,
         // so we use CheckpointedStateScope.SHARED here.
-        return new FsCheckpointStateOutputStream(
-                taskOwnedStateDirectory, fileSystem, writeBufferSize, fileSizeThreshold);
+        return new FsCheckpointStateOutputStream(taskOwnedStateDirectory,
+                fileSystem,
+                writeBufferSize,
+                fileSizeThreshold
+        );
     }
 
     @Override
     protected CheckpointStorageLocation createSavepointLocation(FileSystem fs, Path location) {
         final CheckpointStorageLocationReference reference = encodePathAsReference(location);
-        return new FsCheckpointStorageLocation(
-                fs, location, location, location, reference, fileSizeThreshold, writeBufferSize);
+        return new FsCheckpointStorageLocation(fs,
+                location,
+                location,
+                location,
+                reference,
+                fileSizeThreshold,
+                writeBufferSize
+        );
     }
 }

@@ -171,6 +171,20 @@ public class StreamExecutionEnvironment {
     /** Settings that control the checkpointing behavior. */
     private final CheckpointConfig checkpointCfg = new CheckpointConfig();
 
+    /*************************************************
+     * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+     *  注释： 这个概念，非常的重要
+     *  Transformation  StreamNode  Operator  Function
+     *  -
+     *  y = f(x) f 是函数， x 是输入，y 是输出。 f定义了转换逻辑： 通过 f把x变成了y
+     *  理解这么几个概念：转换（x => y）= 函数 = UserFunction
+     *  => StreamOperator => Transformation  => OperatorChain =>
+     *  StreamNode（并行化之后，得到 StreamTask 执行）
+     *  dataStream.map(word => (word, 1)) ====> StreamMap
+     *  -
+     *  一个 Transformation 就代表了一个算子。
+     *  所以，其实你通过 datastream.xx1.xxx2.xx3.xx4() ==> 每个算子，都会被抽象成一个 Transformation 加入到 transformations
+     */
     protected final List<Transformation<?>> transformations = new ArrayList<>();
 
     private long bufferTimeout = StreamingJobGraphGenerator.UNDEFINED_NETWORK_BUFFER_TIMEOUT;
@@ -238,7 +252,8 @@ public class StreamExecutionEnvironment {
      * <p>In addition, this constructor allows specifying the user code {@link ClassLoader}.
      */
     @PublicEvolving
-    public StreamExecutionEnvironment(final Configuration configuration, final ClassLoader userClassloader) {
+    public StreamExecutionEnvironment(final Configuration configuration,
+                                      final ClassLoader userClassloader) {
         this(new DefaultExecutorServiceLoader(), configuration, userClassloader);
     }
 
@@ -271,7 +286,8 @@ public class StreamExecutionEnvironment {
 
         /*************************************************
          * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-         *  注释： 处理配置
+         *  注释： 处理配置，checkpoint 的时候会用。
+         *  你写代码的时候，可能会指定，chekcpoint 的一些配置，最终，会在这里面执行解析
          */
         this.configure(this.configuration, this.userClassloader);
     }
@@ -345,11 +361,8 @@ public class StreamExecutionEnvironment {
      *         0 < maxParallelism <= 2^15 - 1}.
      */
     public StreamExecutionEnvironment setMaxParallelism(int maxParallelism) {
-        Preconditions.checkArgument(
-                maxParallelism > 0 && maxParallelism <= KeyGroupRangeAssignment.UPPER_BOUND_MAX_PARALLELISM,
-                "maxParallelism is out of bounds 0 < maxParallelism <= "
-                        + KeyGroupRangeAssignment.UPPER_BOUND_MAX_PARALLELISM + ". Found: " + maxParallelism
-        );
+        Preconditions.checkArgument(maxParallelism > 0 && maxParallelism <= KeyGroupRangeAssignment.UPPER_BOUND_MAX_PARALLELISM,
+                "maxParallelism is out of bounds 0 < maxParallelism <= " + KeyGroupRangeAssignment.UPPER_BOUND_MAX_PARALLELISM + ". Found: " + maxParallelism);
 
         config.setMaxParallelism(maxParallelism);
         return this;
@@ -370,10 +383,7 @@ public class StreamExecutionEnvironment {
         final ResourceSpec resourceSpec = SlotSharingGroupUtils.extractResourceSpec(slotSharingGroup);
         if (!resourceSpec.equals(ResourceSpec.UNKNOWN)) {
             this.slotSharingGroupResources.put(slotSharingGroup.getName(),
-                    ResourceProfile.fromResourceSpec(SlotSharingGroupUtils.extractResourceSpec(slotSharingGroup),
-                            MemorySize.ZERO
-                    )
-            );
+                    ResourceProfile.fromResourceSpec(SlotSharingGroupUtils.extractResourceSpec(slotSharingGroup), MemorySize.ZERO));
         }
         return this;
     }
@@ -508,7 +518,8 @@ public class StreamExecutionEnvironment {
      * @param mode The checkpointing mode, selecting between "exactly once" and "at least once"
      *         guaranteed.
      */
-    public StreamExecutionEnvironment enableCheckpointing(long interval, CheckpointingMode mode) {
+    public StreamExecutionEnvironment enableCheckpointing(long interval,
+                                                          CheckpointingMode mode) {
         checkpointCfg.setCheckpointingMode(mode);
         checkpointCfg.setCheckpointInterval(interval);
         return this;
@@ -536,7 +547,9 @@ public class StreamExecutionEnvironment {
     @Deprecated
     @SuppressWarnings("deprecation")
     @PublicEvolving
-    public StreamExecutionEnvironment enableCheckpointing(long interval, CheckpointingMode mode, boolean force) {
+    public StreamExecutionEnvironment enableCheckpointing(long interval,
+                                                          CheckpointingMode mode,
+                                                          boolean force) {
         checkpointCfg.setCheckpointingMode(mode);
         checkpointCfg.setCheckpointInterval(interval);
         checkpointCfg.setForceCheckpointing(force);
@@ -774,7 +787,8 @@ public class StreamExecutionEnvironment {
      * @param type The class of the types serialized with the given serializer.
      * @param serializer The serializer to use.
      */
-    public <T extends Serializer<?> & Serializable> void addDefaultKryoSerializer(Class<?> type, T serializer) {
+    public <T extends Serializer<?> & Serializable> void addDefaultKryoSerializer(Class<?> type,
+                                                                                  T serializer) {
         config.addDefaultKryoSerializer(type, serializer);
     }
 
@@ -784,7 +798,8 @@ public class StreamExecutionEnvironment {
      * @param type The class of the types serialized with the given serializer.
      * @param serializerClass The class of the serializer to use.
      */
-    public void addDefaultKryoSerializer(Class<?> type, Class<? extends Serializer<?>> serializerClass) {
+    public void addDefaultKryoSerializer(Class<?> type,
+                                         Class<? extends Serializer<?>> serializerClass) {
         config.addDefaultKryoSerializer(type, serializerClass);
     }
 
@@ -798,7 +813,8 @@ public class StreamExecutionEnvironment {
      * @param type The class of the types serialized with the given serializer.
      * @param serializer The serializer to use.
      */
-    public <T extends Serializer<?> & Serializable> void registerTypeWithKryoSerializer(Class<?> type, T serializer) {
+    public <T extends Serializer<?> & Serializable> void registerTypeWithKryoSerializer(Class<?> type,
+                                                                                        T serializer) {
         config.registerTypeWithKryoSerializer(type, serializer);
     }
 
@@ -810,7 +826,8 @@ public class StreamExecutionEnvironment {
      * @param serializerClass The class of the serializer to use.
      */
     @SuppressWarnings("rawtypes")
-    public void registerTypeWithKryoSerializer(Class<?> type, Class<? extends Serializer> serializerClass) {
+    public void registerTypeWithKryoSerializer(Class<?> type,
+                                               Class<? extends Serializer> serializerClass) {
         config.registerTypeWithKryoSerializer(type, serializerClass);
     }
 
@@ -911,48 +928,37 @@ public class StreamExecutionEnvironment {
      * @param classLoader a class loader to use when loading classes
      */
     @PublicEvolving
-    public void configure(ReadableConfig configuration, ClassLoader classLoader) {
+    public void configure(ReadableConfig configuration,
+                          ClassLoader classLoader) {
 
         // TODO_MA 马中华 注释： 一堆配置的解析
-        configuration
-                .getOptional(StreamPipelineOptions.TIME_CHARACTERISTIC)
-                .ifPresent(this::setStreamTimeCharacteristic);
+        configuration.getOptional(StreamPipelineOptions.TIME_CHARACTERISTIC).ifPresent(this::setStreamTimeCharacteristic);
         Optional.ofNullable(loadStateBackend(configuration, classLoader)).ifPresent(this::setStateBackend);
 
         configuration.getOptional(PipelineOptions.OPERATOR_CHAINING).ifPresent(c -> this.isChainingEnabled = c);
 
         configuration.getOptional(ExecutionOptions.BUFFER_TIMEOUT).ifPresent(t -> this.setBufferTimeout(t.toMillis()));
 
-        configuration
-                .getOptional(DeploymentOptions.JOB_LISTENERS)
+        configuration.getOptional(DeploymentOptions.JOB_LISTENERS)
                 .ifPresent(listeners -> registerCustomListeners(classLoader, listeners));
         configuration.getOptional(PipelineOptions.CACHED_FILES).ifPresent(f -> {
             this.cacheFile.clear();
             this.cacheFile.addAll(DistributedCache.parseCachedFilesFromString(f));
         });
-        configuration
-                .getOptional(ExecutionOptions.RUNTIME_MODE)
+        configuration.getOptional(ExecutionOptions.RUNTIME_MODE)
                 .ifPresent(runtimeMode -> this.configuration.set(ExecutionOptions.RUNTIME_MODE, runtimeMode));
 
-        configuration
-                .getOptional(ExecutionOptions.BATCH_SHUFFLE_MODE)
+        configuration.getOptional(ExecutionOptions.BATCH_SHUFFLE_MODE)
                 .ifPresent(shuffleMode -> this.configuration.set(ExecutionOptions.BATCH_SHUFFLE_MODE, shuffleMode));
 
-        configuration
-                .getOptional(ExecutionOptions.SORT_INPUTS)
+        configuration.getOptional(ExecutionOptions.SORT_INPUTS)
                 .ifPresent(sortInputs -> this.configuration.set(ExecutionOptions.SORT_INPUTS, sortInputs));
-        configuration
-                .getOptional(ExecutionOptions.USE_BATCH_STATE_BACKEND)
+        configuration.getOptional(ExecutionOptions.USE_BATCH_STATE_BACKEND)
                 .ifPresent(sortInputs -> this.configuration.set(ExecutionOptions.USE_BATCH_STATE_BACKEND, sortInputs));
-        configuration
-                .getOptional(PipelineOptions.NAME)
-                .ifPresent(jobName -> this.configuration.set(PipelineOptions.NAME, jobName));
+        configuration.getOptional(PipelineOptions.NAME).ifPresent(jobName -> this.configuration.set(PipelineOptions.NAME, jobName));
 
-        configuration
-                .getOptional(ExecutionCheckpointingOptions.ENABLE_CHECKPOINTS_AFTER_TASKS_FINISH)
-                .ifPresent(flag -> this.configuration.set(ExecutionCheckpointingOptions.ENABLE_CHECKPOINTS_AFTER_TASKS_FINISH,
-                        flag
-                ));
+        configuration.getOptional(ExecutionCheckpointingOptions.ENABLE_CHECKPOINTS_AFTER_TASKS_FINISH).ifPresent(
+                flag -> this.configuration.set(ExecutionCheckpointingOptions.ENABLE_CHECKPOINTS_AFTER_TASKS_FINISH, flag));
 
         /*************************************************
          * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
@@ -967,7 +973,8 @@ public class StreamExecutionEnvironment {
         checkpointCfg.configure(configuration);
     }
 
-    private void registerCustomListeners(final ClassLoader classLoader, final List<String> listeners) {
+    private void registerCustomListeners(final ClassLoader classLoader,
+                                         final List<String> listeners) {
         for (String listener : listeners) {
             try {
                 final JobListener jobListener = InstantiationUtil.instantiate(listener, JobListener.class, classLoader);
@@ -978,7 +985,8 @@ public class StreamExecutionEnvironment {
         }
     }
 
-    private StateBackend loadStateBackend(ReadableConfig configuration, ClassLoader classLoader) {
+    private StateBackend loadStateBackend(ReadableConfig configuration,
+                                          ClassLoader classLoader) {
         try {
             return StateBackendLoader.loadStateBackendFromConfig(configuration, classLoader, null);
         } catch (DynamicCodeLoadingException | IOException e) {
@@ -1005,7 +1013,8 @@ public class StreamExecutionEnvironment {
      *         contains {@link org.apache.flink.api.connector.source.lib.NumberSequenceSource}.
      */
     @Deprecated
-    public DataStreamSource<Long> generateSequence(long from, long to) {
+    public DataStreamSource<Long> generateSequence(long from,
+                                                   long to) {
         if (from > to) {
             throw new IllegalArgumentException("Start of sequence must not be greater than the end");
         }
@@ -1031,7 +1040,8 @@ public class StreamExecutionEnvironment {
      * @param from The number to start at (inclusive)
      * @param to The number to stop at (inclusive)
      */
-    public DataStreamSource<Long> fromSequence(long from, long to) {
+    public DataStreamSource<Long> fromSequence(long from,
+                                               long to) {
         if (from > to) {
             throw new IllegalArgumentException("Start of sequence must not be greater than the end");
         }
@@ -1064,9 +1074,9 @@ public class StreamExecutionEnvironment {
         try {
             typeInfo = TypeExtractor.getForObject(data[0]);
         } catch (Exception e) {
-            throw new RuntimeException("Could not create TypeInformation for type " + data[0].getClass().getName()
-                    + "; please specify the TypeInformation manually via "
-                    + "StreamExecutionEnvironment#fromElements(Collection, TypeInformation)", e);
+            throw new RuntimeException("Could not create TypeInformation for type " + data[0].getClass()
+                    .getName() + "; please specify the TypeInformation manually via " + "StreamExecutionEnvironment#fromElements(Collection, TypeInformation)",
+                    e);
         }
         return fromCollection(Arrays.asList(data), typeInfo);
     }
@@ -1085,7 +1095,8 @@ public class StreamExecutionEnvironment {
      * @return The data stream representing the given array of elements
      */
     @SafeVarargs
-    public final <OUT> DataStreamSource<OUT> fromElements(Class<OUT> type, OUT... data) {
+    public final <OUT> DataStreamSource<OUT> fromElements(Class<OUT> type,
+                                                          OUT... data) {
         if (data.length == 0) {
             throw new IllegalArgumentException("fromElements needs at least one element as argument");
         }
@@ -1094,9 +1105,9 @@ public class StreamExecutionEnvironment {
         try {
             typeInfo = TypeExtractor.getForClass(type);
         } catch (Exception e) {
-            throw new RuntimeException("Could not create TypeInformation for type " + type.getName()
-                    + "; please specify the TypeInformation manually via "
-                    + "StreamExecutionEnvironment#fromElements(Collection, TypeInformation)", e);
+            throw new RuntimeException(
+                    "Could not create TypeInformation for type " + type.getName() + "; please specify the TypeInformation manually via " + "StreamExecutionEnvironment#fromElements(Collection, TypeInformation)",
+                    e);
         }
         return fromCollection(Arrays.asList(data), typeInfo);
     }
@@ -1132,9 +1143,9 @@ public class StreamExecutionEnvironment {
         try {
             typeInfo = TypeExtractor.getForObject(first);
         } catch (Exception e) {
-            throw new RuntimeException("Could not create TypeInformation for type " + first.getClass()
-                    + "; please specify the TypeInformation manually via "
-                    + "StreamExecutionEnvironment#fromElements(Collection, TypeInformation)", e);
+            throw new RuntimeException(
+                    "Could not create TypeInformation for type " + first.getClass() + "; please specify the TypeInformation manually via " + "StreamExecutionEnvironment#fromElements(Collection, TypeInformation)",
+                    e);
         }
         return fromCollection(data, typeInfo);
     }
@@ -1151,7 +1162,8 @@ public class StreamExecutionEnvironment {
      *
      * @return The data stream representing the given collection
      */
-    public <OUT> DataStreamSource<OUT> fromCollection(Collection<OUT> data, TypeInformation<OUT> typeInfo) {
+    public <OUT> DataStreamSource<OUT> fromCollection(Collection<OUT> data,
+                                                      TypeInformation<OUT> typeInfo) {
         Preconditions.checkNotNull(data, "Collection must not be null");
 
         // must not have null elements and mixed elements
@@ -1180,7 +1192,8 @@ public class StreamExecutionEnvironment {
      * @see #fromCollection(java.util.Iterator,
      *         org.apache.flink.api.common.typeinfo.TypeInformation)
      */
-    public <OUT> DataStreamSource<OUT> fromCollection(Iterator<OUT> data, Class<OUT> type) {
+    public <OUT> DataStreamSource<OUT> fromCollection(Iterator<OUT> data,
+                                                      Class<OUT> type) {
         return fromCollection(data, TypeExtractor.getForClass(type));
     }
 
@@ -1202,7 +1215,8 @@ public class StreamExecutionEnvironment {
      *
      * @return The data stream representing the elements in the iterator
      */
-    public <OUT> DataStreamSource<OUT> fromCollection(Iterator<OUT> data, TypeInformation<OUT> typeInfo) {
+    public <OUT> DataStreamSource<OUT> fromCollection(Iterator<OUT> data,
+                                                      TypeInformation<OUT> typeInfo) {
         Preconditions.checkNotNull(data, "The iterator must not be null");
 
         SourceFunction<OUT> function = new FromIteratorFunction<>(data);
@@ -1224,7 +1238,8 @@ public class StreamExecutionEnvironment {
      *
      * @return A data stream representing the elements in the iterator
      */
-    public <OUT> DataStreamSource<OUT> fromParallelCollection(SplittableIterator<OUT> iterator, Class<OUT> type) {
+    public <OUT> DataStreamSource<OUT> fromParallelCollection(SplittableIterator<OUT> iterator,
+                                                              Class<OUT> type) {
         return fromParallelCollection(iterator, TypeExtractor.getForClass(type));
     }
 
@@ -1294,10 +1309,9 @@ public class StreamExecutionEnvironment {
      *
      * @return The data stream that represents the data read from the given file as text lines
      */
-    public DataStreamSource<String> readTextFile(String filePath, String charsetName) {
-        Preconditions.checkArgument(!StringUtils.isNullOrWhitespaceOnly(filePath),
-                "The file path must not be null or blank."
-        );
+    public DataStreamSource<String> readTextFile(String filePath,
+                                                 String charsetName) {
+        Preconditions.checkArgument(!StringUtils.isNullOrWhitespaceOnly(filePath), "The file path must not be null or blank.");
 
         TextInputFormat format = new TextInputFormat(new Path(filePath));
         format.setFilesFilter(FilePathFilter.createDefaultFilter());
@@ -1332,7 +1346,8 @@ public class StreamExecutionEnvironment {
      *
      * @return The data stream that represents the data read from the given file
      */
-    public <OUT> DataStreamSource<OUT> readFile(FileInputFormat<OUT> inputFormat, String filePath) {
+    public <OUT> DataStreamSource<OUT> readFile(FileInputFormat<OUT> inputFormat,
+                                                String filePath) {
         return readFile(inputFormat, filePath, FileProcessingMode.PROCESS_ONCE, -1);
     }
 
@@ -1371,9 +1386,8 @@ public class StreamExecutionEnvironment {
         try {
             typeInformation = TypeExtractor.getInputFormatTypes(inputFormat);
         } catch (Exception e) {
-            throw new InvalidProgramException("The type returned by the input format could not be "
-                    + "automatically determined. Please specify the TypeInformation of the produced type "
-                    + "explicitly by using the 'createInput(InputFormat, TypeInformation)' method instead.");
+            throw new InvalidProgramException(
+                    "The type returned by the input format could not be " + "automatically determined. Please specify the TypeInformation of the produced type " + "explicitly by using the 'createInput(InputFormat, TypeInformation)' method instead.");
         }
         return readFile(inputFormat, filePath, watchType, interval, typeInformation);
     }
@@ -1423,9 +1437,8 @@ public class StreamExecutionEnvironment {
         try {
             typeInformation = TypeExtractor.getInputFormatTypes(inputFormat);
         } catch (Exception e) {
-            throw new InvalidProgramException("The type returned by the input format could not be "
-                    + "automatically determined. Please specify the TypeInformation of the produced type "
-                    + "explicitly by using the 'createInput(InputFormat, TypeInformation)' method instead.");
+            throw new InvalidProgramException(
+                    "The type returned by the input format could not be " + "automatically determined. Please specify the TypeInformation of the produced type " + "explicitly by using the 'createInput(InputFormat, TypeInformation)' method instead.");
         }
         return readFile(inputFormat, filePath, watchType, interval, typeInformation);
     }
@@ -1454,10 +1467,8 @@ public class StreamExecutionEnvironment {
     public DataStream<String> readFileStream(String filePath,
                                              long intervalMillis,
                                              FileMonitoringFunction.WatchType watchType) {
-        DataStream<Tuple3<String, Long, Long>> source = addSource(new FileMonitoringFunction(filePath,
-                intervalMillis,
-                watchType
-        ), "Read File Stream source");
+        DataStream<Tuple3<String, Long, Long>> source = addSource(new FileMonitoringFunction(filePath, intervalMillis, watchType),
+                "Read File Stream source");
 
         return source.flatMap(new FileReadFunction());
     }
@@ -1498,9 +1509,7 @@ public class StreamExecutionEnvironment {
                                                 TypeInformation<OUT> typeInformation) {
 
         Preconditions.checkNotNull(inputFormat, "InputFormat must not be null.");
-        Preconditions.checkArgument(!StringUtils.isNullOrWhitespaceOnly(filePath),
-                "The file path must not be null or blank."
-        );
+        Preconditions.checkArgument(!StringUtils.isNullOrWhitespaceOnly(filePath), "The file path must not be null or blank.");
 
         inputFormat.setFilePath(filePath);
         return createFileInput(inputFormat, typeInformation, "Custom File Source", watchType, interval);
@@ -1528,7 +1537,10 @@ public class StreamExecutionEnvironment {
      * @deprecated Use {@link #socketTextStream(String, int, String, long)} instead.
      */
     @Deprecated
-    public DataStreamSource<String> socketTextStream(String hostname, int port, char delimiter, long maxRetry) {
+    public DataStreamSource<String> socketTextStream(String hostname,
+                                                     int port,
+                                                     char delimiter,
+                                                     long maxRetry) {
         return socketTextStream(hostname, port, String.valueOf(delimiter), maxRetry);
     }
 
@@ -1552,7 +1564,10 @@ public class StreamExecutionEnvironment {
      * @return A data stream containing the strings received from the socket
      */
     @PublicEvolving
-    public DataStreamSource<String> socketTextStream(String hostname, int port, String delimiter, long maxRetry) {
+    public DataStreamSource<String> socketTextStream(String hostname,
+                                                     int port,
+                                                     String delimiter,
+                                                     long maxRetry) {
         return addSource(new SocketTextStreamFunction(hostname, port, delimiter, maxRetry), "Socket Stream");
     }
 
@@ -1572,7 +1587,9 @@ public class StreamExecutionEnvironment {
      */
     @Deprecated
     @SuppressWarnings("deprecation")
-    public DataStreamSource<String> socketTextStream(String hostname, int port, char delimiter) {
+    public DataStreamSource<String> socketTextStream(String hostname,
+                                                     int port,
+                                                     char delimiter) {
         return socketTextStream(hostname, port, delimiter, 0);
     }
 
@@ -1589,7 +1606,9 @@ public class StreamExecutionEnvironment {
      * @return A data stream containing the strings received from the socket
      */
     @PublicEvolving
-    public DataStreamSource<String> socketTextStream(String hostname, int port, String delimiter) {
+    public DataStreamSource<String> socketTextStream(String hostname,
+                                                     int port,
+                                                     String delimiter) {
         return socketTextStream(hostname, port, delimiter, 0);
     }
 
@@ -1605,7 +1624,8 @@ public class StreamExecutionEnvironment {
      * @return A data stream containing the strings received from the socket
      */
     @PublicEvolving
-    public DataStreamSource<String> socketTextStream(String hostname, int port) {
+    public DataStreamSource<String> socketTextStream(String hostname,
+                                                     int port) {
         return socketTextStream(hostname, port, "\n");
     }
 
@@ -1660,7 +1680,8 @@ public class StreamExecutionEnvironment {
      * @return The data stream that represents the data created by the input format
      */
     @PublicEvolving
-    public <OUT> DataStreamSource<OUT> createInput(InputFormat<OUT, ?> inputFormat, TypeInformation<OUT> typeInfo) {
+    public <OUT> DataStreamSource<OUT> createInput(InputFormat<OUT, ?> inputFormat,
+                                                   TypeInformation<OUT> typeInfo) {
         DataStreamSource<OUT> source;
 
         if (inputFormat instanceof FileInputFormat) {
@@ -1692,29 +1713,24 @@ public class StreamExecutionEnvironment {
         Preconditions.checkNotNull(sourceName, "Unspecified name for the source.");
         Preconditions.checkNotNull(monitoringMode, "Unspecified monitoring mode.");
 
-        Preconditions.checkArgument(monitoringMode.equals(FileProcessingMode.PROCESS_ONCE)
-                        || interval >= ContinuousFileMonitoringFunction.MIN_MONITORING_INTERVAL,
-                "The path monitoring interval cannot be less than "
-                        + ContinuousFileMonitoringFunction.MIN_MONITORING_INTERVAL + " ms."
-        );
+        Preconditions.checkArgument(monitoringMode.equals(
+                        FileProcessingMode.PROCESS_ONCE) || interval >= ContinuousFileMonitoringFunction.MIN_MONITORING_INTERVAL,
+                "The path monitoring interval cannot be less than " + ContinuousFileMonitoringFunction.MIN_MONITORING_INTERVAL + " ms.");
 
         ContinuousFileMonitoringFunction<OUT> monitoringFunction = new ContinuousFileMonitoringFunction<>(inputFormat,
-                monitoringMode,
-                getParallelism(),
-                interval
-        );
+                monitoringMode, getParallelism(), interval);
 
         ContinuousFileReaderOperatorFactory<OUT, TimestampedFileInputSplit> factory = new ContinuousFileReaderOperatorFactory<>(
                 inputFormat);
 
-        final Boundedness boundedness = monitoringMode
-                == FileProcessingMode.PROCESS_ONCE ? Boundedness.BOUNDED : Boundedness.CONTINUOUS_UNBOUNDED;
+        final Boundedness boundedness = monitoringMode == FileProcessingMode.PROCESS_ONCE ? Boundedness.BOUNDED : Boundedness.CONTINUOUS_UNBOUNDED;
 
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释：
+         */
         SingleOutputStreamOperator<OUT> source = addSource(monitoringFunction, sourceName, null, boundedness).transform(
-                "Split Reader: " + sourceName,
-                typeInfo,
-                factory
-        );
+                "Split Reader: " + sourceName, typeInfo, factory);
 
         return new DataStreamSource<>(source);
     }
@@ -1749,7 +1765,8 @@ public class StreamExecutionEnvironment {
      *
      * @return the data stream constructed
      */
-    public <OUT> DataStreamSource<OUT> addSource(SourceFunction<OUT> function, String sourceName) {
+    public <OUT> DataStreamSource<OUT> addSource(SourceFunction<OUT> function,
+                                                 String sourceName) {
         return addSource(function, sourceName, null);
     }
 
@@ -1764,7 +1781,8 @@ public class StreamExecutionEnvironment {
      *
      * @return the data stream constructed
      */
-    public <OUT> DataStreamSource<OUT> addSource(SourceFunction<OUT> function, TypeInformation<OUT> typeInfo) {
+    public <OUT> DataStreamSource<OUT> addSource(SourceFunction<OUT> function,
+                                                 TypeInformation<OUT> typeInfo) {
         return addSource(function, "Custom Source", typeInfo);
     }
 
@@ -1801,6 +1819,7 @@ public class StreamExecutionEnvironment {
         clean(function);
 
         final StreamSource<OUT, ?> sourceOperator = new StreamSource<>(function);
+
         return new DataStreamSource<>(this, resolvedTypeInfo, sourceOperator, isParallel, sourceName, boundedness);
     }
 
@@ -1857,12 +1876,9 @@ public class StreamExecutionEnvironment {
 
         final TypeInformation<OUT> resolvedTypeInfo = getTypeInfo(source, sourceName, Source.class, typeInfo);
 
-        return new DataStreamSource<>(this,
-                checkNotNull(source, "source"),
-                checkNotNull(timestampsAndWatermarks, "timestampsAndWatermarks"),
-                checkNotNull(resolvedTypeInfo),
-                checkNotNull(sourceName)
-        );
+        return new DataStreamSource<>(this, checkNotNull(source, "source"),
+                checkNotNull(timestampsAndWatermarks, "timestampsAndWatermarks"), checkNotNull(resolvedTypeInfo),
+                checkNotNull(sourceName));
     }
 
     /**
@@ -1894,19 +1910,22 @@ public class StreamExecutionEnvironment {
      * @throws Exception which occurs during job execution.
      */
     public JobExecutionResult execute(String jobName) throws Exception {
-        // 结果检查
         Preconditions.checkNotNull(jobName, "Streaming Job name should not be null.");
 
         /*************************************************
          * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-         *  注释： 
+         *  注释： 提交的第一件事，就是构造一个 StreamGraph: 把 Transformation 集合编程 StreamGraph
+         *  -
+         *  整体思路：
+         *  1、 遍历 env 中的 List transformations 集合中的 transformation 构造成一个 StreamNode
+         *  2、 每次构造一个 StreamNode 的时候，同时构造一个 StreamEdge 来链接上下游顶点
          */
         final StreamGraph streamGraph = getStreamGraph();
         streamGraph.setJobName(jobName);
 
         /*************************************************
          * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-         *  注释： 
+         *  注释： 第二件事，才是提交：提交的就是一个 StreamGraph
          */
         return execute(streamGraph);
     }
@@ -1927,7 +1946,7 @@ public class StreamExecutionEnvironment {
 
         /*************************************************
          * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-         *  注释：
+         *  注释： 提交
          */
         final JobClient jobClient = executeAsync(streamGraph);
 
@@ -2029,23 +2048,21 @@ public class StreamExecutionEnvironment {
     @Internal
     public JobClient executeAsync(StreamGraph streamGraph) throws Exception {
         checkNotNull(streamGraph, "StreamGraph cannot be null.");
-        checkNotNull(configuration.get(DeploymentOptions.TARGET),
-                "No execution.target specified in your configuration file."
-        );
+        checkNotNull(configuration.get(DeploymentOptions.TARGET), "No execution.target specified in your configuration file.");
 
         final PipelineExecutorFactory executorFactory = executorServiceLoader.getExecutorFactory(configuration);
 
-        checkNotNull(executorFactory,
-                "Cannot find compatible factory for specified execution.target (=%s)",
-                configuration.get(DeploymentOptions.TARGET)
-        );
+        checkNotNull(executorFactory, "Cannot find compatible factory for specified execution.target (=%s)",
+                configuration.get(DeploymentOptions.TARGET));
 
         /*************************************************
          * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-         *  注释：
+         *  注释：通过 Executor 执行器来，来执行提交
+         *  -
+         *  Job
+         *  Session
          */
-        CompletableFuture<JobClient> jobClientFuture = executorFactory
-                .getExecutor(configuration)
+        CompletableFuture<JobClient> jobClientFuture = executorFactory.getExecutor(configuration)
                 .execute(streamGraph, configuration, userClassloader);
 
         try {
@@ -2056,9 +2073,7 @@ public class StreamExecutionEnvironment {
             final Throwable strippedException = ExceptionUtils.stripExecutionException(executionException);
             jobListeners.forEach(jobListener -> jobListener.onJobSubmitted(null, strippedException));
 
-            throw new FlinkException(String.format("Failed to execute job '%s'.", streamGraph.getJobName()),
-                    strippedException
-            );
+            throw new FlinkException(String.format("Failed to execute job '%s'.", streamGraph.getJobName()), strippedException);
         }
     }
 
@@ -2097,6 +2112,8 @@ public class StreamExecutionEnvironment {
          */
         final StreamGraph streamGraph = getStreamGraphGenerator(transformations).generate();
 
+        // TODO_MA 马中华 注释： transformations 给清空了！
+        // TODO_MA 马中华 注释： 为了 env 能够复用
         if (clearTransformations) {
             transformations.clear();
         }
@@ -2127,15 +2144,10 @@ public class StreamExecutionEnvironment {
          * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
          *  注释：
          */
-        return new StreamGraphGenerator(transformations, config, checkpointCfg, configuration)
-                .setStateBackend(defaultStateBackend)
-                .setChangelogStateBackendEnabled(changelogStateBackendEnabled)
-                .setSavepointDir(defaultSavepointDirectory)
-                .setChaining(isChainingEnabled)
-                .setUserArtifacts(cacheFile)
-                .setTimeCharacteristic(timeCharacteristic)
-                .setDefaultBufferTimeout(bufferTimeout)
-                .setSlotSharingGroupResource(slotSharingGroupResources);
+        return new StreamGraphGenerator(transformations, config, checkpointCfg, configuration).setStateBackend(defaultStateBackend)
+                .setChangelogStateBackendEnabled(changelogStateBackendEnabled).setSavepointDir(defaultSavepointDirectory)
+                .setChaining(isChainingEnabled).setUserArtifacts(cacheFile).setTimeCharacteristic(timeCharacteristic)
+                .setDefaultBufferTimeout(bufferTimeout).setSlotSharingGroupResource(slotSharingGroupResources);
     }
 
     /**
@@ -2175,6 +2187,11 @@ public class StreamExecutionEnvironment {
     @Internal
     public void addOperator(Transformation<?> transformation) {
         Preconditions.checkNotNull(transformation, "transformation must not be null.");
+
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释：  程序中的每个算子，最终都对应到了一个 Transformation ，然后加入到 env 中的 List transformations 集合中
+         */
         this.transformations.add(transformation);
     }
 
@@ -2233,8 +2250,7 @@ public class StreamExecutionEnvironment {
                 /*************************************************
                  * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
                  *  注释：
-                 */
-                .map(factory -> factory.createExecutionEnvironment(configuration))
+                 */.map(factory -> factory.createExecutionEnvironment(configuration))
                 .orElseGet(() -> StreamExecutionEnvironment.createLocalEnvironment(configuration));
     }
 
@@ -2273,7 +2289,8 @@ public class StreamExecutionEnvironment {
      *
      * @return A local execution environment with the specified parallelism.
      */
-    public static LocalStreamEnvironment createLocalEnvironment(int parallelism, Configuration configuration) {
+    public static LocalStreamEnvironment createLocalEnvironment(int parallelism,
+                                                                Configuration configuration) {
         Configuration copyOfConfiguration = new Configuration();
         copyOfConfiguration.addAll(configuration);
         copyOfConfiguration.set(CoreOptions.DEFAULT_PARALLELISM, parallelism);
@@ -2337,7 +2354,9 @@ public class StreamExecutionEnvironment {
      *
      * @return A remote environment that executes the program on a cluster.
      */
-    public static StreamExecutionEnvironment createRemoteEnvironment(String host, int port, String... jarFiles) {
+    public static StreamExecutionEnvironment createRemoteEnvironment(String host,
+                                                                     int port,
+                                                                     String... jarFiles) {
         return new RemoteStreamEnvironment(host, port, jarFiles);
     }
 
@@ -2438,7 +2457,8 @@ public class StreamExecutionEnvironment {
      *         "hdfs://host:port/and/path")
      * @param name The name under which the file is registered.
      */
-    public void registerCachedFile(String filePath, String name) {
+    public void registerCachedFile(String filePath,
+                                   String name) {
         registerCachedFile(filePath, name, false);
     }
 
@@ -2458,7 +2478,9 @@ public class StreamExecutionEnvironment {
      * @param name The name under which the file is registered.
      * @param executable flag indicating whether the file should be executable
      */
-    public void registerCachedFile(String filePath, String name, boolean executable) {
+    public void registerCachedFile(String filePath,
+                                   String name,
+                                   boolean executable) {
         this.cacheFile.add(new Tuple2<>(name, new DistributedCache.DistributedCacheEntry(filePath, executable)));
     }
 

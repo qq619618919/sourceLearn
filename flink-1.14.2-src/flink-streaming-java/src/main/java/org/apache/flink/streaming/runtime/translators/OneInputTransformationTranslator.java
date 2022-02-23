@@ -41,19 +41,11 @@ public final class OneInputTransformationTranslator<IN, OUT> extends AbstractOne
     public Collection<Integer> translateForBatchInternal(final OneInputTransformation<IN, OUT> transformation,
                                                          final Context context) {
         KeySelector<IN, ?> keySelector = transformation.getStateKeySelector();
-        Collection<Integer> ids = translateInternal(transformation,
-                transformation.getOperatorFactory(),
-                transformation.getInputType(),
-                keySelector,
-                transformation.getStateKeyType(),
-                context
-        );
+        Collection<Integer> ids = translateInternal(transformation, transformation.getOperatorFactory(),
+                transformation.getInputType(), keySelector, transformation.getStateKeyType(), context);
         boolean isKeyed = keySelector != null;
         if (isKeyed) {
-            BatchExecutionUtils.applyBatchExecutionSettings(transformation.getId(),
-                    context,
-                    StreamConfig.InputRequirement.SORTED
-            );
+            BatchExecutionUtils.applyBatchExecutionSettings(transformation.getId(), context, StreamConfig.InputRequirement.SORTED);
         }
 
         return ids;
@@ -67,12 +59,7 @@ public final class OneInputTransformationTranslator<IN, OUT> extends AbstractOne
          * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
          *  注释：
          */
-        return translateInternal(transformation,
-                transformation.getOperatorFactory(),
-                transformation.getInputType(),
-                transformation.getStateKeySelector(),
-                transformation.getStateKeyType(),
-                context
-        );
+        return translateInternal(transformation, transformation.getOperatorFactory(), transformation.getInputType(),
+                transformation.getStateKeySelector(), transformation.getStateKeyType(), context);
     }
 }

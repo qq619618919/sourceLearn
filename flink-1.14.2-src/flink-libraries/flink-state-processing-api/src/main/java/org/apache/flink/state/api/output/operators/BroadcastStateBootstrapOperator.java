@@ -37,10 +37,7 @@ import org.apache.flink.util.FlinkRuntimeException;
  * BroadcastStateBootstrapFunction}'s.
  */
 @Internal
-public class BroadcastStateBootstrapOperator<IN>
-        extends AbstractUdfStreamOperator<
-                TaggedOperatorSubtaskState, BroadcastStateBootstrapFunction<IN>>
-        implements OneInputStreamOperator<IN, TaggedOperatorSubtaskState>, BoundedOneInput {
+public class BroadcastStateBootstrapOperator<IN> extends AbstractUdfStreamOperator<TaggedOperatorSubtaskState, BroadcastStateBootstrapFunction<IN>> implements OneInputStreamOperator<IN, TaggedOperatorSubtaskState>, BoundedOneInput {
 
     private static final long serialVersionUID = 1L;
 
@@ -50,11 +47,11 @@ public class BroadcastStateBootstrapOperator<IN>
 
     private transient ContextImpl context;
 
-    public BroadcastStateBootstrapOperator(
-            long timestamp, Path savepointPath, BroadcastStateBootstrapFunction<IN> function) {
+    public BroadcastStateBootstrapOperator(long timestamp,
+                                           Path savepointPath,
+                                           BroadcastStateBootstrapFunction<IN> function) {
         super(function);
         this.timestamp = timestamp;
-
         this.savepointPath = savepointPath;
     }
 
@@ -71,15 +68,14 @@ public class BroadcastStateBootstrapOperator<IN>
 
     @Override
     public void endInput() throws Exception {
-        TaggedOperatorSubtaskState state =
-                SnapshotUtils.snapshot(
-                        this,
-                        getRuntimeContext().getIndexOfThisSubtask(),
-                        timestamp,
-                        getContainingTask().getConfiguration().isExactlyOnceCheckpointMode(),
-                        getContainingTask().getConfiguration().isUnalignedCheckpointsEnabled(),
-                        getContainingTask().getConfiguration().getConfiguration(),
-                        savepointPath);
+        TaggedOperatorSubtaskState state = SnapshotUtils.snapshot(this,
+                getRuntimeContext().getIndexOfThisSubtask(),
+                timestamp,
+                getContainingTask().getConfiguration().isExactlyOnceCheckpointMode(),
+                getContainingTask().getConfiguration().isUnalignedCheckpointsEnabled(),
+                getContainingTask().getConfiguration().getConfiguration(),
+                savepointPath
+        );
 
         output.collect(new StreamRecord<>(state));
     }

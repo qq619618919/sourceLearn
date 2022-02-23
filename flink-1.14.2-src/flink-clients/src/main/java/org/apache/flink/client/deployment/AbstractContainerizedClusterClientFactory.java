@@ -32,27 +32,26 @@ import static org.apache.flink.util.Preconditions.checkNotNull;
  * containerized deployment clusters.
  */
 @Internal
-public abstract class AbstractContainerizedClusterClientFactory<ClusterID>
-        implements ClusterClientFactory<ClusterID> {
+public abstract class AbstractContainerizedClusterClientFactory<ClusterID> implements ClusterClientFactory<ClusterID> {
 
     @Override
     public ClusterSpecification getClusterSpecification(Configuration configuration) {
         checkNotNull(configuration);
 
-        final int jobManagerMemoryMB =
-                JobManagerProcessUtils.processSpecFromConfigWithNewOptionToInterpretLegacyHeap(
-                                configuration, JobManagerOptions.TOTAL_PROCESS_MEMORY)
-                        .getTotalProcessMemorySize()
-                        .getMebiBytes();
+        final int jobManagerMemoryMB = JobManagerProcessUtils
+                .processSpecFromConfigWithNewOptionToInterpretLegacyHeap(configuration,
+                        JobManagerOptions.TOTAL_PROCESS_MEMORY
+                )
+                .getTotalProcessMemorySize()
+                .getMebiBytes();
 
-        final int taskManagerMemoryMB =
-                TaskExecutorProcessUtils.processSpecFromConfig(
-                                TaskExecutorProcessUtils
-                                        .getConfigurationMapLegacyTaskManagerHeapSizeToConfigOption(
-                                                configuration,
-                                                TaskManagerOptions.TOTAL_PROCESS_MEMORY))
-                        .getTotalProcessMemorySize()
-                        .getMebiBytes();
+        final int taskManagerMemoryMB = TaskExecutorProcessUtils
+                .processSpecFromConfig(TaskExecutorProcessUtils.getConfigurationMapLegacyTaskManagerHeapSizeToConfigOption(
+                        configuration,
+                        TaskManagerOptions.TOTAL_PROCESS_MEMORY
+                ))
+                .getTotalProcessMemorySize()
+                .getMebiBytes();
 
         int slotsPerTaskManager = configuration.getInteger(TaskManagerOptions.NUM_TASK_SLOTS);
 

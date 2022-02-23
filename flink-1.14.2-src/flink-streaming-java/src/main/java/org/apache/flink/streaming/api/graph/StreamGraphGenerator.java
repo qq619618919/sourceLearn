@@ -176,8 +176,7 @@ public class StreamGraphGenerator {
     private static final Map<Class<? extends Transformation>, TransformationTranslator<?, ? extends Transformation>> translatorMap;
 
     static {
-        @SuppressWarnings("rawtypes")
-        Map<Class<? extends Transformation>, TransformationTranslator<?, ? extends Transformation>> tmp = new HashMap<>();
+        @SuppressWarnings("rawtypes") Map<Class<? extends Transformation>, TransformationTranslator<?, ? extends Transformation>> tmp = new HashMap<>();
         tmp.put(OneInputTransformation.class, new OneInputTransformationTranslator<>());
         tmp.put(TwoInputTransformation.class, new TwoInputTransformationTranslator<>());
         tmp.put(MultipleInputTransformation.class, new MultiInputTransformationTranslator<>());
@@ -288,11 +287,13 @@ public class StreamGraphGenerator {
 
         /*************************************************
          * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-         *  注释：
+         *  注释： 构造一个空的数据结构！
+         *  这个图，有很多的顶点StreamNode， 也有很多的边
          */
         streamGraph = new StreamGraph(executionConfig, checkpointConfig, savepointRestoreSettings);
 
-        streamGraph.setEnableCheckpointsAfterTasksFinish(configuration.get(ExecutionCheckpointingOptions.ENABLE_CHECKPOINTS_AFTER_TASKS_FINISH));
+        streamGraph.setEnableCheckpointsAfterTasksFinish(
+                configuration.get(ExecutionCheckpointingOptions.ENABLE_CHECKPOINTS_AFTER_TASKS_FINISH));
         shouldExecuteInBatchMode = shouldExecuteInBatchMode();
         configureStreamGraph(streamGraph);
 
@@ -305,6 +306,7 @@ public class StreamGraphGenerator {
         for (Transformation<?> transformation : transformations) {
             transform(transformation);
         }
+        // TODO_MA 马中华 注释： transform 是转换的意思： 吃的 Transformation， 拉的是 StreamNode
 
         /*************************************************
          * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
@@ -358,8 +360,7 @@ public class StreamGraphGenerator {
         graph.setJobName(deriveJobName(DEFAULT_BATCH_JOB_NAME));
 
         if (checkpointConfig.isCheckpointingEnabled()) {
-            LOG.info(
-                    "Disabled Checkpointing. Checkpointing is not supported and not needed when executing jobs in BATCH mode.");
+            LOG.info("Disabled Checkpointing. Checkpointing is not supported and not needed when executing jobs in BATCH mode.");
             checkpointConfig.disableCheckpointing();
         }
         setBatchStateBackendAndTimerService(graph);
@@ -391,9 +392,8 @@ public class StreamGraphGenerator {
             case ALL_EXCHANGES_BLOCKING:
                 return GlobalStreamExchangeMode.ALL_EDGES_BLOCKING;
             default:
-                throw new IllegalArgumentException(String.format("Unsupported shuffle mode '%s' in BATCH runtime mode.",
-                        shuffleMode.toString()
-                ));
+                throw new IllegalArgumentException(
+                        String.format("Unsupported shuffle mode '%s' in BATCH runtime mode.", shuffleMode.toString()));
         }
     }
 
@@ -407,8 +407,7 @@ public class StreamGraphGenerator {
 
     private void checkApproximateLocalRecoveryCompatibility() {
         checkState(!checkpointConfig.isUnalignedCheckpointsEnabled(),
-                "Approximate Local Recovery and Unaligned Checkpoint can not be used together yet"
-        );
+                "Approximate Local Recovery and Unaligned Checkpoint can not be used together yet");
     }
 
     private void setBatchStateBackendAndTimerService(StreamGraph graph) {
@@ -438,10 +437,7 @@ public class StreamGraphGenerator {
                 graph.setGlobalStreamExchangeMode(GlobalStreamExchangeMode.ALL_EDGES_BLOCKING);
             } else {
                 throw new IllegalConfigurationException(
-                        "At the moment, fine-grained resource management requires batch workloads to "
-                                + "be executed with types of all edges being BLOCKING. To do that, you need to configure '"
-                                + ClusterOptions.FINE_GRAINED_SHUFFLE_MODE_ALL_BLOCKING.key()
-                                + "' to 'true'. Notice that this may affect the performance. See FLINK-20865 for more details.");
+                        "At the moment, fine-grained resource management requires batch workloads to " + "be executed with types of all edges being BLOCKING. To do that, you need to configure '" + ClusterOptions.FINE_GRAINED_SHUFFLE_MODE_ALL_BLOCKING.key() + "' to 'true'. Notice that this may affect the performance. See FLINK-20865 for more details.");
             }
         }
     }
@@ -452,10 +448,7 @@ public class StreamGraphGenerator {
         final boolean existsUnboundedSource = existsUnboundedSource();
 
         checkState(configuredMode != RuntimeExecutionMode.BATCH || !existsUnboundedSource,
-                "Detected an UNBOUNDED source with the '" + ExecutionOptions.RUNTIME_MODE.key() + "' set to 'BATCH'. "
-                        + "This combination is not allowed, please set the '" + ExecutionOptions.RUNTIME_MODE.key()
-                        + "' to STREAMING or AUTOMATIC"
-        );
+                "Detected an UNBOUNDED source with the '" + ExecutionOptions.RUNTIME_MODE.key() + "' set to 'BATCH'. " + "This combination is not allowed, please set the '" + ExecutionOptions.RUNTIME_MODE.key() + "' to STREAMING or AUTOMATIC");
 
         if (checkNotNull(configuredMode) != RuntimeExecutionMode.AUTOMATIC) {
             return configuredMode == RuntimeExecutionMode.BATCH;
@@ -464,18 +457,14 @@ public class StreamGraphGenerator {
     }
 
     private boolean existsUnboundedSource() {
-        return transformations
-                .stream()
-                .anyMatch(transformation -> isUnboundedSource(transformation) || transformation
-                        .getTransitivePredecessors()
-                        .stream()
+        return transformations.stream().anyMatch(
+                transformation -> isUnboundedSource(transformation) || transformation.getTransitivePredecessors().stream()
                         .anyMatch(this::isUnboundedSource));
     }
 
     private boolean isUnboundedSource(final Transformation<?> transformation) {
         checkNotNull(transformation);
-        return transformation instanceof WithBoundedness
-                && ((WithBoundedness) transformation).getBoundedness() != Boundedness.BOUNDED;
+        return transformation instanceof WithBoundedness && ((WithBoundedness) transformation).getBoundedness() != Boundedness.BOUNDED;
     }
 
     /**
@@ -485,6 +474,8 @@ public class StreamGraphGenerator {
      * delegates to one of the transformation specific methods.
      */
     private Collection<Integer> transform(Transformation<?> transform) {
+
+        // TODO_MA 马中华 注释： 每次转换之前，先判断一下
         if (alreadyTransformed.containsKey(transform)) {
             return alreadyTransformed.get(transform);
         }
@@ -508,8 +499,8 @@ public class StreamGraphGenerator {
                     if (profile == null) {
                         return ResourceProfile.fromResourceSpec(resourceSpec, MemorySize.ZERO);
                     } else if (!ResourceProfile.fromResourceSpec(resourceSpec, MemorySize.ZERO).equals(profile)) {
-                        throw new IllegalArgumentException("The slot sharing group " + slotSharingGroup.getName()
-                                + " has been configured with two different resource spec.");
+                        throw new IllegalArgumentException(
+                                "The slot sharing group " + slotSharingGroup.getName() + " has been configured with two different resource spec.");
                     } else {
                         return profile;
                     }
@@ -521,13 +512,14 @@ public class StreamGraphGenerator {
         transform.getOutputType();
 
         @SuppressWarnings("unchecked")
-        // TODO_MA 马中华 注释：
+        // TODO_MA 马中华 注释： 1、先构造一个转换器
+        // TODO_MA 马中华 注释： flink-1.13 版本的改的
         final TransformationTranslator<?, Transformation<?>> translator = (TransformationTranslator<?, Transformation<?>>) translatorMap.get(
                 transform.getClass());
 
         /*************************************************
          * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-         *  注释：
+         *  注释： 2、完成转换
          */
         Collection<Integer> transformedIds;
         if (translator != null) {
@@ -538,6 +530,7 @@ public class StreamGraphGenerator {
 
         // need this check because the iterate transformation adds itself before
         // transforming the feedback edges
+        // TODO_MA 马中华 注释： 转换完了，登记一下
         if (!alreadyTransformed.containsKey(transform)) {
             alreadyTransformed.put(transform, transformedIds);
         }
@@ -569,11 +562,9 @@ public class StreamGraphGenerator {
         }
 
         if (!streamGraph.getExecutionConfig().hasAutoGeneratedUIDsEnabled()) {
-            if (transform instanceof PhysicalTransformation && transform.getUserProvidedNodeHash() == null
-                    && transform.getUid() == null) {
+            if (transform instanceof PhysicalTransformation && transform.getUserProvidedNodeHash() == null && transform.getUid() == null) {
                 throw new IllegalStateException(
-                        "Auto generated UIDs have been disabled " + "but no UID or hash has been assigned to operator "
-                                + transform.getName());
+                        "Auto generated UIDs have been disabled " + "but no UID or hash has been assigned to operator " + transform.getName());
             }
         }
 
@@ -581,10 +572,8 @@ public class StreamGraphGenerator {
             streamGraph.setResources(transform.getId(), transform.getMinResources(), transform.getPreferredResources());
         }
 
-        streamGraph.setManagedMemoryUseCaseWeights(transform.getId(),
-                transform.getManagedMemoryOperatorScopeUseCaseWeights(),
-                transform.getManagedMemorySlotScopeUseCases()
-        );
+        streamGraph.setManagedMemoryUseCaseWeights(transform.getId(), transform.getManagedMemoryOperatorScopeUseCaseWeights(),
+                transform.getManagedMemorySlotScopeUseCases());
 
         return transformedIds;
     }
@@ -602,9 +591,8 @@ public class StreamGraphGenerator {
     private <T> Collection<Integer> transformFeedback(FeedbackTransformation<T> iterate) {
 
         if (shouldExecuteInBatchMode) {
-            throw new UnsupportedOperationException("Iterations are not supported in BATCH"
-                    + " execution mode. If you want to execute such a pipeline, please set the " + "'"
-                    + ExecutionOptions.RUNTIME_MODE.key() + "'=" + RuntimeExecutionMode.STREAMING.name());
+            throw new UnsupportedOperationException(
+                    "Iterations are not supported in BATCH" + " execution mode. If you want to execute such a pipeline, please set the " + "'" + ExecutionOptions.RUNTIME_MODE.key() + "'=" + RuntimeExecutionMode.STREAMING.name());
         }
 
         if (iterate.getFeedbackEdges().size() <= 0) {
@@ -628,29 +616,15 @@ public class StreamGraphGenerator {
 
         // create the fake iteration source/sink pair
         Tuple2<StreamNode, StreamNode> itSourceAndSink = streamGraph.createIterationSourceAndSink(iterate.getId(),
-                getNewIterationNodeId(),
-                getNewIterationNodeId(),
-                iterate.getWaitTime(),
-                iterate.getParallelism(),
-                iterate.getMaxParallelism(),
-                iterate.getMinResources(),
-                iterate.getPreferredResources()
-        );
+                getNewIterationNodeId(), getNewIterationNodeId(), iterate.getWaitTime(), iterate.getParallelism(),
+                iterate.getMaxParallelism(), iterate.getMinResources(), iterate.getPreferredResources());
 
         StreamNode itSource = itSourceAndSink.f0;
         StreamNode itSink = itSourceAndSink.f1;
 
         // We set the proper serializers for the sink/source
-        streamGraph.setSerializers(itSource.getId(),
-                null,
-                null,
-                iterate.getOutputType().createSerializer(executionConfig)
-        );
-        streamGraph.setSerializers(itSink.getId(),
-                iterate.getOutputType().createSerializer(executionConfig),
-                null,
-                null
-        );
+        streamGraph.setSerializers(itSource.getId(), null, null, iterate.getOutputType().createSerializer(executionConfig));
+        streamGraph.setSerializers(itSink.getId(), iterate.getOutputType().createSerializer(executionConfig), null, null);
 
         // also add the feedback source ID to the result IDs, so that downstream operators will
         // add both as input
@@ -696,9 +670,8 @@ public class StreamGraphGenerator {
     private <F> Collection<Integer> transformCoFeedback(CoFeedbackTransformation<F> coIterate) {
 
         if (shouldExecuteInBatchMode) {
-            throw new UnsupportedOperationException("Iterations are not supported in BATCH"
-                    + " execution mode. If you want to execute such a pipeline, please set the " + "'"
-                    + ExecutionOptions.RUNTIME_MODE.key() + "'=" + RuntimeExecutionMode.STREAMING.name());
+            throw new UnsupportedOperationException(
+                    "Iterations are not supported in BATCH" + " execution mode. If you want to execute such a pipeline, please set the " + "'" + ExecutionOptions.RUNTIME_MODE.key() + "'=" + RuntimeExecutionMode.STREAMING.name());
         }
 
         // For Co-Iteration we don't need to transform the input and wire the input to the
@@ -708,29 +681,15 @@ public class StreamGraphGenerator {
 
         // create the fake iteration source/sink pair
         Tuple2<StreamNode, StreamNode> itSourceAndSink = streamGraph.createIterationSourceAndSink(coIterate.getId(),
-                getNewIterationNodeId(),
-                getNewIterationNodeId(),
-                coIterate.getWaitTime(),
-                coIterate.getParallelism(),
-                coIterate.getMaxParallelism(),
-                coIterate.getMinResources(),
-                coIterate.getPreferredResources()
-        );
+                getNewIterationNodeId(), getNewIterationNodeId(), coIterate.getWaitTime(), coIterate.getParallelism(),
+                coIterate.getMaxParallelism(), coIterate.getMinResources(), coIterate.getPreferredResources());
 
         StreamNode itSource = itSourceAndSink.f0;
         StreamNode itSink = itSourceAndSink.f1;
 
         // We set the proper serializers for the sink/source
-        streamGraph.setSerializers(itSource.getId(),
-                null,
-                null,
-                coIterate.getOutputType().createSerializer(executionConfig)
-        );
-        streamGraph.setSerializers(itSink.getId(),
-                coIterate.getOutputType().createSerializer(executionConfig),
-                null,
-                null
-        );
+        streamGraph.setSerializers(itSource.getId(), null, null, coIterate.getOutputType().createSerializer(executionConfig));
+        streamGraph.setSerializers(itSink.getId(), coIterate.getOutputType().createSerializer(executionConfig), null, null);
 
         Collection<Integer> resultIds = Collections.singleton(itSource.getId());
 
@@ -769,22 +728,20 @@ public class StreamGraphGenerator {
             return alreadyTransformed.get(transform);
         }
 
-        final String slotSharingGroup = determineSlotSharingGroup(transform
-                        .getSlotSharingGroup()
-                        .isPresent() ? transform.getSlotSharingGroup().get().getName() : null,
-                allInputIds.stream().flatMap(Collection::stream).collect(Collectors.toList())
-        );
+        final String slotSharingGroup = determineSlotSharingGroup(
+                transform.getSlotSharingGroup().isPresent() ? transform.getSlotSharingGroup().get().getName() : null,
+                allInputIds.stream().flatMap(Collection::stream).collect(Collectors.toList()));
 
-        final TransformationTranslator.Context context = new ContextImpl(this,
-                streamGraph,
-                slotSharingGroup,
-                configuration
-        );
+        final TransformationTranslator.Context context = new ContextImpl(this, streamGraph, slotSharingGroup, configuration);
 
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释： 这个地方的两个分支：
+         */
         return shouldExecuteInBatchMode ?
-                // TODO_MA 马中华 注释：
+                // TODO_MA 马中华 注释：  批处理
                 translator.translateForBatch(transform, context) :
-                // TODO_MA 马中华 注释：
+                // TODO_MA 马中华 注释：  流处理
                 translator.translateForStreaming(transform, context);
     }
 
@@ -822,7 +779,8 @@ public class StreamGraphGenerator {
      * @param specifiedGroup The group specified by the user.
      * @param inputIds The IDs of the input operations.
      */
-    private String determineSlotSharingGroup(String specifiedGroup, Collection<Integer> inputIds) {
+    private String determineSlotSharingGroup(String specifiedGroup,
+                                             Collection<Integer> inputIds) {
         if (specifiedGroup != null) {
             return specifiedGroup;
         } else {

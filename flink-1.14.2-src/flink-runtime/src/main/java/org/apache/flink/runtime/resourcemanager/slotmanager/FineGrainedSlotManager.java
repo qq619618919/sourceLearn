@@ -63,7 +63,10 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-/** Implementation of {@link SlotManager} supporting fine-grained resource management. */
+/**
+ * // TODO_MA 马中华 注释： 细粒度资源管理
+ * Implementation of {@link SlotManager} supporting fine-grained resource management.
+ */
 public class FineGrainedSlotManager implements SlotManager {
 
     private static final Logger LOG = LoggerFactory.getLogger(FineGrainedSlotManager.class);

@@ -121,7 +121,10 @@ public abstract class BufferWritingResultPartition extends ResultPartition {
             finishBroadcastBufferBuilder();
             finishUnicastBufferBuilder(targetSubpartition);
         }
-
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释：
+         */
         subpartitions[targetSubpartition].flush();
     }
 
@@ -138,6 +141,8 @@ public abstract class BufferWritingResultPartition extends ResultPartition {
 
     @Override
     public void emitRecord(ByteBuffer record, int targetSubpartition) throws IOException {
+
+        // TODO_MA 马中华 注释：
         BufferBuilder buffer = appendUnicastDataForNewRecord(record, targetSubpartition);
 
         while (record.hasRemaining()) {
@@ -199,6 +204,11 @@ public abstract class BufferWritingResultPartition extends ResultPartition {
         checkState(!isReleased(), "Partition released.");
 
         ResultSubpartition subpartition = subpartitions[subpartitionIndex];
+
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释：
+         */
         ResultSubpartitionView readView = subpartition.createReadView(availabilityListener);
 
         LOG.debug("Created {}", readView);
@@ -267,6 +277,11 @@ public abstract class BufferWritingResultPartition extends ResultPartition {
     }
 
     private void addToSubpartition(BufferBuilder buffer, int targetSubpartition, int i) throws IOException {
+
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释：
+         */
         int desirableBufferSize = subpartitions[targetSubpartition].add(buffer.createBufferConsumerFromBeginning(), i);
 
         if (desirableBufferSize > 0) {
@@ -286,6 +301,11 @@ public abstract class BufferWritingResultPartition extends ResultPartition {
         // with a complete record.
         // !! The next two lines can not change order.
         final int partialRecordBytes = buffer.appendAndCommit(remainingRecordBytes);
+
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释：
+         */
         addToSubpartition(buffer, targetSubpartition, partialRecordBytes);
 
         return buffer;

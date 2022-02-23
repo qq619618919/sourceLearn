@@ -37,19 +37,17 @@ import java.util.function.Function;
  * @param <F> type of the fencing token
  * @param <T> type of the fenced gateway to retrieve
  */
-public class RpcGatewayRetriever<F extends Serializable, T extends FencedRpcGateway<F>>
-        extends LeaderGatewayRetriever<T> {
+public class RpcGatewayRetriever<F extends Serializable, T extends FencedRpcGateway<F>> extends LeaderGatewayRetriever<T> {
 
     private final RpcService rpcService;
     private final Class<T> gatewayType;
     private final Function<UUID, F> fencingTokenMapper;
     private final RetryStrategy retryStrategy;
 
-    public RpcGatewayRetriever(
-            RpcService rpcService,
-            Class<T> gatewayType,
-            Function<UUID, F> fencingTokenMapper,
-            RetryStrategy retryStrategy) {
+    public RpcGatewayRetriever(RpcService rpcService,
+                               Class<T> gatewayType,
+                               Function<UUID, F> fencingTokenMapper,
+                               RetryStrategy retryStrategy) {
         this.rpcService = Preconditions.checkNotNull(rpcService);
         this.gatewayType = Preconditions.checkNotNull(gatewayType);
         this.fencingTokenMapper = Preconditions.checkNotNull(fencingTokenMapper);
@@ -57,17 +55,16 @@ public class RpcGatewayRetriever<F extends Serializable, T extends FencedRpcGate
     }
 
     @Override
-    protected CompletableFuture<T> createGateway(
-            CompletableFuture<Tuple2<String, UUID>> leaderFuture) {
-        return FutureUtils.retryWithDelay(
-                () ->
-                        leaderFuture.thenCompose(
-                                (Tuple2<String, UUID> addressLeaderTuple) ->
-                                        rpcService.connect(
-                                                addressLeaderTuple.f0,
-                                                fencingTokenMapper.apply(addressLeaderTuple.f1),
-                                                gatewayType)),
-                retryStrategy,
-                rpcService.getScheduledExecutor());
+    protected CompletableFuture<T> createGateway(CompletableFuture<Tuple2<String, UUID>> leaderFuture) {
+        return FutureUtils.retryWithDelay(() -> leaderFuture.thenCompose((Tuple2<String, UUID> addressLeaderTuple) ->
+
+                /*************************************************
+                 * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+                 *  注释：
+                 */
+                rpcService.connect(addressLeaderTuple.f0,
+                        fencingTokenMapper.apply(addressLeaderTuple.f1),
+                        gatewayType
+                )), retryStrategy, rpcService.getScheduledExecutor());
     }
 }

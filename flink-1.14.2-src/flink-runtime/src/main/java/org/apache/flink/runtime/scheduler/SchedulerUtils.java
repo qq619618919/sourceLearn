@@ -99,6 +99,10 @@ public final class SchedulerUtils {
         final JobID jobId = jobGraph.getJobID();
         if (DefaultExecutionGraphBuilder.isCheckpointingEnabled(jobGraph)) {
             try {
+                /*************************************************
+                 * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+                 *  注释：
+                 */
                 return createCheckpointIdCounter(checkpointRecoveryFactory, jobId);
             } catch (Exception e) {
                 throw new JobExecutionException(jobId,
@@ -113,6 +117,10 @@ public final class SchedulerUtils {
 
     private static CheckpointIDCounter createCheckpointIdCounter(CheckpointRecoveryFactory recoveryFactory,
                                                                  JobID jobId) throws Exception {
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释：
+         */
         return recoveryFactory.createCheckpointIDCounter(jobId);
     }
 }

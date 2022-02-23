@@ -71,14 +71,13 @@ public abstract class AbstractBlobCache implements Closeable {
     /** Lock guarding concurrent file accesses. */
     protected final ReadWriteLock readWriteLock;
 
-    @Nullable protected volatile InetSocketAddress serverAddress;
+    @Nullable
+    protected volatile InetSocketAddress serverAddress;
 
-    public AbstractBlobCache(
-            final Configuration blobClientConfig,
-            final BlobView blobView,
-            final Logger logger,
-            @Nullable final InetSocketAddress serverAddress)
-            throws IOException {
+    public AbstractBlobCache(final Configuration blobClientConfig,
+                             final BlobView blobView,
+                             final Logger logger,
+                             @Nullable final InetSocketAddress serverAddress) throws IOException {
 
         this.log = checkNotNull(logger);
         this.blobClientConfig = checkNotNull(blobClientConfig);
@@ -94,9 +93,9 @@ public abstract class AbstractBlobCache implements Closeable {
         if (fetchRetries >= 0) {
             this.numFetchRetries = fetchRetries;
         } else {
-            log.warn(
-                    "Invalid value for {}. System will attempt no retries on failed fetch operations of BLOBs.",
-                    BlobServerOptions.FETCH_RETRIES.key());
+            log.warn("Invalid value for {}. System will attempt no retries on failed fetch operations of BLOBs.",
+                    BlobServerOptions.FETCH_RETRIES.key()
+            );
             this.numFetchRetries = 0;
         }
 
@@ -119,9 +118,11 @@ public abstract class AbstractBlobCache implements Closeable {
      *
      * @param jobId ID of the job this blob belongs to (or <tt>null</tt> if job-unrelated)
      * @param blobKey The key of the desired BLOB.
+     *
      * @return file referring to the local storage location of the BLOB.
+     *
      * @throws IOException Thrown if an I/O error occurs while downloading the BLOBs from the BLOB
-     *     server.
+     *         server.
      */
     protected File getFileInternal(@Nullable JobID jobId, BlobKey blobKey) throws IOException {
         checkArgument(blobKey != null, "BLOB key cannot be null.");
@@ -142,12 +143,15 @@ public abstract class AbstractBlobCache implements Closeable {
         File incomingFile = createTemporaryFilename();
         try {
             try {
+                /*************************************************
+                 * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+                 *  注释：
+                 */
                 if (blobView.get(jobId, blobKey, incomingFile)) {
                     // now move the temp file to our local cache atomically
                     readWriteLock.writeLock().lock();
                     try {
-                        BlobUtils.moveTempFileToStore(
-                                incomingFile, jobId, blobKey, localFile, log, null);
+                        BlobUtils.moveTempFileToStore(incomingFile, jobId, blobKey, localFile, log, null);
                     } finally {
                         readWriteLock.writeLock().unlock();
                     }
@@ -155,43 +159,40 @@ public abstract class AbstractBlobCache implements Closeable {
                     return localFile;
                 }
             } catch (Exception e) {
-                log.info(
-                        "Failed to copy from blob store. Downloading from BLOB server instead.", e);
+                log.info("Failed to copy from blob store. Downloading from BLOB server instead.", e);
             }
 
             final InetSocketAddress currentServerAddress = serverAddress;
 
             if (currentServerAddress != null) {
                 // fallback: download from the BlobServer
-                BlobClient.downloadFromBlobServer(
-                        jobId,
+                BlobClient.downloadFromBlobServer(jobId,
                         blobKey,
                         incomingFile,
                         currentServerAddress,
                         blobClientConfig,
-                        numFetchRetries);
+                        numFetchRetries
+                );
 
                 readWriteLock.writeLock().lock();
                 try {
-                    BlobUtils.moveTempFileToStore(
-                            incomingFile, jobId, blobKey, localFile, log, null);
+                    BlobUtils.moveTempFileToStore(incomingFile, jobId, blobKey, localFile, log, null);
                 } finally {
                     readWriteLock.writeLock().unlock();
                 }
             } else {
-                throw new IOException(
-                        "Cannot download from BlobServer, because the server address is unknown.");
+                throw new IOException("Cannot download from BlobServer, because the server address is unknown.");
             }
 
             return localFile;
         } finally {
             // delete incomingFile from a failed download
             if (!incomingFile.delete() && incomingFile.exists()) {
-                log.warn(
-                        "Could not delete the staging file {} for blob key {} and job {}.",
+                log.warn("Could not delete the staging file {} for blob key {} and job {}.",
                         incomingFile,
                         blobKey,
-                        jobId);
+                        jobId
+                );
             }
         }
     }
@@ -224,12 +225,13 @@ public abstract class AbstractBlobCache implements Closeable {
      * Returns a temporary file inside the BLOB server's incoming directory.
      *
      * @return a temporary file inside the BLOB server's incoming directory
+     *
      * @throws IOException if creating the directory fails
      */
     File createTemporaryFilename() throws IOException {
-        return new File(
-                BlobUtils.getIncomingDirectory(storageDir),
-                String.format("temp-%08d", tempFileCounter.getAndIncrement()));
+        return new File(BlobUtils.getIncomingDirectory(storageDir),
+                String.format("temp-%08d", tempFileCounter.getAndIncrement())
+        );
     }
 
     @Override

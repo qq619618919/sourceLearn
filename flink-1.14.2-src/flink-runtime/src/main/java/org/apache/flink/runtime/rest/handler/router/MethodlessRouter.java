@@ -44,7 +44,7 @@ final class MethodlessRouter<T> {
     // A path pattern can only point to one target
     /*************************************************
      * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-     *  注释： 一个注册表，用来维护 URL 和 Handler 之间的关系
+     *  注释： 一个注册表、登记表，用来维护 URL 和 Handler 之间的关系
      *  1、PathPattern = URL路径模式
      *  2、T = Handler 请求处理器
      */

@@ -88,6 +88,10 @@ public class FileSystemBlobStore implements BlobStoreService {
 
     @Override
     public boolean get(JobID jobId, BlobKey blobKey, File localFile) throws IOException {
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释：
+         */
         return get(BlobUtils.getStorageLocationPath(basePath, jobId, blobKey), localFile, blobKey);
     }
 

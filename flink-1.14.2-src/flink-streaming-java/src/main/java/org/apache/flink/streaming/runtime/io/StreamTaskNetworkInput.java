@@ -54,57 +54,48 @@ import static java.util.stream.Collectors.toMap;
  * concurrently with the timer callback or other things.
  */
 @Internal
-public final class StreamTaskNetworkInput<T>
-        extends AbstractStreamTaskNetworkInput<
-                T,
-                SpillingAdaptiveSpanningRecordDeserializer<
-                        DeserializationDelegate<StreamElement>>> {
+public final class StreamTaskNetworkInput<T> extends AbstractStreamTaskNetworkInput<T, SpillingAdaptiveSpanningRecordDeserializer<DeserializationDelegate<StreamElement>>> {
 
-    public StreamTaskNetworkInput(
-            CheckpointedInputGate checkpointedInputGate,
-            TypeSerializer<T> inputSerializer,
-            IOManager ioManager,
-            StatusWatermarkValve statusWatermarkValve,
-            int inputIndex) {
-        super(
-                checkpointedInputGate,
+    public StreamTaskNetworkInput(CheckpointedInputGate checkpointedInputGate,
+                                  TypeSerializer<T> inputSerializer,
+                                  IOManager ioManager,
+                                  StatusWatermarkValve statusWatermarkValve,
+                                  int inputIndex) {
+        super(checkpointedInputGate,
                 inputSerializer,
                 statusWatermarkValve,
                 inputIndex,
-                getRecordDeserializers(checkpointedInputGate, ioManager));
+                getRecordDeserializers(checkpointedInputGate, ioManager)
+        );
     }
 
     // Initialize one deserializer per input channel
-    private static Map<
-                    InputChannelInfo,
-                    SpillingAdaptiveSpanningRecordDeserializer<
-                            DeserializationDelegate<StreamElement>>>
-            getRecordDeserializers(
-                    CheckpointedInputGate checkpointedInputGate, IOManager ioManager) {
-        return checkpointedInputGate.getChannelInfos().stream()
-                .collect(
-                        toMap(
-                                identity(),
-                                unused ->
-                                        new SpillingAdaptiveSpanningRecordDeserializer<>(
-                                                ioManager.getSpillingDirectoriesPaths())));
+    private static Map<InputChannelInfo, SpillingAdaptiveSpanningRecordDeserializer<DeserializationDelegate<StreamElement>>> getRecordDeserializers(
+            CheckpointedInputGate checkpointedInputGate,
+            IOManager ioManager) {
+        return checkpointedInputGate
+                .getChannelInfos()
+                .stream()
+                .collect(toMap(identity(),
+                        unused -> new SpillingAdaptiveSpanningRecordDeserializer<>(ioManager.getSpillingDirectoriesPaths())
+                ));
     }
 
     @Override
-    public CompletableFuture<Void> prepareSnapshot(
-            ChannelStateWriter channelStateWriter, long checkpointId) throws CheckpointException {
-        for (Map.Entry<
-                        InputChannelInfo,
-                        SpillingAdaptiveSpanningRecordDeserializer<
-                                DeserializationDelegate<StreamElement>>>
-                e : recordDeserializers.entrySet()) {
+    public CompletableFuture<Void> prepareSnapshot(ChannelStateWriter channelStateWriter,
+                                                   long checkpointId) throws CheckpointException {
+        for (Map.Entry<InputChannelInfo, SpillingAdaptiveSpanningRecordDeserializer<DeserializationDelegate<StreamElement>>> e : recordDeserializers.entrySet()) {
 
             try {
-                channelStateWriter.addInputData(
-                        checkpointId,
+                /*************************************************
+                 * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+                 *  注释：
+                 */
+                channelStateWriter.addInputData(checkpointId,
                         e.getKey(),
                         ChannelStateWriter.SEQUENCE_NUMBER_UNKNOWN,
-                        e.getValue().getUnconsumedBuffer());
+                        e.getValue().getUnconsumedBuffer()
+                );
             } catch (IOException ioException) {
                 throw new CheckpointException(CheckpointFailureReason.IO_EXCEPTION, ioException);
             }

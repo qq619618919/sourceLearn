@@ -90,7 +90,13 @@ public class SingleInputGateFactory {
         this.taskExecutorResourceId = taskExecutorResourceId;
         this.partitionRequestInitialBackoff = networkConfig.partitionRequestInitialBackoff();
         this.partitionRequestMaxBackoff = networkConfig.partitionRequestMaxBackoff();
+
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释：
+         */
         this.networkBuffersPerChannel = NettyShuffleUtils.getNetworkBuffersPerInputChannel(networkConfig.networkBuffersPerChannel());
+
         this.floatingNetworkBuffersPerGate = networkConfig.floatingNetworkBuffersPerGate();
         this.blockingShuffleCompressionEnabled = networkConfig.isBlockingShuffleCompressionEnabled();
         this.compressionCodec = networkConfig.getCompressionCodec();
@@ -110,7 +116,7 @@ public class SingleInputGateFactory {
 
         /*************************************************
          * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-         *  注释：
+         *  注释： 内部会创建该 SingleInputGate 的 LocalBufferPool
          */
         SupplierWithException<BufferPool, IOException> bufferPoolFactory = createBufferPoolFactory(networkBufferPool,
                 floatingNetworkBuffersPerGate
@@ -123,7 +129,7 @@ public class SingleInputGateFactory {
 
         /*************************************************
          * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-         *  注释：
+         *  注释： 创建 InputGate
          */
         SingleInputGate inputGate = new SingleInputGate(owningTaskName,
                 gateIndex,
@@ -140,7 +146,7 @@ public class SingleInputGateFactory {
 
         /*************************************************
          * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-         *  注释：
+         *  注释： 创建 InputGate 内的 InputChannel
          */
         createInputChannels(owningTaskName, igdd, inputGate, metrics);
 
@@ -162,7 +168,7 @@ public class SingleInputGateFactory {
         // Create the input channels. There is one input channel for each consumed partition.
         /*************************************************
          * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-         *  注释：
+         *  注释： 声明数组，也就是一个结果容器
          */
         InputChannel[] inputChannels = new InputChannel[shuffleDescriptors.length];
 
@@ -170,7 +176,7 @@ public class SingleInputGateFactory {
 
         /*************************************************
          * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-         *  注释：
+         *  注释： 创建 RemoteRecoveredInputChannel 或者 LocalRecoveredInputChannel
          */
         for (int i = 0; i < inputChannels.length; i++) {
             inputChannels[i] = createInputChannel(inputGate, i, shuffleDescriptors[i], channelStatistics, metrics);
@@ -178,7 +184,7 @@ public class SingleInputGateFactory {
 
         /*************************************************
          * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-         *  注释：
+         *  注释： 添加
          */
         inputGate.setInputChannels(inputChannels);
 
@@ -199,7 +205,9 @@ public class SingleInputGateFactory {
 
                 /*************************************************
                  * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-                 *  注释：
+                 *  注释： UnknownInputChannel 创建时机的问题
+                 *  在创建的时候还没法确定到底使用 remote 还是 local ，所以，首先创建的是： Unknown
+                 *  后来，会判断：InputChannel 是不是 Unknown， 如果是i，我们再修正：
                  */
                 unknownShuffleDescriptor -> {
                     channelStatistics.numUnknownChannels++;
@@ -239,7 +247,7 @@ public class SingleInputGateFactory {
 
         /*************************************************
          * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-         *  注释：
+         *  注释： 如果上下游 Task 都在同一个 TaskExecutor , 创建的 InputChannel 就是 LocalRecoveredInputChannel
          */
         if (inputChannelDescriptor.isLocalTo(taskExecutorResourceId)) {
             // Consuming task is deployed to the same TaskManager as the partition => local
@@ -258,7 +266,8 @@ public class SingleInputGateFactory {
 
         /*************************************************
          * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-         *  注释：
+         *  注释： 如果上下游 Task 不在同一个 TaskExecutor , 创建的 InputChannel 就是 RemoteRecoveredInputChannel
+         *  如果是 remote，则需要通过这两个 上下从节点的 NettyClient 和 NettyServer 完成数据传输
          */
         else {
             // Different instances => remote

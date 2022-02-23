@@ -188,6 +188,11 @@ public class OperatorCoordinatorHolder implements OperatorCoordinatorCheckpointC
     public void start() throws Exception {
         mainThreadExecutor.assertRunningInMainThread();
         checkState(context.isInitialized(), "Coordinator Context is not yet initialized");
+
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释：
+         */
         coordinator.start();
     }
 
@@ -199,6 +204,11 @@ public class OperatorCoordinatorHolder implements OperatorCoordinatorCheckpointC
 
     public void handleEventFromOperator(int subtask, OperatorEvent event) throws Exception {
         mainThreadExecutor.assertRunningInMainThread();
+
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释：
+         */
         coordinator.handleEventFromOperator(subtask, event);
     }
 
@@ -460,6 +470,10 @@ public class OperatorCoordinatorHolder implements OperatorCoordinatorCheckpointC
                 operatorParallelism
         );
 
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释：
+         */
         final OperatorCoordinator coordinator = coordinatorProvider.create(context);
 
         return new OperatorCoordinatorHolder(opId,

@@ -40,6 +40,10 @@ public class StandaloneClientFactory implements ClusterClientFactory<StandaloneC
     @Override
     public StandaloneClusterDescriptor createClusterDescriptor(Configuration configuration) {
         checkNotNull(configuration);
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释：
+         */
         return new StandaloneClusterDescriptor(configuration);
     }
 

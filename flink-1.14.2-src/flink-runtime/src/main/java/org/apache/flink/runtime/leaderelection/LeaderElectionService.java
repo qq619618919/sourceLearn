@@ -41,6 +41,8 @@ public interface LeaderElectionService {
      *
      * @param contender LeaderContender which applies for the leadership
      * @throws Exception
+     * // TODO_MA 马中华 注释： 启动选举
+     * // TODO_MA 马中华 注释： 如果选举成功，则回调：LeaderContender.grantLeadership()
      */
     void start(LeaderContender contender) throws Exception;
 

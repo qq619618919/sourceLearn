@@ -164,6 +164,10 @@ class TaskExecutorManager implements AutoCloseable {
             return false;
         }
 
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释：
+         */
         TaskManagerRegistration taskManagerRegistration = new TaskManagerRegistration(taskExecutorConnection,
                 StreamSupport
                         .stream(initialSlotReport.spliterator(), false)
@@ -173,6 +177,7 @@ class TaskExecutorManager implements AutoCloseable {
                 defaultSlotResourceProfile
         );
 
+        // TODO_MA 马中华 注释： 完成注册
         taskManagerRegistrations.put(taskExecutorConnection.getInstanceID(), taskManagerRegistration);
 
         // next register the new slots

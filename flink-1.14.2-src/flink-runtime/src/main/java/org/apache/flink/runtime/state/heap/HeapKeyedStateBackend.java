@@ -294,6 +294,10 @@ public class HeapKeyedStateBackend<K> extends AbstractKeyedStateBackend<K> {
     @Override
     public SavepointResources<K> savepoint() {
 
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释：
+         */
         HeapSnapshotResources<K> snapshotResources = HeapSnapshotResources.create(registeredKVStates,
                 priorityQueuesManager.getRegisteredPQStates(),
                 keyGroupCompressionDecorator,

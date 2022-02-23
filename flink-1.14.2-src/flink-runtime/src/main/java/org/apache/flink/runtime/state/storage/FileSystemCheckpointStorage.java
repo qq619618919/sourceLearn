@@ -79,8 +79,7 @@ import static org.apache.flink.util.Preconditions.checkNotNull;
  * implemented via the {@link #configure(ReadableConfig, ClassLoader)} method.
  */
 @PublicEvolving
-public class FileSystemCheckpointStorage
-        implements CheckpointStorage, ConfigurableCheckpointStorage {
+public class FileSystemCheckpointStorage implements CheckpointStorage, ConfigurableCheckpointStorage {
 
     private static final long serialVersionUID = -8191916350224044011L;
 
@@ -169,8 +168,8 @@ public class FileSystemCheckpointStorage
      *
      * @param checkpointDirectory The path to write checkpoint metadata to.
      * @param fileStateSizeThreshold State below this size will be stored as part of the metadata,
-     *     rather than in files. If -1, the value configured in the runtime configuration will be
-     *     used, or the default value (1KB) if nothing is configured.
+     *         rather than in files. If -1, the value configured in the runtime configuration will be
+     *         used, or the default value (1KB) if nothing is configured.
      */
     public FileSystemCheckpointStorage(URI checkpointDirectory, int fileStateSizeThreshold) {
         this(new Path(checkpointDirectory), fileStateSizeThreshold, -1);
@@ -189,32 +188,28 @@ public class FileSystemCheckpointStorage
      *
      * @param checkpointDirectory The path to write checkpoint metadata to.
      * @param fileStateSizeThreshold State below this size will be stored as part of the metadata,
-     *     rather than in files. If -1, the value configured in the runtime configuration will be
-     *     used, or the default value (1KB) if nothing is configured.
+     *         rather than in files. If -1, the value configured in the runtime configuration will be
+     *         used, or the default value (1KB) if nothing is configured.
      * @param writeBufferSize Write buffer size used to serialize state. If -1, the value configured
-     *     in the runtime configuration will be used, or the default value (4KB) if nothing is
-     *     configured.
+     *         in the runtime configuration will be used, or the default value (4KB) if nothing is
+     *         configured.
      */
-    public FileSystemCheckpointStorage(
-            Path checkpointDirectory, int fileStateSizeThreshold, int writeBufferSize) {
+    public FileSystemCheckpointStorage(Path checkpointDirectory, int fileStateSizeThreshold, int writeBufferSize) {
 
         checkNotNull(checkpointDirectory, "checkpoint directory is null");
-        checkArgument(
-                fileStateSizeThreshold >= -1 && fileStateSizeThreshold <= MAX_FILE_STATE_THRESHOLD,
-                "The threshold for file state size must be in [-1, %s], where '-1' means to use "
-                        + "the value from the deployment's configuration.",
-                MAX_FILE_STATE_THRESHOLD);
-        checkArgument(
-                writeBufferSize >= -1,
-                "The write buffer size must be not less than '-1', where '-1' means to use "
-                        + "the value from the deployment's configuration.");
+        checkArgument(fileStateSizeThreshold >= -1 && fileStateSizeThreshold <= MAX_FILE_STATE_THRESHOLD,
+                "The threshold for file state size must be in [-1, %s], where '-1' means to use " + "the value from the deployment's configuration.",
+                MAX_FILE_STATE_THRESHOLD
+        );
+        checkArgument(writeBufferSize >= -1,
+                "The write buffer size must be not less than '-1', where '-1' means to use " + "the value from the deployment's configuration."
+        );
 
         this.fileStateThreshold = fileStateSizeThreshold;
         this.writeBufferSize = writeBufferSize;
-        this.location =
-                ExternalizedSnapshotLocation.newBuilder()
-                        .withCheckpointPath(checkpointDirectory)
-                        .build();
+        this.location = ExternalizedSnapshotLocation.newBuilder()
+                .withCheckpointPath(checkpointDirectory)
+                .build();
     }
 
     /**
@@ -223,45 +218,43 @@ public class FileSystemCheckpointStorage
      * @param original The checkpoint storage to re-configure
      * @param configuration The configuration
      */
-    private FileSystemCheckpointStorage(
-            FileSystemCheckpointStorage original, ReadableConfig configuration) {
+    private FileSystemCheckpointStorage(FileSystemCheckpointStorage original, ReadableConfig configuration) {
         if (getValidFileStateThreshold(original.fileStateThreshold) >= 0) {
             this.fileStateThreshold = original.fileStateThreshold;
         } else {
-            final int configuredStateThreshold =
-                    getValidFileStateThreshold(
-                            configuration.get(FS_SMALL_FILE_THRESHOLD).getBytes());
+            final int configuredStateThreshold = getValidFileStateThreshold(configuration.get(FS_SMALL_FILE_THRESHOLD)
+                    .getBytes());
 
             if (configuredStateThreshold >= 0) {
                 this.fileStateThreshold = configuredStateThreshold;
             } else {
-                this.fileStateThreshold =
-                        MathUtils.checkedDownCast(
-                                FS_SMALL_FILE_THRESHOLD.defaultValue().getBytes());
+                this.fileStateThreshold = MathUtils.checkedDownCast(FS_SMALL_FILE_THRESHOLD.defaultValue()
+                        .getBytes());
 
                 // because this is the only place we (unlikely) ever log, we lazily
                 // create the logger here
                 LoggerFactory.getLogger(FileSystemCheckpointStorage.class)
-                        .warn(
-                                "Ignoring invalid file size threshold value ({}): {} - using default value {} instead.",
-                                FS_SMALL_FILE_THRESHOLD.key(),
-                                configuration.get(FS_SMALL_FILE_THRESHOLD).getBytes(),
-                                FS_SMALL_FILE_THRESHOLD.defaultValue());
+                        .warn("Ignoring invalid file size threshold value ({}): {} - using default value {} instead.",
+                                FS_SMALL_FILE_THRESHOLD.key(), configuration.get(FS_SMALL_FILE_THRESHOLD)
+                                        .getBytes(), FS_SMALL_FILE_THRESHOLD.defaultValue()
+                        );
             }
         }
 
-        final int bufferSize =
-                original.writeBufferSize >= 0
-                        ? original.writeBufferSize
-                        : configuration.get(CheckpointingOptions.FS_WRITE_BUFFER_SIZE);
+        final int bufferSize = original.writeBufferSize >= 0 ? original.writeBufferSize : configuration.get(
+                CheckpointingOptions.FS_WRITE_BUFFER_SIZE);
 
         this.writeBufferSize = Math.max(bufferSize, this.fileStateThreshold);
-        this.location =
-                ExternalizedSnapshotLocation.newBuilder()
-                        .withCheckpointPath(original.location.getBaseCheckpointPath())
-                        .withSavepointPath(original.location.getBaseSavepointPath())
-                        .withConfiguration(configuration)
-                        .build();
+
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释：
+         */
+        this.location = ExternalizedSnapshotLocation.newBuilder()
+                .withCheckpointPath(original.location.getBaseCheckpointPath())
+                .withSavepointPath(original.location.getBaseSavepointPath())
+                .withConfiguration(configuration)
+                .build();
     }
 
     private int getValidFileStateThreshold(long fileStateThreshold) {
@@ -272,8 +265,12 @@ public class FileSystemCheckpointStorage
     }
 
     @Override
-    public FileSystemCheckpointStorage configure(ReadableConfig config, ClassLoader classLoader)
-            throws IllegalConfigurationException {
+    public FileSystemCheckpointStorage configure(ReadableConfig config,
+                                                 ClassLoader classLoader) throws IllegalConfigurationException {
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释：
+         */
         return new FileSystemCheckpointStorage(this, config);
     }
 
@@ -282,28 +279,30 @@ public class FileSystemCheckpointStorage
      *
      * @param config The Flink configuration (loaded by the TaskManager).
      * @param classLoader The class loader that should be used to load the checkpoint storage.
+     *
      * @return The created checkpoint storage.
+     *
      * @throws IllegalConfigurationException If the configuration misses critical values, or
-     *     specifies invalid values
+     *         specifies invalid values
      */
-    public static FileSystemCheckpointStorage createFromConfig(
-            ReadableConfig config, ClassLoader classLoader) throws IllegalConfigurationException {
+    public static FileSystemCheckpointStorage createFromConfig(ReadableConfig config,
+                                                               ClassLoader classLoader) throws IllegalConfigurationException {
         // we need to explicitly read the checkpoint directory here, because that
         // is a required constructor parameter
+        // TODO_MA 马中华 注释： state.checkpoints.dir
         final String checkpointDir = config.get(CheckpointingOptions.CHECKPOINTS_DIRECTORY);
         if (checkpointDir == null) {
             throw new IllegalConfigurationException(
-                    "Cannot create the file system state backend: The configuration does not specify the "
-                            + "checkpoint directory '"
-                            + CheckpointingOptions.CHECKPOINTS_DIRECTORY.key()
-                            + '\'');
+                    "Cannot create the file system state backend: The configuration does not specify the " + "checkpoint directory '" + CheckpointingOptions.CHECKPOINTS_DIRECTORY.key() + '\'');
         }
-
         try {
+            /*************************************************
+             * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+             *  注释：
+             */
             return new FileSystemCheckpointStorage(checkpointDir).configure(config, classLoader);
         } catch (IllegalArgumentException e) {
-            throw new IllegalConfigurationException(
-                    "Invalid configuration for the state backend", e);
+            throw new IllegalConfigurationException("Invalid configuration for the state backend", e);
         }
     }
 
@@ -315,12 +314,14 @@ public class FileSystemCheckpointStorage
     @Override
     public CheckpointStorageAccess createCheckpointStorage(JobID jobId) throws IOException {
         checkNotNull(jobId, "jobId");
-        return new FsCheckpointStorageAccess(
-                location.getBaseCheckpointPath(),
-                location.getBaseSavepointPath(),
-                jobId,
-                getMinFileSizeThreshold(),
-                getWriteBufferSize());
+
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释：
+         */
+        return new FsCheckpointStorageAccess(location.getBaseCheckpointPath(), location.getBaseSavepointPath(), jobId,
+                getMinFileSizeThreshold(), getWriteBufferSize()
+        );
     }
 
     /**
@@ -353,9 +354,8 @@ public class FileSystemCheckpointStorage
      * @return The file size threshold, in bytes.
      */
     public int getMinFileSizeThreshold() {
-        return fileStateThreshold >= 0
-                ? fileStateThreshold
-                : MathUtils.checkedDownCast(FS_SMALL_FILE_THRESHOLD.defaultValue().getBytes());
+        return fileStateThreshold >= 0 ? fileStateThreshold : MathUtils.checkedDownCast(FS_SMALL_FILE_THRESHOLD.defaultValue()
+                .getBytes());
     }
 
     /**
@@ -367,8 +367,6 @@ public class FileSystemCheckpointStorage
      * @return The write buffer size, in bytes.
      */
     public int getWriteBufferSize() {
-        return writeBufferSize >= 0
-                ? writeBufferSize
-                : CheckpointingOptions.FS_WRITE_BUFFER_SIZE.defaultValue();
+        return writeBufferSize >= 0 ? writeBufferSize : CheckpointingOptions.FS_WRITE_BUFFER_SIZE.defaultValue();
     }
 }

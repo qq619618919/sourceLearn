@@ -79,6 +79,10 @@ interface ChannelStateWriteRequest {
                                                       String name,
                                                       CloseableIterator<Buffer> iterator,
                                                       BiConsumerWithException<ChannelStateCheckpointWriter, Buffer, Exception> bufferConsumer) {
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释：
+         */
         return new CheckpointInProgressRequest(name, checkpointId, writer -> {
             while (iterator.hasNext()) {
                 Buffer buffer = iterator.next();

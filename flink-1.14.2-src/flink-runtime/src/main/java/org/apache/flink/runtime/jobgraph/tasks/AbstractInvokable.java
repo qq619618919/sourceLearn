@@ -51,8 +51,7 @@ import static org.apache.flink.util.Preconditions.checkNotNull;
  * {@link #abortCheckpointOnBarrier(long, CheckpointException)} and {@link
  * #notifyCheckpointCompleteAsync(long)}.
  */
-public abstract class AbstractInvokable
-        implements TaskInvokable, CheckpointableTask, CoordinatedTask {
+public abstract class AbstractInvokable implements TaskInvokable, CheckpointableTask, CoordinatedTask {
 
     /** The environment assigned to this invokable. */
     private final Environment environment;
@@ -80,15 +79,18 @@ public abstract class AbstractInvokable
     }
 
     @Override
-    public void cleanUp(@Nullable Throwable throwable) throws Exception {}
+    public void cleanUp(@Nullable Throwable throwable) throws Exception {
+    }
 
     @Override
-    public void maybeInterruptOnCancel(
-            Thread toInterrupt, @Nullable String taskName, @Nullable Long timeout) {
+    public void maybeInterruptOnCancel(Thread toInterrupt, @Nullable String taskName, @Nullable Long timeout) {
         if (taskName != null && timeout != null) {
             Task.logTaskThreadStackTrace(toInterrupt, taskName, timeout, "interrupting");
         }
-
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释：
+         */
         toInterrupt.interrupt();
     }
 
@@ -137,7 +139,7 @@ public abstract class AbstractInvokable
      * org.apache.flink.runtime.jobgraph.JobVertex}.
      *
      * @return the task configuration object which was attached to the original {@link
-     *     org.apache.flink.runtime.jobgraph.JobVertex}
+     *         org.apache.flink.runtime.jobgraph.JobVertex}
      */
     public final Configuration getTaskConfiguration() {
         return this.environment.getTaskConfiguration();
@@ -148,7 +150,7 @@ public abstract class AbstractInvokable
      * org.apache.flink.runtime.jobgraph.JobGraph}.
      *
      * @return the job configuration object which was attached to the original {@link
-     *     org.apache.flink.runtime.jobgraph.JobGraph}
+     *         org.apache.flink.runtime.jobgraph.JobGraph}
      */
     public Configuration getJobConfiguration() {
         return this.environment.getJobConfiguration();
@@ -164,59 +166,51 @@ public abstract class AbstractInvokable
     // ------------------------------------------------------------------------
 
     @Override
-    public CompletableFuture<Boolean> triggerCheckpointAsync(
-            CheckpointMetaData checkpointMetaData, CheckpointOptions checkpointOptions) {
-        throw new UnsupportedOperationException(
-                String.format(
-                        "triggerCheckpointAsync not supported by %s", this.getClass().getName()));
+    public CompletableFuture<Boolean> triggerCheckpointAsync(CheckpointMetaData checkpointMetaData,
+                                                             CheckpointOptions checkpointOptions) {
+        throw new UnsupportedOperationException(String.format("triggerCheckpointAsync not supported by %s",
+                this.getClass().getName()
+        ));
     }
 
     @Override
-    public void triggerCheckpointOnBarrier(
-            CheckpointMetaData checkpointMetaData,
-            CheckpointOptions checkpointOptions,
-            CheckpointMetricsBuilder checkpointMetrics)
-            throws IOException {
-        throw new UnsupportedOperationException(
-                String.format(
-                        "triggerCheckpointOnBarrier not supported by %s",
-                        this.getClass().getName()));
+    public void triggerCheckpointOnBarrier(CheckpointMetaData checkpointMetaData,
+                                           CheckpointOptions checkpointOptions,
+                                           CheckpointMetricsBuilder checkpointMetrics) throws IOException {
+        throw new UnsupportedOperationException(String.format("triggerCheckpointOnBarrier not supported by %s",
+                this.getClass().getName()
+        ));
     }
 
     @Override
-    public void abortCheckpointOnBarrier(long checkpointId, CheckpointException cause)
-            throws IOException {
-        throw new UnsupportedOperationException(
-                String.format(
-                        "abortCheckpointOnBarrier not supported by %s", this.getClass().getName()));
+    public void abortCheckpointOnBarrier(long checkpointId, CheckpointException cause) throws IOException {
+        throw new UnsupportedOperationException(String.format("abortCheckpointOnBarrier not supported by %s",
+                this.getClass().getName()
+        ));
     }
 
     @Override
     public Future<Void> notifyCheckpointCompleteAsync(long checkpointId) {
-        throw new UnsupportedOperationException(
-                String.format(
-                        "notifyCheckpointCompleteAsync not supported by %s",
-                        this.getClass().getName()));
+        throw new UnsupportedOperationException(String.format("notifyCheckpointCompleteAsync not supported by %s",
+                this.getClass().getName()
+        ));
     }
 
     @Override
-    public Future<Void> notifyCheckpointAbortAsync(
-            long checkpointId, long latestCompletedCheckpointId) {
-        throw new UnsupportedOperationException(
-                String.format(
-                        "notifyCheckpointAbortAsync not supported by %s",
-                        this.getClass().getName()));
+    public Future<Void> notifyCheckpointAbortAsync(long checkpointId, long latestCompletedCheckpointId) {
+        throw new UnsupportedOperationException(String.format("notifyCheckpointAbortAsync not supported by %s",
+                this.getClass().getName()
+        ));
     }
 
     @Override
-    public void dispatchOperatorEvent(OperatorID operator, SerializedValue<OperatorEvent> event)
-            throws FlinkException {
-        throw new UnsupportedOperationException(
-                "dispatchOperatorEvent not supported by " + getClass().getName());
+    public void dispatchOperatorEvent(OperatorID operator, SerializedValue<OperatorEvent> event) throws FlinkException {
+        throw new UnsupportedOperationException("dispatchOperatorEvent not supported by " + getClass().getName());
     }
 
     @Override
-    public void restore() throws Exception {}
+    public void restore() throws Exception {
+    }
 
     @Override
     public boolean isUsingNonBlockingInput() {

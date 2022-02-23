@@ -26,8 +26,9 @@ import org.apache.flink.runtime.operators.coordination.OperatorEvent;
 import org.apache.flink.util.SerializedValue;
 
 /**
- * Gateway to send an {@link OperatorEvent} from a Task to to the {@link OperatorCoordinator}
- * JobManager side.
+ * // TODO_MA 马中华 注释：网关将任务中的 {@link OperatorEvent} 发送到 {@link OperatorCoordinator} JobManager 端。
+ * // TODO_MA 马中华 注释： 一个用于将 Task 端的 OperatorEvent 发送到 JobManager 端的 OperatorCoordinator 的 Gateway
+ * Gateway to send an {@link OperatorEvent} from a Task to to the {@link OperatorCoordinator} JobManager side.
  *
  * <p>This is the first step in the chain of sending Operator Events from Operator to Coordinator.
  * Each layer adds further context, so that the inner layers do not need to know about the complete

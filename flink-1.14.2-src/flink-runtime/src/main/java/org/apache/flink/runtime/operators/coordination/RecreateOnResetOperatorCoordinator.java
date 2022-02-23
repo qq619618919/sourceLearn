@@ -40,8 +40,7 @@ import static org.apache.flink.runtime.operators.coordination.ComponentClosingUt
  * A class that will recreate a new {@link OperatorCoordinator} instance when reset to checkpoint.
  */
 public class RecreateOnResetOperatorCoordinator implements OperatorCoordinator {
-    private static final Logger LOG =
-            LoggerFactory.getLogger(RecreateOnResetOperatorCoordinator.class);
+    private static final Logger LOG = LoggerFactory.getLogger(RecreateOnResetOperatorCoordinator.class);
     private static final long CLOSING_TIMEOUT_MS = 60000L;
     private final Provider provider;
     private final long closingTimeoutMs;
@@ -50,9 +49,9 @@ public class RecreateOnResetOperatorCoordinator implements OperatorCoordinator {
     private boolean started;
     private volatile boolean closed;
 
-    private RecreateOnResetOperatorCoordinator(
-            OperatorCoordinator.Context context, Provider provider, long closingTimeoutMs)
-            throws Exception {
+    private RecreateOnResetOperatorCoordinator(OperatorCoordinator.Context context,
+                                               Provider provider,
+                                               long closingTimeoutMs) throws Exception {
         this.context = context;
         this.provider = provider;
         this.coordinator = new DeferrableCoordinator(context.getOperatorId());
@@ -78,8 +77,7 @@ public class RecreateOnResetOperatorCoordinator implements OperatorCoordinator {
 
     @Override
     public void handleEventFromOperator(int subtask, OperatorEvent event) throws Exception {
-        coordinator.applyCall(
-                "handleEventFromOperator", c -> c.handleEventFromOperator(subtask, event));
+        coordinator.applyCall("handleEventFromOperator", c -> c.handleEventFromOperator(subtask, event));
     }
 
     @Override
@@ -98,10 +96,8 @@ public class RecreateOnResetOperatorCoordinator implements OperatorCoordinator {
     }
 
     @Override
-    public void checkpointCoordinator(long checkpointId, CompletableFuture<byte[]> resultFuture)
-            throws Exception {
-        coordinator.applyCall(
-                "checkpointCoordinator", c -> c.checkpointCoordinator(checkpointId, resultFuture));
+    public void checkpointCoordinator(long checkpointId, CompletableFuture<byte[]> resultFuture) throws Exception {
+        coordinator.applyCall("checkpointCoordinator", c -> c.checkpointCoordinator(checkpointId, resultFuture));
     }
 
     @Override
@@ -117,8 +113,7 @@ public class RecreateOnResetOperatorCoordinator implements OperatorCoordinator {
         // At this point the internal coordinator of the new coordinator has not been created.
         // After this point all the subsequent calls will be made to the new coordinator.
         final DeferrableCoordinator oldCoordinator = coordinator;
-        final DeferrableCoordinator newCoordinator =
-                new DeferrableCoordinator(context.getOperatorId());
+        final DeferrableCoordinator newCoordinator = new DeferrableCoordinator(context.getOperatorId());
         coordinator = newCoordinator;
         // Close the old coordinator asynchronously in a separate closing thread.
         // The future will be completed when the old coordinator closes.
@@ -128,15 +123,14 @@ public class RecreateOnResetOperatorCoordinator implements OperatorCoordinator {
         // capture the status whether the coordinator was started when this method was called
         final boolean wasStarted = this.started;
 
-        closingFuture.thenRun(
-                () -> {
-                    if (!closed) {
-                        // The previous coordinator has closed. Create a new one.
-                        newCoordinator.createNewInternalCoordinator(context, provider);
-                        newCoordinator.resetAndStart(checkpointId, checkpointData, wasStarted);
-                        newCoordinator.processPendingCalls();
-                    }
-                });
+        closingFuture.thenRun(() -> {
+            if (!closed) {
+                // The previous coordinator has closed. Create a new one.
+                newCoordinator.createNewInternalCoordinator(context, provider);
+                newCoordinator.resetAndStart(checkpointId, checkpointData, wasStarted);
+                newCoordinator.processPendingCalls();
+            }
+        });
     }
 
     // ---------------------
@@ -182,13 +176,11 @@ public class RecreateOnResetOperatorCoordinator implements OperatorCoordinator {
         }
 
         @VisibleForTesting
-        protected OperatorCoordinator create(Context context, long closingTimeoutMs)
-                throws Exception {
+        protected OperatorCoordinator create(Context context, long closingTimeoutMs) throws Exception {
             return new RecreateOnResetOperatorCoordinator(context, this, closingTimeoutMs);
         }
 
-        protected abstract OperatorCoordinator getCoordinator(OperatorCoordinator.Context context)
-                throws Exception;
+        protected abstract OperatorCoordinator getCoordinator(OperatorCoordinator.Context context) throws Exception;
     }
 
     // ----------------------
@@ -283,8 +275,8 @@ public class RecreateOnResetOperatorCoordinator implements OperatorCoordinator {
             this.failed = false;
         }
 
-        synchronized <T extends Exception> void applyCall(
-                String name, ThrowingConsumer<OperatorCoordinator, T> call) throws T {
+        synchronized <T extends Exception> void applyCall(String name,
+                                                          ThrowingConsumer<OperatorCoordinator, T> call) throws T {
             synchronized (this) {
                 if (hasCaughtUp) {
                     // The new coordinator has caught up.
@@ -295,8 +287,7 @@ public class RecreateOnResetOperatorCoordinator implements OperatorCoordinator {
             }
         }
 
-        synchronized void createNewInternalCoordinator(
-                OperatorCoordinator.Context context, Provider provider) {
+        synchronized void createNewInternalCoordinator(OperatorCoordinator.Context context, Provider provider) {
             if (closed) {
                 return;
             }
@@ -318,15 +309,13 @@ public class RecreateOnResetOperatorCoordinator implements OperatorCoordinator {
             if (internalCoordinator != null) {
                 internalQuiesceableContext.quiesce();
                 pendingCalls.clear();
-                return closeAsyncWithTimeout(
-                                "SourceCoordinator for " + operatorId,
-                                (ThrowingRunnable<Exception>) internalCoordinator::close,
-                                Duration.ofMillis(timeoutMs))
-                        .exceptionally(
-                                e -> {
-                                    cleanAndFailJob(e);
-                                    return null;
-                                });
+                return closeAsyncWithTimeout("SourceCoordinator for " + operatorId,
+                        (ThrowingRunnable<Exception>) internalCoordinator::close,
+                        Duration.ofMillis(timeoutMs)
+                ).exceptionally(e -> {
+                    cleanAndFailJob(e);
+                    return null;
+                });
             } else {
                 return CompletableFuture.completedFuture(null);
             }
@@ -365,10 +354,7 @@ public class RecreateOnResetOperatorCoordinator implements OperatorCoordinator {
             internalCoordinator.start();
         }
 
-        void resetAndStart(
-                final long checkpointId,
-                @Nullable final byte[] checkpointData,
-                final boolean started) {
+        void resetAndStart(final long checkpointId, @Nullable final byte[] checkpointData, final boolean started) {
 
             if (failed || closed || internalCoordinator == null) {
                 return;

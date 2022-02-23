@@ -72,6 +72,7 @@ public class OneInputStreamTask<IN, OUT> extends StreamTask<OUT, OneInputStreamO
      *
      * @param env The task environment for this task.
      */
+    // TODO_MA 马中华 注释： 构造器入口
     public OneInputStreamTask(Environment env) throws Exception {
         super(env);
     }
@@ -107,9 +108,14 @@ public class OneInputStreamTask<IN, OUT> extends StreamTask<OUT, OneInputStreamO
 
             /*************************************************
              * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-             *  注释：
+             *  注释： StreamTaskNetworkOutput
              */
             DataOutput<IN> output = createDataOutput(numRecordsIn);
+
+            /*************************************************
+             * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+             *  注释： StreamTaskNetworkInput
+             */
             StreamTaskInput<IN> input = createTaskInput(inputGate);
 
             StreamConfig.InputConfig[] inputConfigs = configuration.getInputs(getUserCodeClassLoader());
@@ -182,6 +188,11 @@ public class OneInputStreamTask<IN, OUT> extends StreamTask<OUT, OneInputStreamO
     }
 
     private DataOutput<IN> createDataOutput(Counter numRecordsIn) {
+
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释：
+         */
         return new StreamTaskNetworkOutput<>(operatorChain.getFinishedOnRestoreInputOrDefault(mainOperator),
                 inputWatermarkGauge,
                 numRecordsIn
@@ -194,6 +205,10 @@ public class OneInputStreamTask<IN, OUT> extends StreamTask<OUT, OneInputStreamO
 
         TypeSerializer<IN> inSerializer = configuration.getTypeSerializerIn1(getUserCodeClassLoader());
 
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释： StreamTaskNetworkInput
+         */
         return StreamTaskNetworkInputFactory.create(inputGate,
                 inSerializer,
                 getEnvironment().getIOManager(),
@@ -227,6 +242,11 @@ public class OneInputStreamTask<IN, OUT> extends StreamTask<OUT, OneInputStreamO
         public void emitRecord(StreamRecord<IN> record) throws Exception {
             numRecordsIn.inc();
             operator.setKeyContextElement(record);
+
+            /*************************************************
+             * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+             *  注释：
+             */
             operator.processElement(record);
         }
 

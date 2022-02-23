@@ -27,14 +27,12 @@ import org.apache.flink.shaded.netty4.io.netty.channel.ChannelHandler;
 /** Defines the server and client channel handlers, i.e. the protocol, used by netty. */
 public class NettyProtocol {
 
-    private final NettyMessage.NettyMessageEncoder messageEncoder =
-            new NettyMessage.NettyMessageEncoder();
+    private final NettyMessage.NettyMessageEncoder messageEncoder = new NettyMessage.NettyMessageEncoder();
 
     private final ResultPartitionProvider partitionProvider;
     private final TaskEventPublisher taskEventPublisher;
 
-    NettyProtocol(
-            ResultPartitionProvider partitionProvider, TaskEventPublisher taskEventPublisher) {
+    NettyProtocol(ResultPartitionProvider partitionProvider, TaskEventPublisher taskEventPublisher) {
         this.partitionProvider = partitionProvider;
         this.taskEventPublisher = taskEventPublisher;
     }
@@ -73,17 +71,23 @@ public class NettyProtocol {
      * @return channel handlers
      */
     public ChannelHandler[] getServerChannelHandlers() {
-        PartitionRequestQueue queueOfPartitionQueues = new PartitionRequestQueue();
-        PartitionRequestServerHandler serverHandler =
-                new PartitionRequestServerHandler(
-                        partitionProvider, taskEventPublisher, queueOfPartitionQueues);
 
-        return new ChannelHandler[] {
-            messageEncoder,
-            new NettyMessage.NettyMessageDecoder(),
-            serverHandler,
-            queueOfPartitionQueues
-        };
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释： 为请求队列
+         */
+        PartitionRequestQueue queueOfPartitionQueues = new PartitionRequestQueue();
+
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释： 请求处理器
+         */
+        PartitionRequestServerHandler serverHandler = new PartitionRequestServerHandler(partitionProvider,
+                taskEventPublisher,
+                queueOfPartitionQueues
+        );
+
+        return new ChannelHandler[]{messageEncoder, new NettyMessage.NettyMessageDecoder(), serverHandler, queueOfPartitionQueues};
     }
 
     /**
@@ -119,12 +123,17 @@ public class NettyProtocol {
      * @return channel handlers
      */
     public ChannelHandler[] getClientChannelHandlers() {
+
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释： 第一个： CreditBasedPartitionRequestClientHandler
+         */
         NetworkClientHandler networkClientHandler = new CreditBasedPartitionRequestClientHandler();
 
-        return new ChannelHandler[] {
-            messageEncoder,
-            new NettyMessageClientDecoderDelegate(networkClientHandler),
-            networkClientHandler
-        };
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释： messageEncoder + CreditBasedPartitionRequestClientHandler + NettyMessageClientDecoderDelegate
+         */
+        return new ChannelHandler[]{messageEncoder, new NettyMessageClientDecoderDelegate(networkClientHandler), networkClientHandler};
     }
 }

@@ -52,54 +52,64 @@ public class ConsumableNotifyingResultPartitionWriterDecorator {
      * TaskActions)} on the first record, iff {@link
      * ResultPartitionDeploymentDescriptor#notifyPartitionDataAvailable()} is true.
      */
-    public static ResultPartitionWriter[] decorate(
-            Collection<ResultPartitionDeploymentDescriptor> descs,
-            ResultPartitionWriter[] partitionWriters,
-            TaskActions taskActions,
-            JobID jobId,
-            ResultPartitionConsumableNotifier notifier) {
+    public static ResultPartitionWriter[] decorate(Collection<ResultPartitionDeploymentDescriptor> descs,
+                                                   ResultPartitionWriter[] partitionWriters, TaskActions taskActions, JobID jobId,
+                                                   ResultPartitionConsumableNotifier notifier) {
 
-        ResultPartitionWriter[] consumableNotifyingPartitionWriters =
-                new ResultPartitionWriter[partitionWriters.length];
+        // TODO_MA 马中华 注释： 结果容器
+        ResultPartitionWriter[] consumableNotifyingPartitionWriters = new ResultPartitionWriter[partitionWriters.length];
+
+        // TODO_MA 马中华 注释： 遍历每个 ResultPartitionDeploymentDescriptor 也就是每个 PiplinedResultPartition
         int counter = 0;
+
         for (ResultPartitionDeploymentDescriptor desc : descs) {
-            if (desc.notifyPartitionDataAvailable() && desc.getPartitionType().isPipelined()) {
-                consumableNotifyingPartitionWriters[counter] =
-                        new ConsumableNotifyingResultPartitionWriter(
-                                taskActions, jobId, partitionWriters[counter], notifier);
+            if (desc.notifyPartitionDataAvailable() && desc.getPartitionType()
+                    .isPipelined()) {
+
+                /*************************************************
+                 * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+                 *  注释： 对 PiplinedResultPartition 进行包装变成 ConsumableNotifyingResultPartitionWriter
+                 */
+                consumableNotifyingPartitionWriters[counter] = new ConsumableNotifyingResultPartitionWriter(taskActions, jobId,
+                        partitionWriters[counter], notifier
+                );
             } else {
                 consumableNotifyingPartitionWriters[counter] = partitionWriters[counter];
             }
             counter++;
         }
+
+        // TODO_MA 马中华 注释： 返回结果容器
         return consumableNotifyingPartitionWriters;
     }
 
     /** This is a utility class not meant to be instantiated. */
-    private ConsumableNotifyingResultPartitionWriterDecorator() {}
+    private ConsumableNotifyingResultPartitionWriterDecorator() {
+    }
 
     // ------------------------------------------------------------------------
     //  wrapper class to send notification
     // ------------------------------------------------------------------------
 
-    private static final class ConsumableNotifyingResultPartitionWriter
-            implements ResultPartitionWriter, CheckpointedResultPartition {
+    /*************************************************
+     * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+     *  注释： ResultPartitionWriter 的一个包装类
+     */
+    private static final class ConsumableNotifyingResultPartitionWriter implements ResultPartitionWriter, CheckpointedResultPartition {
 
         private final TaskActions taskActions;
 
         private final JobID jobId;
 
+        // TODO_MA 马中华 注释： 原来的具体实现
         private final ResultPartitionWriter partitionWriter;
 
         private final ResultPartitionConsumableNotifier partitionConsumableNotifier;
 
         private boolean hasNotifiedPipelinedConsumers;
 
-        public ConsumableNotifyingResultPartitionWriter(
-                TaskActions taskActions,
-                JobID jobId,
-                ResultPartitionWriter partitionWriter,
-                ResultPartitionConsumableNotifier partitionConsumableNotifier) {
+        public ConsumableNotifyingResultPartitionWriter(TaskActions taskActions, JobID jobId, ResultPartitionWriter partitionWriter,
+                                                        ResultPartitionConsumableNotifier partitionConsumableNotifier) {
             this.taskActions = checkNotNull(taskActions);
             this.jobId = checkNotNull(jobId);
             this.partitionWriter = checkNotNull(partitionWriter);
@@ -128,8 +138,17 @@ public class ConsumableNotifyingResultPartitionWriterDecorator {
 
         @Override
         public void emitRecord(ByteBuffer record, int targetSubpartition) throws IOException {
+
+            /*************************************************
+             * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+             *  注释： PipelinedResultPartition 是  BufferWritingResultPartition 的子类
+             */
             partitionWriter.emitRecord(record, targetSubpartition);
 
+            /*************************************************
+             * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+             *  注释：
+             */
             notifyPipelinedConsumers();
         }
 
@@ -141,8 +160,7 @@ public class ConsumableNotifyingResultPartitionWriterDecorator {
         }
 
         @Override
-        public void broadcastEvent(AbstractEvent event, boolean isPriorityEvent)
-                throws IOException {
+        public void broadcastEvent(AbstractEvent event, boolean isPriorityEvent) throws IOException {
             partitionWriter.broadcastEvent(event, isPriorityEvent);
 
             notifyPipelinedConsumers();
@@ -164,8 +182,13 @@ public class ConsumableNotifyingResultPartitionWriterDecorator {
         }
 
         @Override
-        public ResultSubpartitionView createSubpartitionView(
-                int index, BufferAvailabilityListener availabilityListener) throws IOException {
+        public ResultSubpartitionView createSubpartitionView(int index,
+                                                             BufferAvailabilityListener availabilityListener) throws IOException {
+
+            /*************************************************
+             * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+             *  注释：
+             */
             return partitionWriter.createSubpartitionView(index, availabilityListener);
         }
 
@@ -217,8 +240,7 @@ public class ConsumableNotifyingResultPartitionWriterDecorator {
         }
 
         @Override
-        public void finishReadRecoveredState(boolean notifyAndBlockOnCompletion)
-                throws IOException {
+        public void finishReadRecoveredState(boolean notifyAndBlockOnCompletion) throws IOException {
             getCheckpointablePartition().finishReadRecoveredState(notifyAndBlockOnCompletion);
         }
 
@@ -231,8 +253,12 @@ public class ConsumableNotifyingResultPartitionWriterDecorator {
          */
         private void notifyPipelinedConsumers() {
             if (!hasNotifiedPipelinedConsumers && !partitionWriter.isReleased()) {
-                partitionConsumableNotifier.notifyPartitionConsumable(
-                        jobId, partitionWriter.getPartitionId(), taskActions);
+
+                /*************************************************
+                 * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+                 *  注释：
+                 */
+                partitionConsumableNotifier.notifyPartitionConsumable(jobId, partitionWriter.getPartitionId(), taskActions);
 
                 hasNotifiedPipelinedConsumers = true;
             }
@@ -247,8 +273,7 @@ public class ConsumableNotifyingResultPartitionWriterDecorator {
             if (partitionWriter instanceof CheckpointedResultPartition) {
                 return (CheckpointedResultPartition) partitionWriter;
             } else {
-                throw new IllegalStateException(
-                        "This partition is not checkpointable: " + partitionWriter);
+                throw new IllegalStateException("This partition is not checkpointable: " + partitionWriter);
             }
         }
     }

@@ -43,16 +43,13 @@ class DefaultExecutionVertex implements SchedulingExecutionVertex {
 
     private final List<ConsumedPartitionGroup> consumedPartitionGroups;
 
-    private final Function<IntermediateResultPartitionID, DefaultResultPartition>
-            resultPartitionRetriever;
+    private final Function<IntermediateResultPartitionID, DefaultResultPartition> resultPartitionRetriever;
 
-    DefaultExecutionVertex(
-            ExecutionVertexID executionVertexId,
-            List<DefaultResultPartition> producedPartitions,
-            Supplier<ExecutionState> stateSupplier,
-            List<ConsumedPartitionGroup> consumedPartitionGroups,
-            Function<IntermediateResultPartitionID, DefaultResultPartition>
-                    resultPartitionRetriever) {
+    DefaultExecutionVertex(ExecutionVertexID executionVertexId,
+                           List<DefaultResultPartition> producedPartitions,
+                           Supplier<ExecutionState> stateSupplier,
+                           List<ConsumedPartitionGroup> consumedPartitionGroups,
+                           Function<IntermediateResultPartitionID, DefaultResultPartition> resultPartitionRetriever) {
         this.executionVertexId = checkNotNull(executionVertexId);
         this.stateSupplier = checkNotNull(stateSupplier);
         this.producedResults = checkNotNull(producedPartitions);
@@ -61,10 +58,9 @@ class DefaultExecutionVertex implements SchedulingExecutionVertex {
     }
 
     @VisibleForTesting
-    DefaultExecutionVertex(
-            ExecutionVertexID executionVertexId,
-            List<DefaultResultPartition> producedPartitions,
-            Supplier<ExecutionState> stateSupplier) {
+    DefaultExecutionVertex(ExecutionVertexID executionVertexId,
+                           List<DefaultResultPartition> producedPartitions,
+                           Supplier<ExecutionState> stateSupplier) {
         this(executionVertexId, producedPartitions, stateSupplier, null, null);
     }
 

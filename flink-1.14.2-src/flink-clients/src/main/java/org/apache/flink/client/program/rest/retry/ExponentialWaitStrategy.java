@@ -27,13 +27,14 @@ public class ExponentialWaitStrategy implements WaitStrategy {
 
     private final long maxWait;
 
+    /*************************************************
+     * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+     *  注释： 指数增长等待超时策略
+     */
     public ExponentialWaitStrategy(final long initialWait, final long maxWait) {
         checkArgument(initialWait > 0, "initialWait must be positive, was %s", initialWait);
         checkArgument(maxWait > 0, "maxWait must be positive, was %s", maxWait);
-        checkArgument(
-                initialWait <= maxWait,
-                "initialWait must be lower than or equal to maxWait",
-                maxWait);
+        checkArgument(initialWait <= maxWait, "initialWait must be lower than or equal to maxWait", maxWait);
         this.initialWait = initialWait;
         this.maxWait = maxWait;
     }
@@ -41,9 +42,11 @@ public class ExponentialWaitStrategy implements WaitStrategy {
     @Override
     public long sleepTime(final long attempt) {
         checkArgument(attempt >= 0, "attempt must not be negative (%s)", attempt);
+
+        // TODO_MA 马中华 注释： 指数增长
         final long exponentialSleepTime = initialWait * Math.round(Math.pow(2, attempt));
-        return exponentialSleepTime >= 0 && exponentialSleepTime < maxWait
-                ? exponentialSleepTime
-                : maxWait;
+
+        // TODO_MA 马中华 注释： 指定上限
+        return exponentialSleepTime >= 0 && exponentialSleepTime < maxWait ? exponentialSleepTime : maxWait;
     }
 }

@@ -33,10 +33,8 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 public class BroadcastVariableManager {
 
-    private final ConcurrentHashMap<BroadcastVariableKey, BroadcastVariableMaterialization<?, ?>>
-            variables =
-                    new ConcurrentHashMap<
-                            BroadcastVariableKey, BroadcastVariableMaterialization<?, ?>>(16);
+    private final ConcurrentHashMap<BroadcastVariableKey, BroadcastVariableMaterialization<?, ?>> variables = new ConcurrentHashMap<BroadcastVariableKey, BroadcastVariableMaterialization<?, ?>>(
+            16);
 
     // --------------------------------------------------------------------------------------------
 
@@ -45,26 +43,17 @@ public class BroadcastVariableManager {
      * iteration superstep. An existing materialization created by another parallel subtask may be
      * returned, if it hasn't expired yet.
      */
-    public <T> BroadcastVariableMaterialization<T, ?> materializeBroadcastVariable(
-            String name,
-            int superstep,
-            BatchTask<?, ?> holder,
-            MutableReader<?> reader,
-            TypeSerializerFactory<T> serializerFactory)
-            throws IOException {
-        final BroadcastVariableKey key =
-                new BroadcastVariableKey(holder.getEnvironment().getJobVertexId(), name, superstep);
+    public <T> BroadcastVariableMaterialization<T, ?> materializeBroadcastVariable(String name, int superstep,
+                                                                                   BatchTask<?, ?> holder, MutableReader<?> reader,
+                                                                                   TypeSerializerFactory<T> serializerFactory) throws IOException {
+        final BroadcastVariableKey key = new BroadcastVariableKey(holder.getEnvironment().getJobVertexId(), name, superstep);
 
         while (true) {
-            final BroadcastVariableMaterialization<T, Object> newMat =
-                    new BroadcastVariableMaterialization<T, Object>(key);
+            final BroadcastVariableMaterialization<T, Object> newMat = new BroadcastVariableMaterialization<T, Object>(key);
 
-            final BroadcastVariableMaterialization<?, ?> previous =
-                    variables.putIfAbsent(key, newMat);
+            final BroadcastVariableMaterialization<?, ?> previous = variables.putIfAbsent(key, newMat);
 
-            @SuppressWarnings("unchecked")
-            final BroadcastVariableMaterialization<T, ?> materialization =
-                    (previous == null) ? newMat : (BroadcastVariableMaterialization<T, ?>) previous;
+            @SuppressWarnings("unchecked") final BroadcastVariableMaterialization<T, ?> materialization = (previous == null) ? newMat : (BroadcastVariableMaterialization<T, ?>) previous;
 
             try {
                 materialization.materializeVariable(reader, serializerFactory, holder);
@@ -97,9 +86,7 @@ public class BroadcastVariableManager {
     }
 
     public void releaseReference(String name, int superstep, BatchTask<?, ?> referenceHolder) {
-        BroadcastVariableKey key =
-                new BroadcastVariableKey(
-                        referenceHolder.getEnvironment().getJobVertexId(), name, superstep);
+        BroadcastVariableKey key = new BroadcastVariableKey(referenceHolder.getEnvironment().getJobVertexId(), name, superstep);
         releaseReference(key, referenceHolder);
     }
 
@@ -115,8 +102,7 @@ public class BroadcastVariableManager {
 
     public void releaseAllReferencesFromTask(BatchTask<?, ?> referenceHolder) {
         // go through all registered variables
-        for (Map.Entry<BroadcastVariableKey, BroadcastVariableMaterialization<?, ?>> entry :
-                variables.entrySet()) {
+        for (Map.Entry<BroadcastVariableKey, BroadcastVariableMaterialization<?, ?>> entry : variables.entrySet()) {
             BroadcastVariableMaterialization<?, ?> mat = entry.getValue();
 
             // release the reference

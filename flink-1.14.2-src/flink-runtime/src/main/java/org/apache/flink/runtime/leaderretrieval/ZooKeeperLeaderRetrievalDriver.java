@@ -58,6 +58,10 @@ public class ZooKeeperLeaderRetrievalDriver implements LeaderRetrievalDriver, Un
 
     private final String connectionInformationPath;
 
+    /*************************************************
+     * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+     *  注释：
+     */
     private final ConnectionStateListener connectionStateListener = (client, newState) -> handleStateChange(newState);
 
     private final LeaderRetrievalEventHandler leaderRetrievalEventHandler;
@@ -77,12 +81,14 @@ public class ZooKeeperLeaderRetrievalDriver implements LeaderRetrievalDriver, Un
      * @param leaderInformationClearancePolicy leaderInformationClearancePolicy controls when the
      *         leader information is being cleared
      * @param fatalErrorHandler Fatal error handler
+     *
      */
     public ZooKeeperLeaderRetrievalDriver(CuratorFramework client,
                                           String path,
                                           LeaderRetrievalEventHandler leaderRetrievalEventHandler,
                                           LeaderInformationClearancePolicy leaderInformationClearancePolicy,
                                           FatalErrorHandler fatalErrorHandler) throws Exception {
+
         this.client = checkNotNull(client, "CuratorFramework client");
         this.connectionInformationPath = ZooKeeperUtils.generateConnectionInformationPath(path);
 
@@ -94,6 +100,11 @@ public class ZooKeeperLeaderRetrievalDriver implements LeaderRetrievalDriver, Un
          */
         this.cache = ZooKeeperUtils.createTreeCache(client,
                 connectionInformationPath,
+
+                /*************************************************
+                 * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+                 *  注释： cache 监听的回调方法： retrieveLeaderInformationFromZooKeeper()
+                 */
                 this::retrieveLeaderInformationFromZooKeeper
         );
 
@@ -101,16 +112,18 @@ public class ZooKeeperLeaderRetrievalDriver implements LeaderRetrievalDriver, Un
         this.leaderInformationClearancePolicy = leaderInformationClearancePolicy;
         this.fatalErrorHandler = checkNotNull(fatalErrorHandler);
 
-        // TODO_MA 马中华 注释： 绑定了一个监听
+        // TODO_MA 马中华 注释： 绑定了一个监听，如果响应，则回调 unhandledError 方法
         client.getUnhandledErrorListenable().addListener(this);
 
         /*************************************************
          * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
          *  注释： 启动监听
-         *  如果监听响应，则回调 this 的 notifyNoLeader 方法
+         *  如果监听响应，则回调 this 的 retrieveLeaderInformationFromZooKeeper 方法
          */
         cache.start();
 
+        // TODO_MA 马中华 注释： 链接状态监听器，监听器类型为：ConnectionStateListener
+        // TODO_MA 马中华 注释： 如果监听响应，则回调： handleStateChange() 方法
         client.getConnectionStateListenable().addListener(connectionStateListener);
 
         running = true;
@@ -136,8 +149,10 @@ public class ZooKeeperLeaderRetrievalDriver implements LeaderRetrievalDriver, Un
         try {
             LOG.debug("Leader node has changed.");
 
+            // TODO_MA 马中华 注释： 获取新数据
             final ChildData childData = cache.getCurrentData(connectionInformationPath);
 
+            // TODO_MA 马中华 注释： 如果存在数据
             if (childData != null) {
                 final byte[] data = childData.getData();
                 if (data != null && data.length > 0) {
@@ -146,12 +161,22 @@ public class ZooKeeperLeaderRetrievalDriver implements LeaderRetrievalDriver, Un
 
                     final String leaderAddress = ois.readUTF();
                     final UUID leaderSessionID = (UUID) ois.readObject();
+
+                    /*************************************************
+                     * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+                     *  注释： 回调
+                     */
                     leaderRetrievalEventHandler.notifyLeaderAddress(LeaderInformation.known(leaderSessionID,
                             leaderAddress
                     ));
                     return;
                 }
             }
+
+            /*************************************************
+             * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+             *  注释： 如果数据不存在
+             */
             notifyNoLeader();
         } catch (Exception e) {
             fatalErrorHandler.onFatalError(new LeaderRetrievalException("Could not handle node changed event.", e));
@@ -159,21 +184,33 @@ public class ZooKeeperLeaderRetrievalDriver implements LeaderRetrievalDriver, Un
         }
     }
 
+    /*************************************************
+     * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+     *  注释： 链接状态发生改变
+     */
     private void handleStateChange(ConnectionState newState) {
         switch (newState) {
+
+            // TODO_MA 马中华 注释： 链接上
             case CONNECTED:
                 LOG.debug("Connected to ZooKeeper quorum. Leader retrieval can start.");
                 break;
+
+            // TODO_MA 马中华 注释： 暂停
             case SUSPENDED:
                 LOG.warn("Connection to ZooKeeper suspended, waiting for reconnection.");
                 if (leaderInformationClearancePolicy == LeaderInformationClearancePolicy.ON_SUSPENDED_CONNECTION) {
                     notifyNoLeader();
                 }
                 break;
+
+            // TODO_MA 马中华 注释： 重连
             case RECONNECTED:
                 LOG.info("Connection to ZooKeeper was reconnected. Leader retrieval can be restarted.");
                 onReconnectedConnectionState();
                 break;
+
+            // TODO_MA 马中华 注释： 断开了
             case LOST:
                 LOG.warn("Connection to ZooKeeper lost. Can no longer retrieve the leader from " + "ZooKeeper.");
                 notifyNoLeader();
@@ -195,6 +232,10 @@ public class ZooKeeperLeaderRetrievalDriver implements LeaderRetrievalDriver, Un
 
     private void onReconnectedConnectionState() {
         // check whether we find some new leader information in ZooKeeper
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释：
+         */
         retrieveLeaderInformationFromZooKeeper();
     }
 

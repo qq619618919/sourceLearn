@@ -135,12 +135,21 @@ public class HeapKeyedStateBackendBuilder<K> extends AbstractKeyedStateBackendBu
                               StateTableFactory<K> stateTableFactory) throws BackendBuildingException {
         final RestoreOperation<Void> restoreOperation;
 
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释：
+         */
         final KeyedStateHandle firstHandle;
         if (restoreStateHandles.isEmpty()) {
             firstHandle = null;
         } else {
             firstHandle = restoreStateHandles.iterator().next();
         }
+
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释：
+         */
         if (firstHandle instanceof SavepointKeyedStateHandle) {
             restoreOperation = new HeapSavepointRestoreOperation<>(restoreStateHandles,
                     keySerializerProvider,
@@ -168,6 +177,10 @@ public class HeapKeyedStateBackendBuilder<K> extends AbstractKeyedStateBackendBu
             );
         }
         try {
+            /*************************************************
+             * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+             *  注释：
+             */
             restoreOperation.restore();
             logger.info("Finished to build heap keyed state-backend.");
         } catch (Exception e) {

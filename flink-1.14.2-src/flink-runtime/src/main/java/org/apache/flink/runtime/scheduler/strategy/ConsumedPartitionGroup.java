@@ -30,6 +30,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import static org.apache.flink.util.Preconditions.checkArgument;
 
 /** Group of consumed {@link IntermediateResultPartitionID}s. */
+// TODO_MA 马中华 注释： 同样，所有同构的上游分区也被划分为同一组，称为分区组 (ConsumedPartitionGroup)，全连接边相连的所有下游节点都与这个组相连。
 public class ConsumedPartitionGroup implements Iterable<IntermediateResultPartitionID> {
 
     /*************************************************

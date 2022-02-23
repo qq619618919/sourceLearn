@@ -32,8 +32,10 @@ fi
 bin=`dirname "$0"`
 bin=`cd "$bin"; pwd`
 
+# TODO_MA 马中华 注释： 工具类
 . "$bin"/config.sh
 
+# TODO_MA 马中华 注释： Flink Standalone SessionCluster 的启动入口类代号
 ENTRYPOINT=standalonesession
 
 if [[ $STARTSTOP == "start" ]] || [[ $STARTSTOP == "start-foreground" ]]; then
@@ -57,6 +59,7 @@ if [[ $STARTSTOP == "start" ]] || [[ $STARTSTOP == "start-foreground" ]]; then
     fi
 fi
 
+# TODO_MA 马中华 注释： 启动相关角色
 if [[ $STARTSTOP == "start-foreground" ]]; then
     exec "${FLINK_BIN_DIR}"/flink-console.sh $ENTRYPOINT "${args[@]}"
 else

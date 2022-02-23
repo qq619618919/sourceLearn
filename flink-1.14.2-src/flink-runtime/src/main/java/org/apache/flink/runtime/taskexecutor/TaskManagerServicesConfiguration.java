@@ -66,7 +66,8 @@ public class TaskManagerServicesConfiguration {
 
     private final int numberOfSlots;
 
-    @Nullable private final QueryableStateConfiguration queryableStateConfig;
+    @Nullable
+    private final QueryableStateConfiguration queryableStateConfig;
 
     private final int pageSize;
 
@@ -86,26 +87,25 @@ public class TaskManagerServicesConfiguration {
 
     private final int numIoThreads;
 
-    private TaskManagerServicesConfiguration(
-            Configuration configuration,
-            ResourceID resourceID,
-            String externalAddress,
-            InetAddress bindAddress,
-            int externalDataPort,
-            boolean localCommunicationOnly,
-            String[] tmpDirPaths,
-            String[] localRecoveryStateRootDirectories,
-            boolean localRecoveryEnabled,
-            @Nullable QueryableStateConfiguration queryableStateConfig,
-            int numberOfSlots,
-            int pageSize,
-            TaskExecutorResourceSpec taskExecutorResourceSpec,
-            long timerServiceShutdownTimeout,
-            RetryingRegistrationConfiguration retryingRegistrationConfiguration,
-            Optional<Time> systemResourceMetricsProbingInterval,
-            FlinkUserCodeClassLoaders.ResolveOrder classLoaderResolveOrder,
-            String[] alwaysParentFirstLoaderPatterns,
-            int numIoThreads) {
+    private TaskManagerServicesConfiguration(Configuration configuration,
+                                             ResourceID resourceID,
+                                             String externalAddress,
+                                             InetAddress bindAddress,
+                                             int externalDataPort,
+                                             boolean localCommunicationOnly,
+                                             String[] tmpDirPaths,
+                                             String[] localRecoveryStateRootDirectories,
+                                             boolean localRecoveryEnabled,
+                                             @Nullable QueryableStateConfiguration queryableStateConfig,
+                                             int numberOfSlots,
+                                             int pageSize,
+                                             TaskExecutorResourceSpec taskExecutorResourceSpec,
+                                             long timerServiceShutdownTimeout,
+                                             RetryingRegistrationConfiguration retryingRegistrationConfiguration,
+                                             Optional<Time> systemResourceMetricsProbingInterval,
+                                             FlinkUserCodeClassLoaders.ResolveOrder classLoaderResolveOrder,
+                                             String[] alwaysParentFirstLoaderPatterns,
+                                             int numIoThreads) {
         this.configuration = checkNotNull(configuration);
         this.resourceID = checkNotNull(resourceID);
 
@@ -126,14 +126,13 @@ public class TaskManagerServicesConfiguration {
         this.alwaysParentFirstLoaderPatterns = alwaysParentFirstLoaderPatterns;
         this.numIoThreads = numIoThreads;
 
-        checkArgument(
-                timerServiceShutdownTimeout >= 0L,
-                "The timer " + "service shutdown timeout must be greater or equal to 0.");
+        checkArgument(timerServiceShutdownTimeout >= 0L,
+                "The timer " + "service shutdown timeout must be greater or equal to 0."
+        );
         this.timerServiceShutdownTimeout = timerServiceShutdownTimeout;
         this.retryingRegistrationConfiguration = checkNotNull(retryingRegistrationConfiguration);
 
-        this.systemResourceMetricsProbingInterval =
-                checkNotNull(systemResourceMetricsProbingInterval);
+        this.systemResourceMetricsProbingInterval = checkNotNull(systemResourceMetricsProbingInterval);
     }
 
     // --------------------------------------------------------------------------------------------
@@ -236,18 +235,17 @@ public class TaskManagerServicesConfiguration {
      * @param configuration The configuration.
      * @param resourceID resource ID of the task manager
      * @param externalAddress identifying the IP address under which the TaskManager will be
-     *     accessible
+     *         accessible
      * @param localCommunicationOnly True if only local communication is possible. Use only in cases
-     *     where only one task manager runs.
+     *         where only one task manager runs.
+     *
      * @return configuration of task manager services used to create them
      */
-    public static TaskManagerServicesConfiguration fromConfiguration(
-            Configuration configuration,
-            ResourceID resourceID,
-            String externalAddress,
-            boolean localCommunicationOnly,
-            TaskExecutorResourceSpec taskExecutorResourceSpec)
-            throws Exception {
+    public static TaskManagerServicesConfiguration fromConfiguration(Configuration configuration,
+                                                                     ResourceID resourceID,
+                                                                     String externalAddress,
+                                                                     boolean localCommunicationOnly,
+                                                                     TaskExecutorResourceSpec taskExecutorResourceSpec) throws Exception {
         final String[] tmpDirs = ConfigurationUtils.parseTempDirectories(configuration);
         String[] localStateRootDir = ConfigurationUtils.parseLocalStateDirectories(configuration);
         if (localStateRootDir.length == 0) {
@@ -257,33 +255,26 @@ public class TaskManagerServicesConfiguration {
 
         boolean localRecoveryMode = configuration.getBoolean(CheckpointingOptions.LOCAL_RECOVERY);
 
-        final QueryableStateConfiguration queryableStateConfig =
-                QueryableStateConfiguration.fromConfiguration(configuration);
+        final QueryableStateConfiguration queryableStateConfig = QueryableStateConfiguration.fromConfiguration(
+                configuration);
 
-        long timerServiceShutdownTimeout =
-                configuration.get(AkkaOptions.ASK_TIMEOUT_DURATION).toMillis();
+        long timerServiceShutdownTimeout = configuration.get(AkkaOptions.ASK_TIMEOUT_DURATION).toMillis();
 
-        final RetryingRegistrationConfiguration retryingRegistrationConfiguration =
-                RetryingRegistrationConfiguration.fromConfiguration(configuration);
+        final RetryingRegistrationConfiguration retryingRegistrationConfiguration = RetryingRegistrationConfiguration.fromConfiguration(
+                configuration);
 
-        final int externalDataPort =
-                configuration.getInteger(NettyShuffleEnvironmentOptions.DATA_PORT);
+        final int externalDataPort = configuration.getInteger(NettyShuffleEnvironmentOptions.DATA_PORT);
 
-        String bindAddr =
-                configuration.getString(
-                        TaskManagerOptions.BIND_HOST, NetUtils.getWildcardIPAddress());
+        String bindAddr = configuration.getString(TaskManagerOptions.BIND_HOST, NetUtils.getWildcardIPAddress());
         InetAddress bindAddress = InetAddress.getByName(bindAddr);
 
-        final String classLoaderResolveOrder =
-                configuration.getString(CoreOptions.CLASSLOADER_RESOLVE_ORDER);
+        final String classLoaderResolveOrder = configuration.getString(CoreOptions.CLASSLOADER_RESOLVE_ORDER);
 
-        final String[] alwaysParentFirstLoaderPatterns =
-                CoreOptions.getParentFirstLoaderPatterns(configuration);
+        final String[] alwaysParentFirstLoaderPatterns = CoreOptions.getParentFirstLoaderPatterns(configuration);
 
         final int numIoThreads = ClusterEntrypointUtils.getPoolSize(configuration);
 
-        return new TaskManagerServicesConfiguration(
-                configuration,
+        return new TaskManagerServicesConfiguration(configuration,
                 resourceID,
                 externalAddress,
                 bindAddress,
@@ -301,6 +292,7 @@ public class TaskManagerServicesConfiguration {
                 ConfigurationUtils.getSystemResourceMetricsProbingInterval(configuration),
                 FlinkUserCodeClassLoaders.ResolveOrder.fromString(classLoaderResolveOrder),
                 alwaysParentFirstLoaderPatterns,
-                numIoThreads);
+                numIoThreads
+        );
     }
 }

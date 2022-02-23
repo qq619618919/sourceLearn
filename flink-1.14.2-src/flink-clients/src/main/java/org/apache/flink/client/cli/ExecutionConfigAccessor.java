@@ -54,16 +54,14 @@ public class ExecutionConfigAccessor {
      * Creates an {@link ExecutionConfigAccessor} based on the provided {@link ProgramOptions} as
      * provided by the user through the CLI.
      */
-    public static <T> ExecutionConfigAccessor fromProgramOptions(
-            final ProgramOptions options, final List<T> jobJars) {
+    public static <T> ExecutionConfigAccessor fromProgramOptions(final ProgramOptions options, final List<T> jobJars) {
         checkNotNull(options);
         checkNotNull(jobJars);
 
         final Configuration configuration = new Configuration();
 
         options.applyToConfiguration(configuration);
-        ConfigUtils.encodeCollectionToConfig(
-                configuration, PipelineOptions.JARS, jobJars, Object::toString);
+        ConfigUtils.encodeCollectionToConfig(configuration, PipelineOptions.JARS, jobJars, Object::toString);
 
         return new ExecutionConfigAccessor(configuration);
     }
@@ -78,8 +76,7 @@ public class ExecutionConfigAccessor {
     }
 
     public List<URL> getClasspaths() throws MalformedURLException {
-        return ConfigUtils.decodeListFromConfig(
-                configuration, PipelineOptions.CLASSPATHS, URL::new);
+        return ConfigUtils.decodeListFromConfig(configuration, PipelineOptions.CLASSPATHS, URL::new);
     }
 
     public int getParallelism() {

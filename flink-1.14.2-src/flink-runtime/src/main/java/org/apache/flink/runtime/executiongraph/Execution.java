@@ -410,6 +410,10 @@ public class Execution implements AccessExecution, Archiveable<ArchivedExecution
 
         assertRunningInJobMasterMainThread();
 
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释：
+         */
         return FutureUtils.thenApplyAsyncIfNotDone(registerProducedPartitions(vertex,
                 location,
                 attemptId,
@@ -439,12 +443,17 @@ public class Execution implements AccessExecution, Archiveable<ArchivedExecution
             ExecutionAttemptID attemptId,
             boolean notifyPartitionDataAvailable) {
 
+        // TODO_MA 马中华 注释：
         ProducerDescriptor producerDescriptor = ProducerDescriptor.create(location, attemptId);
 
         Collection<IntermediateResultPartition> partitions = vertex.getProducedPartitions().values();
         Collection<CompletableFuture<ResultPartitionDeploymentDescriptor>> partitionRegistrations = new ArrayList<>(
                 partitions.size());
 
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释：
+         */
         for (IntermediateResultPartition partition : partitions) {
             PartitionDescriptor partitionDescriptor = PartitionDescriptor.from(partition);
             int maxParallelism = getPartitionMaxParallelism(partition,
@@ -456,6 +465,10 @@ public class Execution implements AccessExecution, Archiveable<ArchivedExecution
                     .registerPartitionWithProducer(vertex.getJobId(), partitionDescriptor, producerDescriptor);
 
             CompletableFuture<ResultPartitionDeploymentDescriptor> partitionRegistration = shuffleDescriptorFuture.thenApply(
+                    /*************************************************
+                     * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+                     *  注释：
+                     */
                     shuffleDescriptor -> new ResultPartitionDeploymentDescriptor(partitionDescriptor,
                             shuffleDescriptor,
                             maxParallelism,
@@ -464,6 +477,10 @@ public class Execution implements AccessExecution, Archiveable<ArchivedExecution
             partitionRegistrations.add(partitionRegistration);
         }
 
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释：
+         */
         return FutureUtils.combineAll(partitionRegistrations).thenApply(rpdds -> {
             Map<IntermediateResultPartitionID, ResultPartitionDeploymentDescriptor> producedPartitions = new LinkedHashMap<>(
                     partitions.size());
@@ -490,6 +507,8 @@ public class Execution implements AccessExecution, Archiveable<ArchivedExecution
     public void deploy() throws JobException {
         assertRunningInJobMasterMainThread();
 
+        // TODO_MA 马中华 注释： Task 是跟一个 LogicalSlot 关联的，是一对一的
+        // TODO_MA 马中华 注释： LogicalSlot 和 PhysicalSlot 是多对一的关系
         final LogicalSlot slot = assignedResource;
 
         checkNotNull(slot,
@@ -505,6 +524,8 @@ public class Execution implements AccessExecution, Archiveable<ArchivedExecution
 
         // make sure exactly one deployment call happens from the correct state
         // note: the transition from CREATED to DEPLOYING is for testing purposes only
+        // TODO_MA 马中华 注释： 变更 Task 的状态为 DEPLOYING
+        // TODO_MA 马中华 注释： Flink 开始要引入状态机，来管理状态的
         ExecutionState previous = this.state;
         if (previous == SCHEDULED || previous == CREATED) {
             if (!transitionState(previous, DEPLOYING)) {
@@ -543,7 +564,12 @@ public class Execution implements AccessExecution, Archiveable<ArchivedExecution
 
             /*************************************************
              * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-             *  注释：
+             *  注释：  重点1
+             *  构建 TDD 对象，用于包装 部署 Task 所需要的各种信息
+             *  DeploymentDescriptor ： 部署抽象： Execution 中的所有相关重要信息，等等，都放在一个 TaskDeploymentDescriptor 对中
+             *  当部署一个 Task 的时候，只会传输一个 信息对象给 TaskExecutor 就是 TDD
+             *  -
+             *  TaskDeploymentDescriptor: 包含了这个 Taks 运行的时候，所需要的一切的信息
              */
             final TaskDeploymentDescriptor deployment = TaskDeploymentDescriptorFactory
                     .fromExecutionVertex(vertex, attemptNumber)
@@ -552,6 +578,7 @@ public class Execution implements AccessExecution, Archiveable<ArchivedExecution
             // null taskRestore to let it be GC'ed
             taskRestore = null;
 
+            // TODO_MA 马中华 注释： Task 部署的使用的是哪个 Slot ？ 以及这个 slot 在哪个从节点呢？
             final TaskManagerGateway taskManagerGateway = slot.getTaskManagerGateway();
 
             final ComponentMainThreadExecutor jobMasterMainThreadExecutor = vertex
@@ -559,13 +586,19 @@ public class Execution implements AccessExecution, Archiveable<ArchivedExecution
                     .getJobMasterMainThreadExecutor();
 
             getVertex().notifyPendingDeployment(this);
+
             // We run the submission in the future executor so that the serialization of large TDDs
             // does not block
             // the main thread and sync back to the main thread once submission is completed.
             CompletableFuture
                     /*************************************************
                      * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-                     *  注释：
+                     *  注释： 提交 Task 到 TaskExecutor 运行
+                     *  JobMaster 提交 Task 给 TaskExecutor 运行
+                     *  部署，提交Task，发送RPC
+                     *  部署这个事儿：
+                     *  1、一个 ExecutionVertex 需要部署一个 Task
+                     *  2、部署到时候，首先生成一个 TDD对象，然后发送 RPC 请求给这个 Task 对应的 Slot 所在的从节点
                      */
                     .supplyAsync(() -> taskManagerGateway.submitTask(deployment, rpcTimeout), executor)
                     .thenCompose(Function.identity())
@@ -744,7 +777,8 @@ public class Execution implements AccessExecution, Archiveable<ArchivedExecution
      * @param checkpointId of the completed checkpoint
      * @param timestamp of the completed checkpoint
      */
-    public void notifyCheckpointComplete(long checkpointId, long timestamp) {
+    public void notifyCheckpointComplete(long checkpointId,
+                                         long timestamp) {
         final LogicalSlot slot = assignedResource;
 
         if (slot != null) {
@@ -764,7 +798,9 @@ public class Execution implements AccessExecution, Archiveable<ArchivedExecution
      * @param latestCompletedCheckpointId of the latest completed checkpoint
      * @param timestamp of the subsumed checkpoint
      */
-    public void notifyCheckpointAborted(long abortCheckpointId, long latestCompletedCheckpointId, long timestamp) {
+    public void notifyCheckpointAborted(long abortCheckpointId,
+                                        long latestCompletedCheckpointId,
+                                        long timestamp) {
         final LogicalSlot slot = assignedResource;
 
         if (slot != null) {
@@ -828,11 +864,12 @@ public class Execution implements AccessExecution, Archiveable<ArchivedExecution
                     "Only synchronous savepoints are allowed to advance the watermark to MAX.");
         }
 
+        // TODO_MA 马中华 注释：Slot
         final LogicalSlot slot = assignedResource;
 
         if (slot != null) {
 
-            // TODO_MA 马中华 注释：
+            // TODO_MA 马中华 注释： 根据 slot 拿到所在的 TaskManager
             final TaskManagerGateway taskManagerGateway = slot.getTaskManagerGateway();
 
             /*************************************************
@@ -846,9 +883,7 @@ public class Execution implements AccessExecution, Archiveable<ArchivedExecution
                     // TODO_MA 马中华 注释： Job ID
                     getVertex().getJobId(),
                     // TODO_MA 马中华 注释： Checkpoint ID
-                    checkpointId,
-                    timestamp,
-                    checkpointOptions
+                    checkpointId, timestamp, checkpointOptions
             );
         }
         LOG.debug("The execution has no slot assigned. This indicates that the execution is no longer running.");
@@ -904,7 +939,8 @@ public class Execution implements AccessExecution, Archiveable<ArchivedExecution
         markFinished(null, null);
     }
 
-    void markFinished(Map<String, Accumulator<?, ?>> userAccumulators, IOMetrics metrics) {
+    void markFinished(Map<String, Accumulator<?, ?>> userAccumulators,
+                      IOMetrics metrics) {
 
         assertRunningInJobMasterMainThread();
 
@@ -1040,7 +1076,8 @@ public class Execution implements AccessExecution, Archiveable<ArchivedExecution
     //  Internal Actions
     // --------------------------------------------------------------------------------------------
 
-    private void processFail(Throwable t, boolean cancelTask) {
+    private void processFail(Throwable t,
+                             boolean cancelTask) {
         processFail(t, cancelTask, null, null, true, false);
     }
 
@@ -1158,7 +1195,8 @@ public class Execution implements AccessExecution, Archiveable<ArchivedExecution
         return switchTo(INITIALIZING, RUNNING);
     }
 
-    private boolean switchTo(ExecutionState from, ExecutionState to) {
+    private boolean switchTo(ExecutionState from,
+                             ExecutionState to) {
 
         if (transitionState(from, to)) {
             return true;
@@ -1240,7 +1278,8 @@ public class Execution implements AccessExecution, Archiveable<ArchivedExecution
         }
     }
 
-    void handlePartitionCleanup(boolean releasePipelinedPartitions, boolean releaseBlockingPartitions) {
+    void handlePartitionCleanup(boolean releasePipelinedPartitions,
+                                boolean releaseBlockingPartitions) {
         if (releasePipelinedPartitions) {
             sendReleaseIntermediateResultPartitionsRpcCall();
         }
@@ -1365,11 +1404,14 @@ public class Execution implements AccessExecution, Archiveable<ArchivedExecution
         transitionState(state, targetState);
     }
 
-    private boolean transitionState(ExecutionState currentState, ExecutionState targetState) {
+    private boolean transitionState(ExecutionState currentState,
+                                    ExecutionState targetState) {
         return transitionState(currentState, targetState, null);
     }
 
-    private boolean transitionState(ExecutionState currentState, ExecutionState targetState, Throwable error) {
+    private boolean transitionState(ExecutionState currentState,
+                                    ExecutionState targetState,
+                                    Throwable error) {
         // sanity check
         if (currentState.isTerminal()) {
             throw new IllegalStateException(
@@ -1430,7 +1472,8 @@ public class Execution implements AccessExecution, Archiveable<ArchivedExecution
         markTimestamp(state, System.currentTimeMillis());
     }
 
-    private void markTimestamp(ExecutionState state, long timestamp) {
+    private void markTimestamp(ExecutionState state,
+                               long timestamp) {
         this.stateTimestamps[state.ordinal()] = timestamp;
     }
 
@@ -1479,7 +1522,8 @@ public class Execution implements AccessExecution, Archiveable<ArchivedExecution
         return ioMetrics;
     }
 
-    private void updateAccumulatorsAndMetrics(Map<String, Accumulator<?, ?>> userAccumulators, IOMetrics metrics) {
+    private void updateAccumulatorsAndMetrics(Map<String, Accumulator<?, ?>> userAccumulators,
+                                              IOMetrics metrics) {
         if (userAccumulators != null) {
             synchronized (accumulatorLock) {
                 this.userAccumulators = userAccumulators;

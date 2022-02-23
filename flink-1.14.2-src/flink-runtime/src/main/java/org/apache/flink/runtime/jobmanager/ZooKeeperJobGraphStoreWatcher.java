@@ -64,7 +64,8 @@ public class ZooKeeperJobGraphStoreWatcher implements JobGraphStoreWatcher {
 
     public ZooKeeperJobGraphStoreWatcher(PathChildrenCache pathCache) {
         this.pathCache = checkNotNull(pathCache);
-        this.pathCache.getListenable().addListener(new JobGraphsPathCacheListener());
+        this.pathCache.getListenable()
+                      .addListener(new JobGraphsPathCacheListener());
         running = false;
     }
 
@@ -74,7 +75,7 @@ public class ZooKeeperJobGraphStoreWatcher implements JobGraphStoreWatcher {
         running = true;
         /*************************************************
          * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-         *  注释：
+         *  注释： 启动监听
          */
         pathCache.start();
     }
@@ -103,18 +104,22 @@ public class ZooKeeperJobGraphStoreWatcher implements JobGraphStoreWatcher {
 
             if (LOG.isDebugEnabled()) {
                 if (event.getData() != null) {
-                    LOG.debug("Received {} event (path: {})", event.getType(), event.getData().getPath());
+                    LOG.debug("Received {} event (path: {})", event.getType(), event.getData()
+                                                                                    .getPath());
                 } else {
                     LOG.debug("Received {} event", event.getType());
                 }
             }
 
             switch (event.getType()) {
+
+                /*************************************************
+                 * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+                 *  注释： onAddedJobGraph
+                 */
                 case CHILD_ADDED: {
                     JobID jobId = fromEvent(event);
-
                     LOG.debug("Received CHILD_ADDED event notification for job {}", jobId);
-
                     jobGraphListener.onAddedJobGraph(jobId);
                 }
                 break;
@@ -124,30 +129,31 @@ public class ZooKeeperJobGraphStoreWatcher implements JobGraphStoreWatcher {
                 }
                 break;
 
+                /*************************************************
+                 * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+                 *  注释： onRemovedJobGraph
+                 */
                 case CHILD_REMOVED: {
                     JobID jobId = fromEvent(event);
-
                     LOG.debug("Received CHILD_REMOVED event notification for job {}", jobId);
-
                     jobGraphListener.onRemovedJobGraph(jobId);
                 }
                 break;
 
                 case CONNECTION_SUSPENDED: {
-                    LOG.warn("ZooKeeper connection SUSPENDING. Changes to the submitted job "
-                            + "graphs are not monitored (temporarily).");
+                    LOG.warn(
+                            "ZooKeeper connection SUSPENDING. Changes to the submitted job " + "graphs are not monitored (temporarily).");
                 }
                 break;
 
                 case CONNECTION_LOST: {
-                    LOG.warn("ZooKeeper connection LOST. Changes to the submitted job "
-                            + "graphs are not monitored (permanently).");
+                    LOG.warn(
+                            "ZooKeeper connection LOST. Changes to the submitted job " + "graphs are not monitored (permanently).");
                 }
                 break;
 
                 case CONNECTION_RECONNECTED: {
-                    LOG.info("ZooKeeper connection RECONNECTED. Changes to the submitted job "
-                            + "graphs are monitored again.");
+                    LOG.info("ZooKeeper connection RECONNECTED. Changes to the submitted job " + "graphs are monitored again.");
                 }
                 break;
 
@@ -160,7 +166,8 @@ public class ZooKeeperJobGraphStoreWatcher implements JobGraphStoreWatcher {
 
         /** Returns a JobID for the event's path. */
         private JobID fromEvent(PathChildrenCacheEvent event) {
-            return JobID.fromHexString(ZKPaths.getNodeFromPath(event.getData().getPath()));
+            return JobID.fromHexString(ZKPaths.getNodeFromPath(event.getData()
+                                                                    .getPath()));
         }
     }
 }

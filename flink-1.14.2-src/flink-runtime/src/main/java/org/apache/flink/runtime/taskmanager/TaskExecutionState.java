@@ -65,8 +65,7 @@ public class TaskExecutionState implements Serializable {
      * @param executionId the ID of the task execution whose state is to be reported
      * @param executionState the execution state to be reported
      */
-    public TaskExecutionState(
-            ExecutionAttemptID executionId, ExecutionState executionState, Throwable error) {
+    public TaskExecutionState(ExecutionAttemptID executionId, ExecutionState executionState, Throwable error) {
         this(executionId, executionState, error, null, null);
     }
 
@@ -79,12 +78,11 @@ public class TaskExecutionState implements Serializable {
      * @param error an optional error
      * @param accumulators The flink and user-defined accumulators which may be null.
      */
-    public TaskExecutionState(
-            ExecutionAttemptID executionId,
-            ExecutionState executionState,
-            Throwable error,
-            AccumulatorSnapshot accumulators,
-            IOMetrics ioMetrics) {
+    public TaskExecutionState(ExecutionAttemptID executionId,
+                              ExecutionState executionState,
+                              Throwable error,
+                              AccumulatorSnapshot accumulators,
+                              IOMetrics ioMetrics) {
 
         if (executionId == null || executionState == null) {
             throw new NullPointerException();
@@ -108,6 +106,7 @@ public class TaskExecutionState implements Serializable {
      * is no failure with an associated exception.
      *
      * @param userCodeClassloader The classloader that can resolve user-defined exceptions.
+     *
      * @return The attached exception, or null, if none.
      */
     public Throwable getError(ClassLoader userCodeClassloader) {
@@ -151,8 +150,7 @@ public class TaskExecutionState implements Serializable {
     public boolean equals(Object obj) {
         if (obj instanceof TaskExecutionState) {
             TaskExecutionState other = (TaskExecutionState) obj;
-            return other.executionId.equals(this.executionId)
-                    && other.executionState == this.executionState
+            return other.executionId.equals(this.executionId) && other.executionState == this.executionState
                     && (other.throwable == null) == (this.throwable == null);
         } else {
             return false;
@@ -166,8 +164,10 @@ public class TaskExecutionState implements Serializable {
 
     @Override
     public String toString() {
-        return String.format(
-                "TaskExecutionState executionId=%s, state=%s, error=%s",
-                executionId, executionState, throwable == null ? "(null)" : throwable.toString());
+        return String.format("TaskExecutionState executionId=%s, state=%s, error=%s",
+                executionId,
+                executionState,
+                throwable == null ? "(null)" : throwable.toString()
+        );
     }
 }

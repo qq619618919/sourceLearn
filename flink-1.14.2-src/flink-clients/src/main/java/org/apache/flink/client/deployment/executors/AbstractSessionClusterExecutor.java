@@ -56,6 +56,15 @@ public class AbstractSessionClusterExecutor<ClusterID, ClientFactory extends Clu
         this.clusterClientFactory = checkNotNull(clusterClientFactory);
     }
 
+    /*************************************************
+     * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+     *  注释： 当前方法分为 三个步骤：
+     *  1、 完成 StreamGraph 到 JObGraph 的转变
+     *  2、 构建一个 RestClient
+     *  3、 通过 RestClient 提交 JobGraph 到 JobManager
+     *  -
+     *  Task 的初始化的，代码特别多  14 个步骤！
+     */
     @Override
     public CompletableFuture<JobClient> execute(@Nonnull final Pipeline pipeline,
                                                 @Nonnull final Configuration configuration,
@@ -63,35 +72,54 @@ public class AbstractSessionClusterExecutor<ClusterID, ClientFactory extends Clu
 
         /*************************************************
          * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-         *  注释：
+         *  注释： 将 StreamGraph 变成 JobGraph
+         *  pipeline = StreamGraph
+         *  -
+         *  其实就是判断，StrewamGraph 中的相邻 StreamNode 是否满足一定的条件，如果满足，则这两个 StreamNode 合并成一个
+         *  然后称之为 JobVertex， 它就是 JobGraph 中的顶点！ 边就是 JobEdge
+         *  StreamGraph: StreamNode => StreamOperator
+         *  JobGraph： JobVertex => StreamOperator/OpeartorChain
          */
         final JobGraph jobGraph = PipelineExecutorUtils.getJobGraph(pipeline, configuration);
 
-        try (final ClusterDescriptor<ClusterID> clusterDescriptor = clusterClientFactory.createClusterDescriptor(
-                configuration)) {
+
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释：
+         *  1、通过 clusterClientFactory.createClusterDescriptor 去构造一个 RestClient
+         *  2、通过 RestClient 提交 JobGraph
+         */
+
+
+        // TODO_MA 马中华 注释： A + B + C 联合起来完成的事情： 1、RestClusterClient  2、RestClient  3、Netty Client
+        // TODO_MA 马中华 注释： 构建一个 ClusterDescriptor
+        // TODO_MA 马中华 注释： A
+        try (final ClusterDescriptor<ClusterID> clusterDescriptor = clusterClientFactory.createClusterDescriptor(configuration)) {
+            // TODO_MA 马中华 注释： StandaloneClusterId
+            // TODO_MA 马中华 注释： B
             final ClusterID clusterID = clusterClientFactory.getClusterId(configuration);
             checkState(clusterID != null);
 
+            /*************************************************
+             * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+             *  注释： 构建一个 RestClusterClient
+             *  C
+             *  内部就是： 2、RestClient  3、Netty Client
+             *  RestClusterClient ===> RestClient ====> NettyClient
+             */
             final ClusterClientProvider<ClusterID> clusterClientProvider = clusterDescriptor.retrieve(clusterID);
             ClusterClient<ClusterID> clusterClient = clusterClientProvider.getClusterClient();
 
             /*************************************************
              * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-             *  注释：
+             *  注释： 真正的提交
              */
-            return clusterClient
-                    .submitJob(jobGraph)
-                    .thenApplyAsync(FunctionUtils.uncheckedFunction(jobId -> {
+            return clusterClient.submitJob(jobGraph).thenApplyAsync(FunctionUtils.uncheckedFunction(jobId -> {
                         ClientUtils.waitUntilJobInitializationFinished(() -> clusterClient.getJobStatus(jobId).get(),
-                                () -> clusterClient.requestJobResult(jobId).get(),
-                                userCodeClassloader
-                        );
+                                () -> clusterClient.requestJobResult(jobId).get(), userCodeClassloader);
                         return jobId;
-                    }))
-                    .thenApplyAsync(jobID -> (JobClient) new ClusterClientJobClientAdapter<>(clusterClientProvider,
-                            jobID,
-                            userCodeClassloader
-                    ))
+                    })).thenApplyAsync(
+                            jobID -> (JobClient) new ClusterClientJobClientAdapter<>(clusterClientProvider, jobID, userCodeClassloader))
                     .whenCompleteAsync((ignored1, ignored2) -> clusterClient.close());
         }
     }

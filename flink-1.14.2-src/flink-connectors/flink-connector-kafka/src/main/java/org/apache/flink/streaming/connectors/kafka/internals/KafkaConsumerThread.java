@@ -69,16 +69,13 @@ public class KafkaConsumerThread<T> extends Thread {
     private final Handover handover;
 
     /** The next offsets that the main thread should commit and the commit callback. */
-    private final AtomicReference<
-                    Tuple2<Map<TopicPartition, OffsetAndMetadata>, KafkaCommitCallback>>
-            nextOffsetsToCommit;
+    private final AtomicReference<Tuple2<Map<TopicPartition, OffsetAndMetadata>, KafkaCommitCallback>> nextOffsetsToCommit;
 
     /** The configuration for the Kafka consumer. */
     private final Properties kafkaProperties;
 
     /** The queue of unassigned partitions that we need to assign to the Kafka consumer. */
-    private final ClosableBlockingQueue<KafkaTopicPartitionState<T, TopicPartition>>
-            unassignedPartitionsQueue;
+    private final ClosableBlockingQueue<KafkaTopicPartitionState<T, TopicPartition>> unassignedPartitionsQueue;
 
     /** The maximum number of milliseconds to wait for a fetch batch. */
     private final long pollTimeout;
@@ -88,9 +85,10 @@ public class KafkaConsumerThread<T> extends Thread {
 
     /**
      * @deprecated We should only be publishing to the {{@link #consumerMetricGroup}}. This is kept
-     *     to retain compatibility for metrics.
+     *         to retain compatibility for metrics.
      */
-    @Deprecated private final MetricGroup subtaskMetricGroup;
+    @Deprecated
+    private final MetricGroup subtaskMetricGroup;
 
     /** We get this from the outside to publish metrics. */
     private final MetricGroup consumerMetricGroup;
@@ -117,17 +115,15 @@ public class KafkaConsumerThread<T> extends Thread {
     /** Flag tracking whether the latest commit request has completed. */
     private volatile boolean commitInProgress;
 
-    public KafkaConsumerThread(
-            Logger log,
-            Handover handover,
-            Properties kafkaProperties,
-            ClosableBlockingQueue<KafkaTopicPartitionState<T, TopicPartition>>
-                    unassignedPartitionsQueue,
-            String threadName,
-            long pollTimeout,
-            boolean useMetrics,
-            MetricGroup consumerMetricGroup,
-            MetricGroup subtaskMetricGroup) {
+    public KafkaConsumerThread(Logger log,
+                               Handover handover,
+                               Properties kafkaProperties,
+                               ClosableBlockingQueue<KafkaTopicPartitionState<T, TopicPartition>> unassignedPartitionsQueue,
+                               String threadName,
+                               long pollTimeout,
+                               boolean useMetrics,
+                               MetricGroup consumerMetricGroup,
+                               MetricGroup subtaskMetricGroup) {
 
         super(threadName);
         setDaemon(true);
@@ -164,6 +160,10 @@ public class KafkaConsumerThread<T> extends Thread {
         // This is important, because the consumer has multi-threading issues,
         // including concurrent 'close()' calls.
         try {
+            /*************************************************
+             * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+             *  注释： 构造 Consumer
+             */
             this.consumer = getConsumer(kafkaProperties);
         } catch (Throwable t) {
             handover.reportError(t);
@@ -182,13 +182,11 @@ public class KafkaConsumerThread<T> extends Thread {
                 } else {
                     // we have Kafka metrics, register them
                     for (Map.Entry<MetricName, ? extends Metric> metric : metrics.entrySet()) {
-                        consumerMetricGroup.gauge(
-                                metric.getKey().name(), new KafkaMetricWrapper(metric.getValue()));
+                        consumerMetricGroup.gauge(metric.getKey().name(), new KafkaMetricWrapper(metric.getValue()));
 
                         // TODO this metric is kept for compatibility purposes; should remove in the
                         // future
-                        subtaskMetricGroup.gauge(
-                                metric.getKey().name(), new KafkaMetricWrapper(metric.getValue()));
+                        subtaskMetricGroup.gauge(metric.getKey().name(), new KafkaMetricWrapper(metric.getValue()));
                     }
                 }
             }
@@ -212,10 +210,9 @@ public class KafkaConsumerThread<T> extends Thread {
 
                 // check if there is something to commit
                 if (!commitInProgress) {
-                    // get and reset the work-to-be committed, so we don't repeatedly commit the
-                    // same
-                    final Tuple2<Map<TopicPartition, OffsetAndMetadata>, KafkaCommitCallback>
-                            commitOffsetsAndCallback = nextOffsetsToCommit.getAndSet(null);
+                    // get and reset the work-to-be committed, so we don't repeatedly commit the same
+                    final Tuple2<Map<TopicPartition, OffsetAndMetadata>, KafkaCommitCallback> commitOffsetsAndCallback = nextOffsetsToCommit.getAndSet(
+                            null);
 
                     if (commitOffsetsAndCallback != null) {
                         log.debug("Sending async offset commit request to Kafka broker");
@@ -223,9 +220,9 @@ public class KafkaConsumerThread<T> extends Thread {
                         // also record that a commit is already in progress
                         // the order here matters! first set the flag, then send the commit command.
                         commitInProgress = true;
-                        consumer.commitAsync(
-                                commitOffsetsAndCallback.f0,
-                                new CommitCallback(commitOffsetsAndCallback.f1));
+                        consumer.commitAsync(commitOffsetsAndCallback.f0,
+                                new CommitCallback(commitOffsetsAndCallback.f1)
+                        );
                     }
                 }
 
@@ -255,6 +252,10 @@ public class KafkaConsumerThread<T> extends Thread {
                 // over
                 if (records == null) {
                     try {
+                        /*************************************************
+                         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+                         *  注释：
+                         */
                         records = consumer.poll(pollTimeout);
                     } catch (WakeupException we) {
                         continue;
@@ -262,6 +263,7 @@ public class KafkaConsumerThread<T> extends Thread {
                 }
 
                 try {
+                    // TODO_MA 马中华 注释： 赋值给 next
                     handover.produce(records);
                     records = null;
                 } catch (Handover.WakeupException e) {
@@ -327,17 +329,15 @@ public class KafkaConsumerThread<T> extends Thread {
      * @param offsetsToCommit The offsets to commit
      * @param commitCallback callback when Kafka commit completes
      */
-    void setOffsetsToCommit(
-            Map<TopicPartition, OffsetAndMetadata> offsetsToCommit,
-            @Nonnull KafkaCommitCallback commitCallback) {
+    void setOffsetsToCommit(Map<TopicPartition, OffsetAndMetadata> offsetsToCommit,
+                            @Nonnull KafkaCommitCallback commitCallback) {
 
         // record the work to be committed by the main consumer thread and make sure the consumer
         // notices that
         if (nextOffsetsToCommit.getAndSet(Tuple2.of(offsetsToCommit, commitCallback)) != null) {
-            log.warn(
-                    "Committing offsets to Kafka takes longer than the checkpoint interval. "
-                            + "Skipping commit of previous offsets because newer complete checkpoint offsets are available. "
-                            + "This does not compromise Flink's checkpoint integrity.");
+            log.warn("Committing offsets to Kafka takes longer than the checkpoint interval. "
+                    + "Skipping commit of previous offsets because newer complete checkpoint offsets are available. "
+                    + "This does not compromise Flink's checkpoint integrity.");
         }
 
         // if the consumer is blocked in a poll() or handover operation, wake it up to commit soon
@@ -374,8 +374,7 @@ public class KafkaConsumerThread<T> extends Thread {
      * <p>This method is exposed for testing purposes.
      */
     @VisibleForTesting
-    void reassignPartitions(List<KafkaTopicPartitionState<T, TopicPartition>> newPartitions)
-            throws Exception {
+    void reassignPartitions(List<KafkaTopicPartitionState<T, TopicPartition>> newPartitions) throws Exception {
         if (newPartitions.size() == 0) {
             return;
         }
@@ -396,13 +395,11 @@ public class KafkaConsumerThread<T> extends Thread {
         final Map<TopicPartition, Long> oldPartitionAssignmentsToPosition = new HashMap<>();
         try {
             for (TopicPartition oldPartition : consumerTmp.assignment()) {
-                oldPartitionAssignmentsToPosition.put(
-                        oldPartition, consumerTmp.position(oldPartition));
+                oldPartitionAssignmentsToPosition.put(oldPartition, consumerTmp.position(oldPartition));
             }
 
-            final List<TopicPartition> newPartitionAssignments =
-                    new ArrayList<>(
-                            newPartitions.size() + oldPartitionAssignmentsToPosition.size());
+            final List<TopicPartition> newPartitionAssignments = new ArrayList<>(
+                    newPartitions.size() + oldPartitionAssignmentsToPosition.size());
             newPartitionAssignments.addAll(oldPartitionAssignmentsToPosition.keySet());
             newPartitionAssignments.addAll(convertKafkaPartitions(newPartitions));
 
@@ -411,10 +408,8 @@ public class KafkaConsumerThread<T> extends Thread {
             reassignmentStarted = true;
 
             // old partitions should be seeked to their previous position
-            for (Map.Entry<TopicPartition, Long> oldPartitionToPosition :
-                    oldPartitionAssignmentsToPosition.entrySet()) {
-                consumerTmp.seek(
-                        oldPartitionToPosition.getKey(), oldPartitionToPosition.getValue());
+            for (Map.Entry<TopicPartition, Long> oldPartitionToPosition : oldPartitionAssignmentsToPosition.entrySet()) {
+                consumerTmp.seek(oldPartitionToPosition.getKey(), oldPartitionToPosition.getValue());
             }
 
             // offsets in the state of new partitions may still be placeholder sentinel values if we
@@ -425,29 +420,19 @@ public class KafkaConsumerThread<T> extends Thread {
             //   (3) the partition was newly discovered after startup;
             // replace those with actual offsets, according to what the sentinel value represent.
             for (KafkaTopicPartitionState<T, TopicPartition> newPartitionState : newPartitions) {
-                if (newPartitionState.getOffset()
-                        == KafkaTopicPartitionStateSentinel.EARLIEST_OFFSET) {
-                    consumerTmp.seekToBeginning(
-                            Collections.singletonList(newPartitionState.getKafkaPartitionHandle()));
-                    newPartitionState.setOffset(
-                            consumerTmp.position(newPartitionState.getKafkaPartitionHandle()) - 1);
-                } else if (newPartitionState.getOffset()
-                        == KafkaTopicPartitionStateSentinel.LATEST_OFFSET) {
-                    consumerTmp.seekToEnd(
-                            Collections.singletonList(newPartitionState.getKafkaPartitionHandle()));
-                    newPartitionState.setOffset(
-                            consumerTmp.position(newPartitionState.getKafkaPartitionHandle()) - 1);
-                } else if (newPartitionState.getOffset()
-                        == KafkaTopicPartitionStateSentinel.GROUP_OFFSET) {
+                if (newPartitionState.getOffset() == KafkaTopicPartitionStateSentinel.EARLIEST_OFFSET) {
+                    consumerTmp.seekToBeginning(Collections.singletonList(newPartitionState.getKafkaPartitionHandle()));
+                    newPartitionState.setOffset(consumerTmp.position(newPartitionState.getKafkaPartitionHandle()) - 1);
+                } else if (newPartitionState.getOffset() == KafkaTopicPartitionStateSentinel.LATEST_OFFSET) {
+                    consumerTmp.seekToEnd(Collections.singletonList(newPartitionState.getKafkaPartitionHandle()));
+                    newPartitionState.setOffset(consumerTmp.position(newPartitionState.getKafkaPartitionHandle()) - 1);
+                } else if (newPartitionState.getOffset() == KafkaTopicPartitionStateSentinel.GROUP_OFFSET) {
                     // the KafkaConsumer by default will automatically seek the consumer position
                     // to the committed group offset, so we do not need to do it.
 
-                    newPartitionState.setOffset(
-                            consumerTmp.position(newPartitionState.getKafkaPartitionHandle()) - 1);
+                    newPartitionState.setOffset(consumerTmp.position(newPartitionState.getKafkaPartitionHandle()) - 1);
                 } else {
-                    consumerTmp.seek(
-                            newPartitionState.getKafkaPartitionHandle(),
-                            newPartitionState.getOffset() + 1);
+                    consumerTmp.seek(newPartitionState.getKafkaPartitionHandle(), newPartitionState.getOffset() + 1);
                 }
             }
         } catch (WakeupException e) {
@@ -461,13 +446,10 @@ public class KafkaConsumerThread<T> extends Thread {
                 // if reassignment had already started and affected the consumer,
                 // we do a full roll back so that it is as if it was left untouched
                 if (reassignmentStarted) {
-                    this.consumer.assign(
-                            new ArrayList<>(oldPartitionAssignmentsToPosition.keySet()));
+                    this.consumer.assign(new ArrayList<>(oldPartitionAssignmentsToPosition.keySet()));
 
-                    for (Map.Entry<TopicPartition, Long> oldPartitionToPosition :
-                            oldPartitionAssignmentsToPosition.entrySet()) {
-                        this.consumer.seek(
-                                oldPartitionToPosition.getKey(), oldPartitionToPosition.getValue());
+                    for (Map.Entry<TopicPartition, Long> oldPartitionToPosition : oldPartitionAssignmentsToPosition.entrySet()) {
+                        this.consumer.seek(oldPartitionToPosition.getKey(), oldPartitionToPosition.getValue());
                     }
                 }
 
@@ -507,8 +489,7 @@ public class KafkaConsumerThread<T> extends Thread {
     //  Utilities
     // ------------------------------------------------------------------------
 
-    private static <T> List<TopicPartition> convertKafkaPartitions(
-            List<KafkaTopicPartitionState<T, TopicPartition>> partitions) {
+    private static <T> List<TopicPartition> convertKafkaPartitions(List<KafkaTopicPartitionState<T, TopicPartition>> partitions) {
         ArrayList<TopicPartition> result = new ArrayList<>(partitions.size());
         for (KafkaTopicPartitionState<T, TopicPartition> p : partitions) {
             result.add(p.getKafkaPartitionHandle());
@@ -529,9 +510,7 @@ public class KafkaConsumerThread<T> extends Thread {
             commitInProgress = false;
 
             if (ex != null) {
-                log.warn(
-                        "Committing offsets to Kafka failed. This does not compromise Flink's checkpoints.",
-                        ex);
+                log.warn("Committing offsets to Kafka failed. This does not compromise Flink's checkpoints.", ex);
                 internalCommitCallback.onException(ex);
             } else {
                 internalCommitCallback.onSuccess();

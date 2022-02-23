@@ -61,20 +61,19 @@ class RegisterApplicationMasterResponseReflector {
         requireNonNull(clazz);
 
         // this method exist in Hadoop 2.2 and later versions
-        getContainersFromPreviousAttemptsMethod =
-                tryGetMethod(
-                        clazz,
-                        "getContainersFromPreviousAttempts",
-                        "Cannot reconnect to previously allocated containers");
+        getContainersFromPreviousAttemptsMethod = tryGetMethod(clazz,
+                "getContainersFromPreviousAttempts",
+                "Cannot reconnect to previously allocated containers"
+        );
 
         // this method exist in Hadoop 2.6 and later versions
-        getSchedulerResourceTypesMethod =
-                tryGetMethod(
-                        clazz, "getSchedulerResourceTypes", "Cannot get scheduler resource types");
+        getSchedulerResourceTypesMethod = tryGetMethod(clazz,
+                "getSchedulerResourceTypes",
+                "Cannot get scheduler resource types"
+        );
     }
 
-    private Optional<Method> tryGetMethod(
-            final Class<?> clazz, final String methodName, final String noMethodMessage) {
+    private Optional<Method> tryGetMethod(final Class<?> clazz, final String methodName, final String noMethodMessage) {
         try {
             return Optional.of(clazz.getMethod(methodName));
         } catch (NoSuchMethodException e) {
@@ -90,10 +89,10 @@ class RegisterApplicationMasterResponseReflector {
      * contain the containers that were previously allocated.
      *
      * @param response The response object from the registration at the ResourceManager.
+     *
      * @return A list with containers from previous application attempt.
      */
-    List<Container> getContainersFromPreviousAttempts(
-            final RegisterApplicationMasterResponse response) {
+    List<Container> getContainersFromPreviousAttempts(final RegisterApplicationMasterResponse response) {
         return getContainersFromPreviousAttemptsUnsafe(response);
     }
 
@@ -106,9 +105,9 @@ class RegisterApplicationMasterResponseReflector {
         if (getContainersFromPreviousAttemptsMethod.isPresent() && response != null) {
             try {
                 @SuppressWarnings("unchecked")
-                final List<Container> containers =
-                        (List<Container>)
-                                getContainersFromPreviousAttemptsMethod.get().invoke(response);
+                final List<Container> containers = (List<Container>) getContainersFromPreviousAttemptsMethod
+                        .get()
+                        .invoke(response);
                 if (containers != null && !containers.isEmpty()) {
                     return containers;
                 }
@@ -129,11 +128,11 @@ class RegisterApplicationMasterResponseReflector {
      * Get names of resource types that are considered by the Yarn scheduler.
      *
      * @param response The response object from the registration at the ResourceManager.
+     *
      * @return A set of resource type names, or {@link Optional#empty()} if the Yarn version does
-     *     not support this API.
+     *         not support this API.
      */
-    Optional<Set<String>> getSchedulerResourceTypeNames(
-            final RegisterApplicationMasterResponse response) {
+    Optional<Set<String>> getSchedulerResourceTypeNames(final RegisterApplicationMasterResponse response) {
         return getSchedulerResourceTypeNamesUnsafe(response);
     }
 
@@ -142,13 +141,14 @@ class RegisterApplicationMasterResponseReflector {
         if (getSchedulerResourceTypesMethod.isPresent() && response != null) {
             try {
                 @SuppressWarnings("unchecked")
-                final Set<? extends Enum> schedulerResourceTypes =
-                        (Set<? extends Enum>)
-                                getSchedulerResourceTypesMethod.get().invoke(response);
-                return Optional.of(
-                        Preconditions.checkNotNull(schedulerResourceTypes).stream()
-                                .map(Enum::name)
-                                .collect(Collectors.toSet()));
+                final Set<? extends Enum> schedulerResourceTypes = (Set<? extends Enum>) getSchedulerResourceTypesMethod
+                        .get()
+                        .invoke(response);
+                return Optional.of(Preconditions
+                        .checkNotNull(schedulerResourceTypes)
+                        .stream()
+                        .map(Enum::name)
+                        .collect(Collectors.toSet()));
             } catch (Exception e) {
                 logger.error("Error invoking 'getSchedulerResourceTypes()'", e);
             }

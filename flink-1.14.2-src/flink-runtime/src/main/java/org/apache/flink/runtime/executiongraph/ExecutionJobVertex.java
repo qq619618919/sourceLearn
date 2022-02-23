@@ -147,14 +147,15 @@ public class ExecutionJobVertex implements AccessExecutionJobVertex, Archiveable
         if (this.parallelismInfo.getParallelism() > this.parallelismInfo.getMaxParallelism()) {
             throw new JobException(String.format(
                     "Vertex %s's parallelism (%s) is higher than the max parallelism (%s). Please lower the parallelism or increase the max parallelism.",
-                    jobVertex.getName(),
-                    this.parallelismInfo.getParallelism(),
-                    this.parallelismInfo.getMaxParallelism()
-            ));
+                    jobVertex.getName(), this.parallelismInfo.getParallelism(), this.parallelismInfo.getMaxParallelism()));
         }
 
         this.resourceProfile = ResourceProfile.fromResourceSpec(jobVertex.getMinResources(), MemorySize.ZERO);
 
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释： ExecutionVertex 容器
+         */
         this.taskVertices = new ExecutionVertex[this.parallelismInfo.getParallelism()];
 
         this.inputs = new ArrayList<>(jobVertex.getInputs().size());
@@ -164,34 +165,38 @@ public class ExecutionJobVertex implements AccessExecutionJobVertex, Archiveable
         this.coLocationGroup = jobVertex.getCoLocationGroup();
 
         // create the intermediate results
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释： IntermediateResult 容器
+         */
         this.producedDataSets = new IntermediateResult[jobVertex.getNumberOfProducedIntermediateDataSets()];
 
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释： 遍历创建 IntermediateResult
+         */
         for (int i = 0; i < jobVertex.getProducedDataSets().size(); i++) {
             final IntermediateDataSet result = jobVertex.getProducedDataSets().get(i);
 
-            this.producedDataSets[i] = new IntermediateResult(result.getId(),
-                    this,
-                    this.parallelismInfo.getParallelism(),
-                    result.getResultType()
-            );
+            // TODO_MA 马中华 注释： 内部创建多个 IntermediateResultPartition
+            this.producedDataSets[i] = new IntermediateResult(result.getId(), this, this.parallelismInfo.getParallelism(),
+                    result.getResultType());
         }
 
         // create all task vertices
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释： 遍历创建 ExecutionVertex
+         */
         for (int i = 0; i < this.parallelismInfo.getParallelism(); i++) {
-            ExecutionVertex vertex = new ExecutionVertex(this,
-                    i,
-                    producedDataSets,
-                    timeout,
-                    createTimestamp,
-                    maxPriorAttemptsHistoryLength,
-                    initialAttemptCounts.getAttemptCount(i)
-            );
 
+            // TODO_MA 马中华 注释： 创建一个对应的 IntermediateResultPartition
+            ExecutionVertex vertex = new ExecutionVertex(this, i, producedDataSets, timeout, createTimestamp,
+                    maxPriorAttemptsHistoryLength, initialAttemptCounts.getAttemptCount(i));
             this.taskVertices[i] = vertex;
         }
 
-        // sanity check for the double referencing between intermediate result partitions and
-        // execution vertices
+        // sanity check for the double referencing between intermediate result partitions and execution vertices
         for (IntermediateResult ir : this.producedDataSets) {
             if (ir.getNumberOfAssignedPartitions() != this.parallelismInfo.getParallelism()) {
                 throw new RuntimeException("The intermediate result's partitions were not correctly assigned.");
@@ -216,8 +221,7 @@ public class ExecutionJobVertex implements AccessExecutionJobVertex, Archiveable
 
         // set up the input splits, if the vertex has any
         try {
-            @SuppressWarnings("unchecked")
-            InputSplitSource<InputSplit> splitSource = (InputSplitSource<InputSplit>) jobVertex.getInputSplitSource();
+            @SuppressWarnings("unchecked") InputSplitSource<InputSplit> splitSource = (InputSplitSource<InputSplit>) jobVertex.getInputSplitSource();
 
             if (splitSource != null) {
                 Thread currentThread = Thread.currentThread();
@@ -225,7 +229,6 @@ public class ExecutionJobVertex implements AccessExecutionJobVertex, Archiveable
                 currentThread.setContextClassLoader(graph.getUserClassLoader());
                 try {
                     inputSplits = splitSource.createInputSplits(this.parallelismInfo.getParallelism());
-
                     if (inputSplits != null) {
                         splitAssigner = splitSource.getInputSplitAssigner(inputSplits);
                     }
@@ -332,13 +335,9 @@ public class ExecutionJobVertex implements AccessExecutionJobVertex, Archiveable
             if (taskInformationOrBlobKey == null) {
                 final BlobWriter blobWriter = graph.getBlobWriter();
 
-                final TaskInformation taskInformation = new TaskInformation(jobVertex.getID(),
-                        jobVertex.getName(),
-                        parallelismInfo.getParallelism(),
-                        parallelismInfo.getMaxParallelism(),
-                        jobVertex.getInvokableClassName(),
-                        jobVertex.getConfiguration()
-                );
+                final TaskInformation taskInformation = new TaskInformation(jobVertex.getID(), jobVertex.getName(),
+                        parallelismInfo.getParallelism(), parallelismInfo.getMaxParallelism(), jobVertex.getInvokableClassName(),
+                        jobVertex.getConfiguration());
 
                 taskInformationOrBlobKey = BlobWriter.serializeAndTryOffload(taskInformation, getJobId(), blobWriter);
             }
@@ -361,37 +360,32 @@ public class ExecutionJobVertex implements AccessExecutionJobVertex, Archiveable
 
     public void connectToPredecessors(Map<IntermediateDataSetID, IntermediateResult> intermediateDataSets) throws JobException {
 
+        // TODO_MA 马中华 注释： 拿到 JobGraph 中该顶点的所有输入，就是 JobEdge
         List<JobEdge> inputs = jobVertex.getInputs();
+        // TODO_MA 马中华 注释： 对于单流来说，这个长度也是 1
 
         if (LOG.isDebugEnabled()) {
-            LOG.debug(String.format("Connecting ExecutionJobVertex %s (%s) to %d predecessors.",
-                    jobVertex.getID(),
-                    jobVertex.getName(),
-                    inputs.size()
-            ));
+            LOG.debug(String.format("Connecting ExecutionJobVertex %s (%s) to %d predecessors.", jobVertex.getID(),
+                    jobVertex.getName(), inputs.size()));
         }
 
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释： 遍历每个 JobEdge
+         */
         for (int num = 0; num < inputs.size(); num++) {
             JobEdge edge = inputs.get(num);
 
             if (LOG.isDebugEnabled()) {
                 if (edge.getSource() == null) {
-                    LOG.debug(String.format(
-                            "Connecting input %d of vertex %s (%s) to intermediate result referenced via ID %s.",
-                            num,
-                            jobVertex.getID(),
-                            jobVertex.getName(),
-                            edge.getSourceId()
-                    ));
+                    LOG.debug(
+                            String.format("Connecting input %d of vertex %s (%s) to intermediate result referenced via ID %s.", num,
+                                    jobVertex.getID(), jobVertex.getName(), edge.getSourceId()));
                 } else {
                     LOG.debug(String.format(
-                            "Connecting input %d of vertex %s (%s) to intermediate result referenced via predecessor %s (%s).",
-                            num,
-                            jobVertex.getID(),
-                            jobVertex.getName(),
-                            edge.getSource().getProducer().getID(),
-                            edge.getSource().getProducer().getName()
-                    ));
+                            "Connecting input %d of vertex %s (%s) to intermediate result referenced via predecessor %s (%s).", num,
+                            jobVertex.getID(), jobVertex.getName(), edge.getSource().getProducer().getID(),
+                            edge.getSource().getProducer().getName()));
                 }
             }
 
@@ -401,15 +395,16 @@ public class ExecutionJobVertex implements AccessExecutionJobVertex, Archiveable
             IntermediateResult ires = intermediateDataSets.get(edge.getSourceId());
             if (ires == null) {
                 throw new JobException(
-                        "Cannot connect this job graph to the previous graph. No previous intermediate result found for ID "
-                                + edge.getSourceId());
+                        "Cannot connect this job graph to the previous graph. No previous intermediate result found for ID " + edge.getSourceId());
             }
 
             this.inputs.add(ires);
 
             /*************************************************
              * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-             *  注释：
+             *  注释： 完成 ExecutionJobVertex 和 IntermediateResult 的链接
+             *  1、Vertex  ExecutionJobVertex  当前顶点
+             *  2、Result  IntermediateResult  上游输出
              */
             EdgeManagerBuildUtil.connectVertexToResult(this, ires, edge.getDistributionPattern());
         }
@@ -498,7 +493,8 @@ public class ExecutionJobVertex implements AccessExecutionJobVertex, Archiveable
      *
      * @return The aggregate state of this ExecutionJobVertex.
      */
-    public static ExecutionState getAggregateJobVertexState(int[] verticesPerState, int parallelism) {
+    public static ExecutionState getAggregateJobVertexState(int[] verticesPerState,
+                                                            int parallelism) {
         if (verticesPerState == null || verticesPerState.length != ExecutionState.values().length) {
             throw new IllegalArgumentException("Must provide an array as large as there are execution states.");
         }
@@ -515,8 +511,7 @@ public class ExecutionJobVertex implements AccessExecutionJobVertex, Archiveable
         } else if (verticesPerState[ExecutionState.RUNNING.ordinal()] > 0) {
             return ExecutionState.RUNNING;
         } else if (verticesPerState[ExecutionState.FINISHED.ordinal()] > 0) {
-            return verticesPerState[ExecutionState.FINISHED.ordinal()]
-                    == parallelism ? ExecutionState.FINISHED : ExecutionState.RUNNING;
+            return verticesPerState[ExecutionState.FINISHED.ordinal()] == parallelism ? ExecutionState.FINISHED : ExecutionState.RUNNING;
         } else {
             // all else collapses under created
             return ExecutionState.CREATED;

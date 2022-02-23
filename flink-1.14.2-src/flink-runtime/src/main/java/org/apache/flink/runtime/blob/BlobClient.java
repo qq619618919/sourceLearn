@@ -139,10 +139,21 @@ public final class BlobClient implements Closeable {
         // loop over retries
         int attempt = 0;
         while (true) {
-            try (final BlobClient bc = new BlobClient(serverAddress,
-                    blobClientConfig
-            ); final InputStream is = bc.getInternal(jobId, blobKey); final OutputStream os = new FileOutputStream(
-                    localJarFile)) {
+
+            /*************************************************
+             * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+             *  注释： 构建 BlobClient 客户端
+             */
+            try (
+                    // TODO_MA 马中华 注释：
+                    final BlobClient bc = new BlobClient(serverAddress, blobClientConfig);
+                    // TODO_MA 马中华 注释：
+                    final InputStream is = bc.getInternal(jobId, blobKey);
+                    // TODO_MA 马中华 注释：
+                    final OutputStream os = new FileOutputStream(localJarFile)
+            ) {
+
+                // TODO_MA 马中华 注释： 读取数据
                 while (true) {
                     final int read = is.read(buf);
                     if (read < 0) {
@@ -216,7 +227,16 @@ public final class BlobClient implements Closeable {
             InputStream is = this.socket.getInputStream();
 
             // Send GET header
+            /*************************************************
+             * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+             *  注释： 发送请求头给 BlobServer
+             */
             sendGetHeader(os, jobId, blobKey);
+
+            /*************************************************
+             * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+             *  注释： 接收响应
+             */
             receiveAndCheckGetResponse(is);
 
             return new BlobInputStream(is, blobKey, os);
@@ -243,6 +263,7 @@ public final class BlobClient implements Closeable {
         checkArgument(jobId != null || blobKey instanceof TransientBlobKey, "permanent BLOBs must be job-related");
 
         // Signal type of operation
+        // TODO_MA 马中华 注释： 发送 GET
         outputStream.write(GET_OPERATION);
 
         // Send job ID and key
@@ -250,8 +271,12 @@ public final class BlobClient implements Closeable {
             outputStream.write(JOB_UNRELATED_CONTENT);
         } else {
             outputStream.write(JOB_RELATED_CONTENT);
+
+            // TODO_MA 马中华 注释： 发送 JobID
             outputStream.write(jobId.getBytes());
         }
+
+        // TODO_MA 马中华 注释： 发送过去 blobKey
         blobKey.writeToOutputStream(outputStream);
     }
 
@@ -273,6 +298,7 @@ public final class BlobClient implements Closeable {
         } else if (response != RETURN_OKAY) {
             throw new IOException("Unrecognized response");
         }
+        // TODO_MA 马中华 注释： BlobServer 会返回一个 RETURN_OKAY
     }
 
     // --------------------------------------------------------------------------------------------

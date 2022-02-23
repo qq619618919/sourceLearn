@@ -126,17 +126,26 @@ import static org.apache.flink.util.Preconditions.checkState;
  * operator (which may be a user function) and runs it, providing all services necessary for example
  * to consume input data, produce its results (intermediate result partitions) and communicate with
  * the JobManager.
+ *  Task 表示 taskManager 上的一个并行子任务的执行。Task 包装了 flink operator（也可能是用户自定义函数） 然后运行，
+ *   提供所有必需的服务，例如 消费输入数据、生成结果(中间结果分区) 以及 与JobManager通信。
  *
- * <p>The Flink operators (implemented as subclasses of {@link TaskInvokable} have only data
+ * <p>The Flink operators implemented as subclasses of {@link TaskInvokable} have only data
  * readers, writers, and certain event callbacks. The task connects those to the network stack and
  * actor messages, and tracks the state of the execution and handles exceptions.
+ *
+ *  flink operators 作为 TaskInvokable 的子类实现，仅能进行数据读取，写出 和 一些事件的回调。
+ *  task 通过网络堆栈调用和actor 消息（flink rpc ） 来处理 这些事件，同时 进行 执行状态的跟踪 和异常处理。
  *
  * <p>Tasks have no knowledge about how they relate to other tasks, or whether they are the first
  * attempt to execute the task, or a repeated attempt. All of that is only known to the JobManager.
  * All the task knows are its own runnable code, the task's configuration, and the IDs of the
  * intermediate results to consume and produce (if any).
  *
+ *  task 不知道它自己和其他 task的关系，也不清楚它是首次执行还是多次尝试。这些只有jobManager清楚。
+ *  task 只知道它运行的代码，它的配置以及要消费和生产的中间结果id（如果有的话）。
+ *
  * <p>Each Task is run by one dedicated thread.
+ *  每个Task由一个专用线程运行。
  */
 public class Task implements Runnable, TaskSlotPayload, TaskActions, PartitionProducerStateProvider {
 
@@ -303,6 +312,7 @@ public class Task implements Runnable, TaskSlotPayload, TaskActions, PartitionPr
     /**
      * <b>IMPORTANT:</b> This constructor may not start any work that would need to be undone in the
      * case of a failing task deployment.
+     * 在启动失败的环境下，这个构造方法不会启动任何需要撤销的工作
      */
     public Task(JobInformation jobInformation,
                 TaskInformation taskInformation,
@@ -405,7 +415,9 @@ public class Task implements Runnable, TaskSlotPayload, TaskActions, PartitionPr
         // produced intermediate result partitions
         /*************************************************
          * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-         *  注释：
+         *  注释： 具体实现是： PipelinedResultPartition
+         *  1、先创建 PipelinedResultPartition
+         *  2、然后创建 PipelinedResultPartition 内的 PipelinedResultSubPartition
          */
         final ResultPartitionWriter[] resultPartitionWriters = shuffleEnvironment
                 .createResultPartitionWriters(taskShuffleContext, resultPartitionDeploymentDescriptors)
@@ -413,7 +425,7 @@ public class Task implements Runnable, TaskSlotPayload, TaskActions, PartitionPr
 
         /*************************************************
          * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-         *  注释：
+         *  注释： 对上述 PipelinedResultPartition 进行包装生成一个 ConsumableNotifyingResultPartitionWriter
          */
         this.consumableNotifyingPartitionWriters = ConsumableNotifyingResultPartitionWriterDecorator.decorate(
                 resultPartitionDeploymentDescriptors,
@@ -426,16 +438,19 @@ public class Task implements Runnable, TaskSlotPayload, TaskActions, PartitionPr
         // consumed intermediate result partitions
         /*************************************************
          * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-         *  注释：
+         *  注释： 创建 InputGate， 已经它内部的 InputChannel
          */
         final IndexedInputGate[] gates = shuffleEnvironment
                 .createInputGates(taskShuffleContext, this, inputGateDeploymentDescriptors)
                 .toArray(new IndexedInputGate[0]);
 
+        // TODO_MA 马中华 注释： metrics 相关
         this.inputGates = new IndexedInputGate[gates.length];
         this.throughputCalculator = new ThroughputCalculator(SystemClock.getInstance(),
                 taskConfiguration.get(BUFFER_DEBLOAT_SAMPLES)
         );
+
+        // TODO_MA 马中华 注释： 包装，增加 metric 功能
         int counter = 0;
         for (IndexedInputGate gate : gates) {
             inputGates[counter++] = new InputGateWithMetrics(gate,
@@ -443,7 +458,6 @@ public class Task implements Runnable, TaskSlotPayload, TaskActions, PartitionPr
                     throughputCalculator
             );
         }
-
         if (shuffleEnvironment instanceof NettyShuffleEnvironment) {
             //noinspection deprecation
             ((NettyShuffleEnvironment) shuffleEnvironment).registerLegacyNetworkMetrics(metrics.getIOMetricGroup(),
@@ -457,7 +471,7 @@ public class Task implements Runnable, TaskSlotPayload, TaskActions, PartitionPr
         // finally, create the executing thread, but do not start it
         /*************************************************
          * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-         *  注释：
+         *  注释： StreamTask 的执行线程
          */
         executingThread = new Thread(TASK_THREADS_GROUP, this, taskNameWithSubtask);
     }
@@ -582,18 +596,23 @@ public class Task implements Runnable, TaskSlotPayload, TaskActions, PartitionPr
 
         /*************************************************
          * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-         *  注释：
+         *  注释： executingThread 的初始化在 Task 的构造方法的最后一句代码
+         *  这个线程的目标对象：  Task
          */
         executingThread.start();
     }
 
-    /** The core work method that bootstraps the task and executes its code. */
+    /** The core work method that bootstraps the task and executes its code.
+     *  启动和执行task的核心工作方法
+     * */
     @Override
     public void run() {
         try {
             /*************************************************
              * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-             *  注释：
+             *  注释： 从此，进入 Task（逻辑封装） 的执行
+             *  1、创建 物理Task
+             *  2、启动 物理Task
              */
             doRun();
         } finally {
@@ -601,13 +620,21 @@ public class Task implements Runnable, TaskSlotPayload, TaskActions, PartitionPr
         }
     }
 
+    /*************************************************
+     * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+     *  注释： 整体， 13 步
+     */
     private void doRun() {
         // ----------------------------
         //  Initial State transition
         // ----------------------------
+        // TODO_MA 马中华 注释： 第一步： 处理状态
         while (true) {
             ExecutionState current = this.executionState;
+
+            // TODO_MA 马中华 注释： 刚开始，必然是 ExecutionState.CREATED 状态，更新成 ExecutionState.DEPLOYING
             if (current == ExecutionState.CREATED) {
+                // TODO_MA 马中华 注释： Step 01
                 if (transitionState(ExecutionState.CREATED, ExecutionState.DEPLOYING)) {
                     // success, we can start our work
                     break;
@@ -642,28 +669,30 @@ public class Task implements Runnable, TaskSlotPayload, TaskActions, PartitionPr
         Map<String, Future<Path>> distributedCacheEntries = new HashMap<>();
         TaskInvokable invokable = null;
 
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释： 第二步： 进入核心执行逻辑
+         */
         try {
             // ----------------------------
             //  Task Bootstrap - We periodically
             //  check for canceling as a shortcut
             // ----------------------------
-
             // activate safety net for task thread
             LOG.debug("Creating FileSystem stream leak safety net for task {}", this);
             FileSystemSafetyNet.initializeSafetyNetForThread();
-
             // first of all, get a user-code classloader
             // this may involve downloading the job's JAR files and/or classes
             LOG.info("Loading JAR files for task {}.", this);
-
             userCodeClassLoader = createUserCodeClassloader();
+
+            // TODO_MA 马中华 注释： Step 02
             final ExecutionConfig executionConfig = serializedExecutionConfig.deserializeValue(userCodeClassLoader.asClassLoader());
 
             if (executionConfig.getTaskCancellationInterval() >= 0) {
                 // override task cancellation interval from Flink config if set in ExecutionConfig
                 taskCancellationInterval = executionConfig.getTaskCancellationInterval();
             }
-
             if (executionConfig.getTaskCancellationTimeout() >= 0) {
                 // override task cancellation timeout from Flink config if set in ExecutionConfig
                 taskCancellationTimeout = executionConfig.getTaskCancellationTimeout();
@@ -684,19 +713,22 @@ public class Task implements Runnable, TaskSlotPayload, TaskActions, PartitionPr
 
             /*************************************************
              * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-             *  注释：
+             *  注释： Step 03
+             *  启动和配置 ResultPartition 和 InputGate
              */
             setupPartitionsAndGates(consumableNotifyingPartitionWriters, inputGates);
 
             /*************************************************
              * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-             *  注释：
+             *  注释： Step 04
+             *  将 ResultPartition 注册到 TaskEventDispatcher 中
              */
             for (ResultPartitionWriter partitionWriter : consumableNotifyingPartitionWriters) {
                 taskEventDispatcher.registerPartition(partitionWriter.getPartitionId());
             }
 
             // next, kick off the background copying of files for the distributed cache
+            // TODO_MA 马中华 注释： Step 05 处理分布式缓存相关，从分布式缓存中，拷贝下来一些运行 Task 所需要的资源文件
             try {
                 for (Map.Entry<String, DistributedCache.DistributedCacheEntry> entry : DistributedCache.readFileInfoFromConfig(
                         jobConfiguration)) {
@@ -718,12 +750,11 @@ public class Task implements Runnable, TaskSlotPayload, TaskActions, PartitionPr
             // ----------------------------------------------------------------
             //  call the user code initialization methods
             // ----------------------------------------------------------------
-
             TaskKvStateRegistry kvStateRegistry = kvStateService.createKvStateTaskRegistry(jobId, getJobVertexId());
 
             /*************************************************
              * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-             *  注释：
+             *  注释： Step 06 创建运行环境对象
              */
             Environment env = new RuntimeEnvironment(jobId,
                     vertexId,
@@ -766,7 +797,10 @@ public class Task implements Runnable, TaskSlotPayload, TaskActions, PartitionPr
                 // now load and instantiate the task's invokable code
                 /*************************************************
                  * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-                 *  注释：
+                 *  注释： Step 07 重中之重
+                 *  通过反射创建一个 Task 的启动类：SourceStreamTask、OneInputStreamTask、TwoInputStreamTask、StreamTask
+                 *  nameOfInvokableClass 通过方法的调用代码，可以猜得到： Invokable = nameOfInvokableClass
+                 *  但是具体是谁不知道！
                  */
                 invokable = loadAndInstantiateInvokable(userCodeClassLoader.asClassLoader(), nameOfInvokableClass, env);
             } finally {
@@ -779,14 +813,25 @@ public class Task implements Runnable, TaskSlotPayload, TaskActions, PartitionPr
 
             // we must make strictly sure that the invokable is accessible to the cancel() call
             // by the time we switched to running.
+            // TODO_MA 马中华 注释： Step 08
             this.invokable = invokable;
 
-            // switch to the INITIALIZING state, if that fails, we have been canceled/failed in the
-            // meantime
+            // switch to the INITIALIZING state, if that fails, we have been canceled/failed in the meantime
+            /*************************************************
+             * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+             *  注释： Step 09
+             *  更新状态从 ExecutionState.DEPLOYING 到 ExecutionState.INITIALIZING
+             */
             if (!transitionState(ExecutionState.DEPLOYING, ExecutionState.INITIALIZING)) {
                 throw new CancelTaskException();
             }
 
+            /*************************************************
+             * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+             *  注释： step 10
+             *  Task 切换进入 INITIALIZING 状态， 并告知 JobMaster
+             *  flink-1.10 没有这个代码！
+             */
             taskManagerActions.updateTaskExecutionState(new TaskExecutionState(executionId,
                     ExecutionState.INITIALIZING
             ));
@@ -796,7 +841,7 @@ public class Task implements Runnable, TaskSlotPayload, TaskActions, PartitionPr
 
             /*************************************************
              * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-             *  注释：
+             *  注释： Step 11 可调用数据恢复到上次有效状态
              */
             restoreAndInvoke(invokable);
 
@@ -811,6 +856,7 @@ public class Task implements Runnable, TaskSlotPayload, TaskActions, PartitionPr
             // ----------------------------------------------------------------
 
             // finish the produced partitions. if this fails, we consider the execution failed.
+            // TODO_MA 马中华 注释： Step 12
             for (ResultPartitionWriter partitionWriter : consumableNotifyingPartitionWriters) {
                 if (partitionWriter != null) {
                     partitionWriter.finish();
@@ -819,6 +865,11 @@ public class Task implements Runnable, TaskSlotPayload, TaskActions, PartitionPr
 
             // try to mark the task as finished
             // if that fails, the task was canceled/failed in the meantime
+            /*************************************************
+             * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+             *  注释： Step 13
+             *  更新状态从 ExecutionState.RUNNING 到 ExecutionState.FINISHED
+             */
             if (!transitionState(ExecutionState.RUNNING, ExecutionState.FINISHED)) {
                 throw new CancelTaskException();
             }
@@ -953,20 +1004,31 @@ public class Task implements Runnable, TaskSlotPayload, TaskActions, PartitionPr
         try {
             /*************************************************
              * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-             *  注释：
+             *  注释： Step 11.1 第一步： restore
+             *  如果这个 job 不是新启动，则肯定是需要做 state 状态恢复的额
              */
             runWithSystemExitMonitoring(finalInvokable::restore);
 
+            /*************************************************
+             * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+             *  注释： Step 11.2 更新状态从 INITIALIZING 到 RUNNING
+             */
             if (!transitionState(ExecutionState.INITIALIZING, ExecutionState.RUNNING)) {
                 throw new CancelTaskException();
             }
 
             // notify everyone that we switched to running
+            /*************************************************
+             * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+             *  注释： Step 11.3 Task 切换进入 RUNNING 状态， 并告知 JobMaster
+             */
             taskManagerActions.updateTaskExecutionState(new TaskExecutionState(executionId, ExecutionState.RUNNING));
 
             /*************************************************
              * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-             *  注释：
+             *  注释： Step 11.4 第二步： invoke
+             *  Task 终于开始要接收数据执行逻辑处理了。
+             *  JobMaster 发了一个 submitTask 的 RPC 请求给从节点，然后经过各种初始化，准备等等，终于开始要接收数据执行逻辑处理
              */
             runWithSystemExitMonitoring(finalInvokable::invoke);
         } catch (Throwable throwable) {
@@ -1001,9 +1063,11 @@ public class Task implements Runnable, TaskSlotPayload, TaskActions, PartitionPr
 
         /*************************************************
          * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-         *  注释：
+         *  注释： 注册 ResultPartition 到 ResultPartitionManager 中
          */
         for (ResultPartitionWriter partition : producedPartitions) {
+            // TODO_MA 马中华 注释： partition = ConsumableXXXXX
+            // TODO_MA 马中华 注释： ConsumableXXXXX 其实就是包装了 ResultPartition
             partition.setup();
         }
 
@@ -1011,9 +1075,11 @@ public class Task implements Runnable, TaskSlotPayload, TaskActions, PartitionPr
         // we are requesting partitions
         /*************************************************
          * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-         *  注释：
+         *  注释： 启动 InputGate 和它内部的 InputChannel
          */
         for (InputGate gate : inputGates) {
+            // TODO_MA 马中华 注释： gate = InputGateWithMetrics
+            // TODO_MA 马中华 注释： InputGateWithMetrics 封装了 IpnutGate， 具体实现是 SingleInputGate
             gate.setup();
         }
     }
@@ -1172,11 +1238,19 @@ public class Task implements Runnable, TaskSlotPayload, TaskActions, PartitionPr
     @Override
     public void failExternally(Throwable cause) {
         LOG.info("Attempting to fail task externally {} ({}).", taskNameWithSubtask, executionId);
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释：
+         */
         cancelOrFailAndCancelInvokable(ExecutionState.FAILED, cause);
     }
 
     private void cancelOrFailAndCancelInvokable(ExecutionState targetState, Throwable cause) {
         try {
+            /*************************************************
+             * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+             *  注释：
+             */
             cancelOrFailAndCancelInvokableInternal(targetState, cause);
         } catch (Throwable t) {
             if (ExceptionUtils.isJvmFatalOrOutOfMemoryError(t)) {
@@ -1194,6 +1268,8 @@ public class Task implements Runnable, TaskSlotPayload, TaskActions, PartitionPr
     @VisibleForTesting
     void cancelOrFailAndCancelInvokableInternal(ExecutionState targetState, Throwable cause) {
         while (true) {
+
+            // TODO_MA 马中华 注释： 当前状态
             ExecutionState current = executionState;
 
             // if the task is already canceled (or canceling) or finished or failed,
@@ -1203,6 +1279,7 @@ public class Task implements Runnable, TaskSlotPayload, TaskActions, PartitionPr
                 return;
             }
 
+            // TODO_MA 马中华 注释： 变更为 ExecutionState.FAILED
             if (current == ExecutionState.DEPLOYING || current == ExecutionState.CREATED) {
                 if (transitionState(current, targetState, cause)) {
                     // if we manage this state transition, then the invokable gets never called
@@ -1210,7 +1287,11 @@ public class Task implements Runnable, TaskSlotPayload, TaskActions, PartitionPr
                     this.failureCause = cause;
                     return;
                 }
-            } else if (current == ExecutionState.INITIALIZING || current == ExecutionState.RUNNING) {
+            }
+
+            // TODO_MA 马中华 注释： Task = INITIALIZING 或者 Task = RUNNING
+            else if (current == ExecutionState.INITIALIZING || current == ExecutionState.RUNNING) {
+                // TODO_MA 马中华 注释： 变更为 ExecutionState.FAILED
                 if (transitionState(current, targetState, cause)) {
                     // we are canceling / failing out of the running state
                     // we need to cancel the invokable
@@ -1218,6 +1299,13 @@ public class Task implements Runnable, TaskSlotPayload, TaskActions, PartitionPr
                     // copy reference to guard against concurrent null-ing out the reference
                     final TaskInvokable invokable = this.invokable;
 
+                    /*************************************************
+                     * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+                     *  注释： 通过下述三种类型的方式来进行 Task 的关闭
+                     *  1、TaskCanceler
+                     *  2、TaskInterrupter
+                     *  3、TaskCancelerWatchDog
+                     */
                     if (invokable != null && invokableHasBeenCanceled.compareAndSet(false, true)) {
                         this.failureCause = cause;
 
@@ -1230,6 +1318,7 @@ public class Task implements Runnable, TaskSlotPayload, TaskActions, PartitionPr
                         // case the canceling could not continue
 
                         // The canceller calls cancel and interrupts the executing thread once
+                        // TODO_MA 马中华 注释： Task 的执行线程 executingThread 终止
                         Runnable canceler = new TaskCanceler(LOG,
                                 taskCancellationTimeout
                                         > 0 ? taskCancellationTimeout : TaskManagerOptions.TASK_CANCELLATION_TIMEOUT.defaultValue(),
@@ -1237,7 +1326,7 @@ public class Task implements Runnable, TaskSlotPayload, TaskActions, PartitionPr
                                 executingThread,
                                 taskNameWithSubtask
                         );
-
+                        // TODO_MA 马中华 注释： 线程启动
                         Thread cancelThread = new Thread(executingThread.getThreadGroup(),
                                 canceler,
                                 String.format("Canceler for %s (%s).", taskNameWithSubtask, executionId)
@@ -1247,15 +1336,14 @@ public class Task implements Runnable, TaskSlotPayload, TaskActions, PartitionPr
                         cancelThread.start();
 
                         // the periodic interrupting thread - a different thread than the canceller,
-                        // in case
-                        // the application code does blocking stuff in its cancellation paths.
+                        // in case the application code does blocking stuff in its cancellation paths.
+                        // TODO_MA 马中华 注释： TaskInterrupter 线程来继续停止 executingThread
                         Runnable interrupter = new TaskInterrupter(LOG,
                                 invokable,
                                 executingThread,
                                 taskNameWithSubtask,
                                 taskCancellationInterval
                         );
-
                         Thread interruptingThread = new Thread(executingThread.getThreadGroup(),
                                 interrupter,
                                 String.format("Canceler/Interrupts for %s (%s).", taskNameWithSubtask, executionId)
@@ -1266,13 +1354,13 @@ public class Task implements Runnable, TaskSlotPayload, TaskActions, PartitionPr
 
                         // if a cancellation timeout is set, the watchdog thread kills the process
                         // if graceful cancellation does not succeed
+                        // TODO_MA 马中华 注释： 如果上述的优雅关闭未成功，则启动看门狗线程： TaskCancelerWatchDog
                         if (taskCancellationTimeout > 0) {
                             Runnable cancelWatchdog = new TaskCancelerWatchDog(taskInfo,
                                     executingThread,
                                     taskManagerActions,
                                     taskCancellationTimeout
                             );
-
                             Thread watchDogThread = new Thread(executingThread.getThreadGroup(),
                                     cancelWatchdog,
                                     String.format("Cancellation Watchdog for %s (%s).",
@@ -1335,6 +1423,7 @@ public class Task implements Runnable, TaskSlotPayload, TaskActions, PartitionPr
         final TaskInvokable invokable = this.invokable;
 
         // TODO_MA 马中华 注释： 记录当前这次 checkpoint 的元数据
+        // TODO_MA 马中华 注释： checkpointID， checkpoint开启时间，Task开始执行checkpoint的时间
         final CheckpointMetaData checkpointMetaData = new CheckpointMetaData(checkpointID,
                 checkpointTimestamp,
                 System.currentTimeMillis()
@@ -1344,13 +1433,13 @@ public class Task implements Runnable, TaskSlotPayload, TaskActions, PartitionPr
         if (executionState == ExecutionState.RUNNING) {
             checkState(invokable instanceof CheckpointableTask, "invokable is not checkpointable");
             try {
-                ((CheckpointableTask) invokable)
-                        /*************************************************
-                         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-                         *  注释：
-                         */.triggerCheckpointAsync(checkpointMetaData, checkpointOptions)
+                /*************************************************
+                 * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+                 *  注释：
+                 */
+                ((CheckpointableTask) invokable).triggerCheckpointAsync(checkpointMetaData, checkpointOptions)
 
-                        // TODO_MA 马中华 注释： 处理结果
+                        // TODO_MA 马中华 注释： 处理结果， 如果有异常，则拒绝 checkpoint
                         .handle((triggerResult, exception) -> {
                             if (exception != null || !triggerResult) {
                                 declineCheckpoint(checkpointID, CheckpointFailureReason.TASK_FAILURE, exception);
@@ -1384,7 +1473,7 @@ public class Task implements Runnable, TaskSlotPayload, TaskActions, PartitionPr
             }
         }
 
-        // TODO_MA 马中华 注释： Task 不运行也是拒绝的
+        // TODO_MA 马中华 注释： Task 不运行则直接拒绝的
         else {
             LOG.debug("Declining checkpoint request for non-running task {} ({}).", taskNameWithSubtask, executionId);
             // send back a message that we did not do the checkpoint
@@ -1566,7 +1655,8 @@ public class Task implements Runnable, TaskSlotPayload, TaskActions, PartitionPr
 
         /*************************************************
          * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-         *  注释：
+         *  注释： 获取启动类
+         *  invokableClass = SourceStreamTask   和 OneInputStreamTask
          */
         final Class<? extends TaskInvokable> invokableClass;
         try {
@@ -1577,7 +1667,7 @@ public class Task implements Runnable, TaskSlotPayload, TaskActions, PartitionPr
 
         /*************************************************
          * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-         *  注释：
+         *  注释： 获取构造器
          */
         Constructor<? extends TaskInvokable> statelessCtor;
         try {
@@ -1589,11 +1679,14 @@ public class Task implements Runnable, TaskSlotPayload, TaskActions, PartitionPr
         // instantiate the class
         /*************************************************
          * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-         *  注释：
+         *  注释： 通过构造器，反射构造实例
          */
         try {
             //noinspection ConstantConditions  --> cannot happen
             return statelessCtor.newInstance(environment);
+
+            // TODO_MA 马中华 注释： 我们要去找 invokableClass 只带一个 environment 参数的构造方法
+
         } catch (InvocationTargetException e) {
             // directly forward exceptions from the eager initialization
             throw e.getTargetException();
@@ -1657,6 +1750,10 @@ public class Task implements Runnable, TaskSlotPayload, TaskActions, PartitionPr
                     Future<Void> cancellationFuture = invokable.cancel();
                     // Wait for any active actions to complete (e.g. timers, mailbox actions)
                     // Before that, interrupt to notify them about cancellation
+                    /*************************************************
+                     * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+                     *  注释：
+                     */
                     invokable.maybeInterruptOnCancel(executer, null, null);
                     try {
                         cancellationFuture.get(taskCancellationTimeout, TimeUnit.MILLISECONDS);
@@ -1728,6 +1825,10 @@ public class Task implements Runnable, TaskSlotPayload, TaskActions, PartitionPr
                 // log stack trace where the executing thread is stuck and
                 // interrupt the running thread periodically while it is still alive
                 while (executerThread.isAlive()) {
+                    /*************************************************
+                     * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+                     *  注释：
+                     */
                     task.maybeInterruptOnCancel(executerThread, taskName, interruptIntervalMillis);
                     try {
                         executerThread.join(interruptIntervalMillis);

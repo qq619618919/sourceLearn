@@ -41,139 +41,140 @@ import scala.collection.JavaConversions._
 import scala.collection.Seq
 
 /**
-  * Streaming sink ITCase base, test checkpoint.
-  */
+ * Streaming sink ITCase base, test checkpoint.
+ */
 abstract class FsStreamingSinkITCaseBase extends StreamingTestBase {
 
-  @Rule
-  def timeoutPerTest: Timeout = Timeout.seconds(20)
+    @Rule
+    def timeoutPerTest: Timeout = Timeout.seconds(20)
 
-  protected var resultPath: String = _
+    protected var resultPath: String = _
 
-  private val data = Seq(
-    Row.of(Integer.valueOf(1), "a", "b", "2020-05-03", "7"),
-    Row.of(Integer.valueOf(2), "p", "q", "2020-05-03", "8"),
-    Row.of(Integer.valueOf(3), "x", "y", "2020-05-03", "9"),
-    Row.of(Integer.valueOf(4), "x", "y", "2020-05-03", "10"),
-    Row.of(Integer.valueOf(5), "x", "y", "2020-05-03", "11"))
+    private val data = Seq(
+        Row.of(Integer.valueOf(1), "a", "b", "2020-05-03", "7"),
+        Row.of(Integer.valueOf(2), "p", "q", "2020-05-03", "8"),
+        Row.of(Integer.valueOf(3), "x", "y", "2020-05-03", "9"),
+        Row.of(Integer.valueOf(4), "x", "y", "2020-05-03", "10"),
+        Row.of(Integer.valueOf(5), "x", "y", "2020-05-03", "11"))
 
-  @Before
-  override def before(): Unit = {
-    super.before()
-    resultPath = tempFolder.newFolder().toURI.toString
+    @Before
+    override def before(): Unit = {
+        super.before()
+        resultPath = tempFolder.newFolder().toURI.toString
 
-    env.setParallelism(1)
-    env.enableCheckpointing(100)
+        env.setParallelism(1)
+        env.enableCheckpointing(100)
 
-    val stream = new DataStream(env.getJavaEnv.addSource(
-      new FiniteTestSource(data),
-      new RowTypeInfo(Types.INT, Types.STRING, Types.STRING, Types.STRING, Types.STRING)))
+        val stream = new DataStream(env.getJavaEnv.addSource(
+            new FiniteTestSource(data),
+            new RowTypeInfo(Types.INT, Types.STRING, Types.STRING, Types.STRING, Types.STRING)))
 
-    tEnv.createTemporaryView("my_table", stream, $("a"), $("b"), $("c"), $("d"), $("e"))
-  }
+        tEnv.createTemporaryView("my_table", stream, $("a"), $("b"), $("c"), $("d"), $("e"))
+    }
 
-  def additionalProperties(): Array[String] = Array()
+    def additionalProperties(): Array[String] = Array()
 
-  @Test
-  def testNonPart(): Unit = {
-    test(partition = false)
-  }
+    @Test
+    def testNonPart(): Unit = {
+        test(partition = false)
+    }
 
-  @Test
-  def testPart(): Unit = {
-    test(partition = true)
-    val basePath = new File(new URI(resultPath).getPath, "d=2020-05-03")
-    Assert.assertEquals(5, basePath.list().length)
-    Assert.assertTrue(new File(new File(basePath, "e=7"), "_MY_SUCCESS").exists())
-    Assert.assertTrue(new File(new File(basePath, "e=8"), "_MY_SUCCESS").exists())
-    Assert.assertTrue(new File(new File(basePath, "e=9"), "_MY_SUCCESS").exists())
-    Assert.assertTrue(new File(new File(basePath, "e=10"), "_MY_SUCCESS").exists())
-    Assert.assertTrue(new File(new File(basePath, "e=11"), "_MY_SUCCESS").exists())
-  }
+    @Test
+    def testPart(): Unit = {
+        test(partition = true)
+        val basePath = new File(new URI(resultPath).getPath, "d=2020-05-03")
+        Assert.assertEquals(5, basePath.list().length)
+        Assert.assertTrue(new File(new File(basePath, "e=7"), "_MY_SUCCESS").exists())
+        Assert.assertTrue(new File(new File(basePath, "e=8"), "_MY_SUCCESS").exists())
+        Assert.assertTrue(new File(new File(basePath, "e=9"), "_MY_SUCCESS").exists())
+        Assert.assertTrue(new File(new File(basePath, "e=10"), "_MY_SUCCESS").exists())
+        Assert.assertTrue(new File(new File(basePath, "e=11"), "_MY_SUCCESS").exists())
+    }
 
-  private def test(partition: Boolean, policy: String = "success-file"): Unit = {
-    val dollar = '$'
-    val ddl = s"""
-                 |create table sink_table (
-                 |  a int,
-                 |  b string,
-                 |  c string,
-                 |  d string,
-                 |  e string
-                 |)
-                 |${if (partition) "partitioned by (d, e)" else ""}
-                 |with (
-                 |  'connector' = 'filesystem',
-                 |  'path' = '$resultPath',
-                 |  '${PARTITION_TIME_EXTRACTOR_TIMESTAMP_PATTERN.key()}' =
-                 |      '${dollar}d ${dollar}e:00:00',
-                 |  '${SINK_PARTITION_COMMIT_DELAY.key()}' = '1h',
-                 |  '${SINK_PARTITION_COMMIT_POLICY_KIND.key()}' = '$policy',
-                 |  '${SINK_PARTITION_COMMIT_SUCCESS_FILE_NAME.key()}' = '_MY_SUCCESS',
-                 |  ${additionalProperties().mkString(",\n")}
-                 |)
+    private def test(partition: Boolean, policy: String = "success-file"): Unit = {
+        val dollar = '$'
+        val ddl =
+            s"""
+               |create table sink_table (
+               |  a int,
+               |  b string,
+               |  c string,
+               |  d string,
+               |  e string
+               |)
+               |${if (partition) "partitioned by (d, e)" else ""}
+               |with (
+               |  'connector' = 'filesystem',
+               |  'path' = '$resultPath',
+               |  '${PARTITION_TIME_EXTRACTOR_TIMESTAMP_PATTERN.key()}' =
+               |      '${dollar}d ${dollar}e:00:00',
+               |  '${SINK_PARTITION_COMMIT_DELAY.key()}' = '1h',
+               |  '${SINK_PARTITION_COMMIT_POLICY_KIND.key()}' = '$policy',
+               |  '${SINK_PARTITION_COMMIT_SUCCESS_FILE_NAME.key()}' = '_MY_SUCCESS',
+               |  ${additionalProperties().mkString(",\n")}
+               |)
        """.stripMargin
-    tEnv.executeSql(ddl)
+        tEnv.executeSql(ddl)
 
-    tEnv.sqlQuery("select * from my_table").executeInsert("sink_table").await()
+        tEnv.sqlQuery("select * from my_table").executeInsert("sink_table").await()
 
-    check("select * from sink_table", data)
-  }
+        check("select * from sink_table", data)
+    }
 
-  @Test
-  def testMetastorePolicy(): Unit = {
-    thrown.expectMessage(
-      "Can not configure a 'metastore' partition commit policy for a file system table." +
-          " You can only configure 'metastore' partition commit policy for a hive table.")
-    test(partition = true, "metastore")
-  }
+    @Test
+    def testMetastorePolicy(): Unit = {
+        thrown.expectMessage(
+            "Can not configure a 'metastore' partition commit policy for a file system table." +
+                " You can only configure 'metastore' partition commit policy for a hive table.")
+        test(partition = true, "metastore")
+    }
 
-  def check(sqlQuery: String, expectedResult: Seq[Row]): Unit = {
-    val iter = tEnv.sqlQuery(sqlQuery).execute().collect()
-    val result = CollectionUtil.iteratorToList(iter)
-    iter.close()
+    def check(sqlQuery: String, expectedResult: Seq[Row]): Unit = {
+        val iter = tEnv.sqlQuery(sqlQuery).execute().collect()
+        val result = CollectionUtil.iteratorToList(iter)
+        iter.close()
 
-    assertEquals(
-      expectedResult.map(TestSinkUtil.rowToString(_)).sorted,
-      result.map(TestSinkUtil.rowToString(_)).sorted)
-  }
+        assertEquals(
+            expectedResult.map(TestSinkUtil.rowToString(_)).sorted,
+            result.map(TestSinkUtil.rowToString(_)).sorted)
+    }
 }
 
-class FiniteTestSource(elements: Iterable[Row]) extends SourceFunction[Row] with CheckpointListener{
+class FiniteTestSource(elements: Iterable[Row]) extends SourceFunction[Row] with CheckpointListener {
 
-  private var running: Boolean = true
+    private var running: Boolean = true
 
-  private var numCheckpointsComplete: Int = 0
+    private var numCheckpointsComplete: Int = 0
 
-  @throws[Exception]
-  override def run(ctx: SourceFunction.SourceContext[Row]): Unit = {
-    val lock = ctx.getCheckpointLock
-    lock.synchronized {
-      for (t <- elements) {
-        ctx.collect(t)
-        ctx.emitWatermark(new Watermark(
-          toMills(toLocalDateTime(s"${t.getField(3)} ${t.getField(4)}:00:00"))))
-      }
+    @throws[Exception]
+    override def run(ctx: SourceFunction.SourceContext[Row]): Unit = {
+        val lock = ctx.getCheckpointLock
+        lock.synchronized {
+            for (t <- elements) {
+                ctx.collect(t)
+                ctx.emitWatermark(new Watermark(
+                    toMills(toLocalDateTime(s"${t.getField(3)} ${t.getField(4)}:00:00"))))
+            }
+        }
+
+        ctx.emitWatermark(new Watermark(Long.MaxValue))
+
+        lock.synchronized {
+            while (running && numCheckpointsComplete < 2) {
+                lock.wait(1);
+            }
+        }
     }
 
-    ctx.emitWatermark(new Watermark(Long.MaxValue))
-
-    lock.synchronized {
-      while (running && numCheckpointsComplete < 2) {
-        lock.wait(1);
-      }
+    override def cancel(): Unit = {
+        running = false
     }
-  }
 
-  override def cancel(): Unit = {
-    running = false
-  }
+    @throws[Exception]
+    override def notifyCheckpointComplete(checkpointId: Long): Unit = {
+        numCheckpointsComplete += 1
+    }
 
-  @throws[Exception]
-  override def notifyCheckpointComplete(checkpointId: Long): Unit = {
-    numCheckpointsComplete += 1
-  }
-
-  @throws[Exception]
-  override def notifyCheckpointAborted(checkpointId: Long): Unit = {}
+    @throws[Exception]
+    override def notifyCheckpointAborted(checkpointId: Long): Unit = {}
 }

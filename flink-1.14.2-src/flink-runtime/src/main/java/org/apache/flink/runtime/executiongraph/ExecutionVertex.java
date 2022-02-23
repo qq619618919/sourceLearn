@@ -120,34 +120,38 @@ public class ExecutionVertex implements AccessExecutionVertex, Archiveable<Archi
         this.jobVertex = jobVertex;
         this.subTaskIndex = subTaskIndex;
         this.executionVertexId = new ExecutionVertexID(jobVertex.getJobVertexId(), subTaskIndex);
-        this.taskNameWithSubtask = String.format("%s (%d/%d)",
-                jobVertex.getJobVertex().getName(),
-                subTaskIndex + 1,
-                jobVertex.getParallelism()
-        );
+        this.taskNameWithSubtask = String.format("%s (%d/%d)", jobVertex.getJobVertex().getName(), subTaskIndex + 1,
+                jobVertex.getParallelism());
 
         this.resultPartitions = new LinkedHashMap<>(producedDataSets.length, 1);
 
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释：
+         */
         for (IntermediateResult result : producedDataSets) {
-            IntermediateResultPartition irp = new IntermediateResultPartition(result,
-                    this,
-                    subTaskIndex,
-                    getExecutionGraphAccessor().getEdgeManager()
-            );
+
+            // TODO_MA 马中华 注释： 创建 IntermediateResultPartition
+            IntermediateResultPartition irp = new IntermediateResultPartition(result, this, subTaskIndex,
+                    getExecutionGraphAccessor().getEdgeManager());
+
+            // TODO_MA 马中华 注释： 将 IntermediateResultPartition 设置到 IntermediateResult
             result.setPartition(subTaskIndex, irp);
 
+            // TODO_MA 马中华 注释： 注册 IntermediateResultPartition 到 resultPartitions 这个 map 中
             resultPartitions.put(irp.getPartitionId(), irp);
         }
 
         this.priorExecutions = new EvictingBoundedList<>(maxPriorExecutionHistoryLength);
 
-        this.currentExecution = new Execution(getExecutionGraphAccessor().getFutureExecutor(),
-                this,
-                initialAttemptCount,
-                createTimestamp,
-                timeout
-        );
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释： 当前 ExecutionVertex 对应到一个 Execution
+         */
+        this.currentExecution = new Execution(getExecutionGraphAccessor().getFutureExecutor(), this, initialAttemptCount,
+                createTimestamp, timeout);
 
+        // TODO_MA 马中华 注释： 注册 Execution
         getExecutionGraphAccessor().registerExecution(currentExecution);
 
         this.timeout = timeout;
@@ -220,10 +224,8 @@ public class ExecutionVertex implements AccessExecutionVertex, Archiveable<Archi
         final List<ConsumedPartitionGroup> allConsumedPartitions = getAllConsumedPartitionGroups();
 
         if (input < 0 || input >= allConsumedPartitions.size()) {
-            throw new IllegalArgumentException(String.format("Input %d is out of range [0..%d)",
-                    input,
-                    allConsumedPartitions.size()
-            ));
+            throw new IllegalArgumentException(
+                    String.format("Input %d is out of range [0..%d)", input, allConsumedPartitions.size()));
         }
 
         return allConsumedPartitions.get(input);
@@ -332,9 +334,7 @@ public class ExecutionVertex implements AccessExecutionVertex, Archiveable<Archi
 
     public void addConsumedPartitionGroup(ConsumedPartitionGroup consumedPartitions) {
 
-        getExecutionGraphAccessor()
-                .getEdgeManager()
-                .connectVertexWithConsumedPartitionGroup(executionVertexId, consumedPartitions);
+        getExecutionGraphAccessor().getEdgeManager().connectVertexWithConsumedPartitionGroup(executionVertexId, consumedPartitions);
     }
 
     /**
@@ -343,10 +343,7 @@ public class ExecutionVertex implements AccessExecutionVertex, Archiveable<Archi
      */
     public Optional<TaskManagerLocation> getPreferredLocationBasedOnState() {
         // only restore to same execution if it has state
-        if (currentExecution.getTaskRestore() != null && currentExecution
-                .getTaskRestore()
-                .getTaskStateSnapshot()
-                .hasState()) {
+        if (currentExecution.getTaskRestore() != null && currentExecution.getTaskRestore().getTaskStateSnapshot().hasState()) {
             return Optional.ofNullable(getLatestPriorLocation());
         }
 
@@ -377,12 +374,8 @@ public class ExecutionVertex implements AccessExecutionVertex, Archiveable<Archi
 
             priorExecutions.add(oldExecution.archive());
 
-            final Execution newExecution = new Execution(getExecutionGraphAccessor().getFutureExecutor(),
-                    this,
-                    oldExecution.getAttemptNumber() + 1,
-                    timestamp,
-                    timeout
-            );
+            final Execution newExecution = new Execution(getExecutionGraphAccessor().getFutureExecutor(), this,
+                    oldExecution.getAttemptNumber() + 1, timestamp, timeout);
 
             currentExecution = newExecution;
 
@@ -428,7 +421,15 @@ public class ExecutionVertex implements AccessExecutionVertex, Archiveable<Archi
 
         /*************************************************
          * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-         *  注释：
+         *  注释： Execution ： 包含了这个 Task运行时需要的各种信息
+         *  1、上游
+         *  2、下游
+         *  3、Operator 中的 UserFunction
+         *  4、启动类： TaskInvokable（在最开始，构造 StreamGraph 的时候，其实每个顶点都赋予了一个 启动类）
+         *  流处理的通用类： StreamTask
+         *  -
+         *  jar包， 依赖 jar包 在这个对象中么？ 必然不是，在 BlobServer 里面
+         *  Task 的初始化和启动： 14 个动作： 其中给一个，就是从 BlobServer 下载 Job 和 Task 的相关信息和 jar 等
          */
         currentExecution.deploy();
     }
@@ -480,8 +481,7 @@ public class ExecutionVertex implements AccessExecutionVertex, Archiveable<Archi
         final IntermediateResultPartition partition = resultPartitions.get(partitionId.getPartitionId());
         checkState(partition != null, "Unknown partition " + partitionId + ".");
         checkState(partition.getResultType().isPipelined(),
-                "partition data available notification is " + "only valid for pipelined partitions."
-        );
+                "partition data available notification is " + "only valid for pipelined partitions.");
 
         partition.markDataProduced();
     }
@@ -531,11 +531,8 @@ public class ExecutionVertex implements AccessExecutionVertex, Archiveable<Archi
         // only forward this notification if the execution is still the current execution
         // otherwise we have an outdated execution
         if (isCurrentExecution(execution)) {
-            getExecutionGraphAccessor()
-                    .getExecutionDeploymentListener()
-                    .onStartedDeployment(execution.getAttemptId(),
-                            execution.getAssignedResourceLocation().getResourceID()
-                    );
+            getExecutionGraphAccessor().getExecutionDeploymentListener()
+                    .onStartedDeployment(execution.getAttemptId(), execution.getAssignedResourceLocation().getResourceID());
         }
     }
 
@@ -543,14 +540,13 @@ public class ExecutionVertex implements AccessExecutionVertex, Archiveable<Archi
         // only forward this notification if the execution is still the current execution
         // otherwise we have an outdated execution
         if (isCurrentExecution(execution)) {
-            getExecutionGraphAccessor()
-                    .getExecutionDeploymentListener()
-                    .onCompletedDeployment(execution.getAttemptId());
+            getExecutionGraphAccessor().getExecutionDeploymentListener().onCompletedDeployment(execution.getAttemptId());
         }
     }
 
     /** Simply forward this notification. */
-    void notifyStateTransition(Execution execution, ExecutionState newState) {
+    void notifyStateTransition(Execution execution,
+                               ExecutionState newState) {
         // only forward this notification if the execution is still the current execution
         // otherwise we have an outdated execution
         if (isCurrentExecution(execution)) {

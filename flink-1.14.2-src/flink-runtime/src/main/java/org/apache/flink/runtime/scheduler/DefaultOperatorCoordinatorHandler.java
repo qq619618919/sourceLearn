@@ -51,16 +51,14 @@ public class DefaultOperatorCoordinatorHandler implements OperatorCoordinatorHan
 
     private final Consumer<Throwable> globalFailureHandler;
 
-    public DefaultOperatorCoordinatorHandler(
-            ExecutionGraph executionGraph, Consumer<Throwable> globalFailureHandler) {
+    public DefaultOperatorCoordinatorHandler(ExecutionGraph executionGraph, Consumer<Throwable> globalFailureHandler) {
         this.executionGraph = executionGraph;
 
         this.coordinatorMap = createCoordinatorMap(executionGraph);
         this.globalFailureHandler = globalFailureHandler;
     }
 
-    private static Map<OperatorID, OperatorCoordinatorHolder> createCoordinatorMap(
-            ExecutionGraph executionGraph) {
+    private static Map<OperatorID, OperatorCoordinatorHolder> createCoordinatorMap(ExecutionGraph executionGraph) {
         Map<OperatorID, OperatorCoordinatorHolder> coordinatorMap = new HashMap<>();
         for (ExecutionJobVertex vertex : executionGraph.getAllVertices().values()) {
             for (OperatorCoordinatorHolder holder : vertex.getOperatorCoordinators()) {
@@ -79,8 +77,15 @@ public class DefaultOperatorCoordinatorHandler implements OperatorCoordinatorHan
 
     @Override
     public void startAllOperatorCoordinators() {
+
+        // TODO_MA 马中华 注释： 获取所有的 OperatorCoordinatorHolder
         final Collection<OperatorCoordinatorHolder> coordinators = coordinatorMap.values();
+
         try {
+            /*************************************************
+             * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+             *  注释： 启动所有的 OperatorCoordinatorHolder
+             */
             for (OperatorCoordinatorHolder coordinator : coordinators) {
                 coordinator.start();
             }
@@ -97,11 +102,9 @@ public class DefaultOperatorCoordinatorHandler implements OperatorCoordinatorHan
     }
 
     @Override
-    public void deliverOperatorEventToCoordinator(
-            final ExecutionAttemptID taskExecutionId,
-            final OperatorID operatorId,
-            final OperatorEvent evt)
-            throws FlinkException {
+    public void deliverOperatorEventToCoordinator(final ExecutionAttemptID taskExecutionId,
+                                                  final OperatorID operatorId,
+                                                  final OperatorEvent evt) throws FlinkException {
 
         // Failure semantics (as per the javadocs of the method):
         // If the task manager sends an event for a non-running task or an non-existing operator
@@ -111,14 +114,12 @@ public class DefaultOperatorCoordinatorHandler implements OperatorCoordinatorHan
 
         final Execution exec = executionGraph.getRegisteredExecutions().get(taskExecutionId);
         if (exec == null
-                || exec.getState() != ExecutionState.RUNNING
-                        && exec.getState() != ExecutionState.INITIALIZING) {
+                || exec.getState() != ExecutionState.RUNNING && exec.getState() != ExecutionState.INITIALIZING) {
             // This situation is common when cancellation happens, or when the task failed while the
             // event was just being dispatched asynchronously on the TM side.
             // It should be fine in those expected situations to just ignore this event, but, to be
             // on the safe, we notify the TM that the event could not be delivered.
-            throw new TaskNotRunningException(
-                    "Task is not known or in state running on the JobManager.");
+            throw new TaskNotRunningException("Task is not known or in state running on the JobManager.");
         }
 
         final OperatorCoordinatorHolder coordinator = coordinatorMap.get(operatorId);
@@ -126,6 +127,10 @@ public class DefaultOperatorCoordinatorHandler implements OperatorCoordinatorHan
             throw new FlinkException("No coordinator registered for operator " + operatorId);
         }
 
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释：
+         */
         try {
             coordinator.handleEventFromOperator(exec.getParallelSubtaskIndex(), evt);
         } catch (Throwable t) {
@@ -135,8 +140,8 @@ public class DefaultOperatorCoordinatorHandler implements OperatorCoordinatorHan
     }
 
     @Override
-    public CompletableFuture<CoordinationResponse> deliverCoordinationRequestToCoordinator(
-            OperatorID operator, CoordinationRequest request) throws FlinkException {
+    public CompletableFuture<CoordinationResponse> deliverCoordinationRequestToCoordinator(OperatorID operator,
+                                                                                           CoordinationRequest request) throws FlinkException {
 
         final OperatorCoordinatorHolder coordinatorHolder = coordinatorMap.get(operator);
         if (coordinatorHolder == null) {
@@ -147,8 +152,7 @@ public class DefaultOperatorCoordinatorHandler implements OperatorCoordinatorHan
         if (coordinator instanceof CoordinationRequestHandler) {
             return ((CoordinationRequestHandler) coordinator).handleCoordinationRequest(request);
         } else {
-            throw new FlinkException(
-                    "Coordinator of operator " + operator + " cannot handle client event");
+            throw new FlinkException("Coordinator of operator " + operator + " cannot handle client event");
         }
     }
 }

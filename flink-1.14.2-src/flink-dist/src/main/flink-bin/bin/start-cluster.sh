@@ -20,21 +20,28 @@
 bin=`dirname "$0"`
 bin=`cd "$bin"; pwd`
 
+# TODO_MA 马中华 注释：引入 TMWorkers 函数
 . "$bin"/config.sh
 
 # Start the JobManager instance(s)
 shopt -s nocasematch
+
+# TODO_MA 马中华 注释：
 if [[ $HIGH_AVAILABILITY == "zookeeper" ]]; then
     # HA Mode
+    # TODO_MA 马中华 注释：读取 masters 这个配置文件，获取主节点的配置信息
     readMasters
 
     echo "Starting HA cluster with ${#MASTERS[@]} masters."
 
+    # TODO_MA 马中华 注释： 遍历启动多个主节点
     for ((i=0;i<${#MASTERS[@]};++i)); do
+        # TODO_MA 马中华 注释：读取到的其中一个主节点
         master=${MASTERS[i]}
         webuiport=${WEBUIPORTS[i]}
 
         if [ ${MASTERS_ALL_LOCALHOST} = true ] ; then
+            # TODO_MA 马中华 注释： 具体的启动
             "${FLINK_BIN_DIR}"/jobmanager.sh start "${master}" "${webuiport}"
         else
             ssh -n $FLINK_SSH_OPTS $master -- "nohup /bin/bash -l \"${FLINK_BIN_DIR}/jobmanager.sh\" start ${master} ${webuiport} &"
@@ -45,9 +52,11 @@ else
     echo "Starting cluster."
 
     # Start single JobManager on this machine
+    # TODO_MA 马中华 注释： 重点： 启动 JobManager
     "$FLINK_BIN_DIR"/jobmanager.sh start
 fi
 shopt -u nocasematch
 
 # Start TaskManager instance(s)
+# TODO_MA 马中华 注释： 该函数在 config.sh 中
 TMWorkers start

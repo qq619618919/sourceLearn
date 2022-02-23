@@ -74,8 +74,7 @@ public class NettyBufferPool extends PooledByteBufAllocator {
      * @param numberOfArenas Number of arenas (recommended: 2 * number of task slots)
      */
     public NettyBufferPool(int numberOfArenas) {
-        super(
-                PREFER_DIRECT,
+        super(PREFER_DIRECT,
                 // No heap arenas, please.
                 0,
                 // Number of direct arenas. Each arena allocates a chunk of 4 MB, i.e.
@@ -84,9 +83,7 @@ public class NettyBufferPool extends PooledByteBufAllocator {
                 // happen with a large amount of connections per task manager. We
                 // control the memory allocations with low/high watermarks when writing
                 // to the TCP channels. Chunks are allocated lazily.
-                numberOfArenas,
-                PAGE_SIZE,
-                MAX_ORDER);
+                numberOfArenas, PAGE_SIZE, MAX_ORDER);
 
         checkArgument(numberOfArenas >= 1, "Number of arenas");
         this.numberOfArenas = numberOfArenas;
@@ -100,7 +97,6 @@ public class NettyBufferPool extends PooledByteBufAllocator {
         try {
             Field directArenasField = PooledByteBufAllocator.class.getDeclaredField("directArenas");
             directArenasField.setAccessible(true);
-
             allocDirectArenas = (Object[]) directArenasField.get(this);
         } catch (Exception ignored) {
             LOG.warn("Memory statistics not available");
@@ -139,13 +135,13 @@ public class NettyBufferPool extends PooledByteBufAllocator {
      * <p>The stats are gathered via Reflection and are mostly relevant for debugging purposes.
      *
      * @return Number of currently allocated bytes.
+     *
      * @throws NoSuchFieldException Error getting the statistics (should not happen when the Netty
-     *     version stays the same).
+     *         version stays the same).
      * @throws IllegalAccessException Error getting the statistics (should not happen when the Netty
-     *     version stays the same).
+     *         version stays the same).
      */
-    public Optional<Long> getNumberOfAllocatedBytes()
-            throws NoSuchFieldException, IllegalAccessException {
+    public Optional<Long> getNumberOfAllocatedBytes() throws NoSuchFieldException, IllegalAccessException {
 
         if (directArenas != null) {
             long numChunks = 0;
@@ -170,14 +166,16 @@ public class NettyBufferPool extends PooledByteBufAllocator {
      *
      * @param arena Arena to gather statistics about.
      * @param chunkListFieldName Chunk list to check.
+     *
      * @return Number of total allocated bytes by this arena.
+     *
      * @throws NoSuchFieldException Error getting the statistics (should not happen when the Netty
-     *     version stays the same).
+     *         version stays the same).
      * @throws IllegalAccessException Error getting the statistics (should not happen when the Netty
-     *     version stays the same).
+     *         version stays the same).
      */
-    private long getNumberOfAllocatedChunks(Object arena, String chunkListFieldName)
-            throws NoSuchFieldException, IllegalAccessException {
+    private long getNumberOfAllocatedChunks(Object arena,
+                                            String chunkListFieldName) throws NoSuchFieldException, IllegalAccessException {
 
         // Each PoolArena<ByteBuffer> stores its allocated PoolChunk<ByteBuffer>
         // instances grouped by usage (field qInit, q000, q025, etc.) in
@@ -185,13 +183,15 @@ public class NettyBufferPool extends PooledByteBufAllocator {
         // PoolChunk<ByteBuffer> instances.
 
         // Chunk list of arena
-        Field chunkListField =
-                arena.getClass().getSuperclass().getDeclaredField(chunkListFieldName);
+        Field chunkListField = arena.getClass()
+                .getSuperclass()
+                .getDeclaredField(chunkListFieldName);
         chunkListField.setAccessible(true);
         Object chunkList = chunkListField.get(arena);
 
         // Count the chunks in the list
-        Field headChunkField = chunkList.getClass().getDeclaredField("head");
+        Field headChunkField = chunkList.getClass()
+                .getDeclaredField("head");
         headChunkField.setAccessible(true);
         Object headChunk = headChunkField.get(chunkList);
 
@@ -203,7 +203,8 @@ public class NettyBufferPool extends PooledByteBufAllocator {
             Object current = headChunk;
 
             while (current != null) {
-                Field nextChunkField = headChunk.getClass().getDeclaredField("next");
+                Field nextChunkField = headChunk.getClass()
+                        .getDeclaredField("next");
                 nextChunkField.setAccessible(true);
                 current = nextChunkField.get(current);
                 numChunks++;

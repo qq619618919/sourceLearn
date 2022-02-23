@@ -126,6 +126,10 @@ public class ChannelStateWriterImpl implements ChannelStateWriter {
                             maxCheckpoints
                     )
             );
+            /*************************************************
+             * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+             *  注释：
+             */
             enqueue(new CheckpointStartRequest(checkpointId, result, checkpointOptions.getTargetLocation()), false);
             return result;
         });
@@ -145,6 +149,10 @@ public class ChannelStateWriterImpl implements ChannelStateWriter {
                 info,
                 startSeqNum
         );
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释：
+         */
         enqueue(write(checkpointId, info, iterator), false);
     }
 

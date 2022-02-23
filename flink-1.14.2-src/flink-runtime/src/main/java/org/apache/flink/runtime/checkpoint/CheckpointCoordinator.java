@@ -324,13 +324,13 @@ public class CheckpointCoordinator {
         try {
             /*************************************************
              * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-             *  注释：
+             *  注释： FsCheckpointStorageAccess
              */
             this.checkpointStorageView = checkpointStorage.createCheckpointStorage(job);
 
             /*************************************************
              * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-             *  注释：
+             *  注释： FsCheckpointStorageAccess
              */
             checkpointStorageView.initializeBaseLocations();
         } catch (IOException e) {
@@ -456,7 +456,17 @@ public class CheckpointCoordinator {
      *         savepoint directory has been configured
      */
     public CompletableFuture<CompletedCheckpoint> triggerSavepoint(@Nullable final String targetLocation) {
+
+        // TODO_MA 马中华 注释： forced ? SAVEPOINT : SAVEPOINT_NO_FORCE;
+        // TODO_MA 马中华 注释： !unalignedCheckpointsEnabled = forced
+        // TODO_MA 马中华 注释： 1、开启非对齐 checkpoint，则 SAVEPOINT_NO_FORCE
+        // TODO_MA 马中华 注释： 2、没有开启非对齐 checkpoint，则 SAVEPOINT
         final CheckpointProperties properties = CheckpointProperties.forSavepoint(!unalignedCheckpointsEnabled);
+
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释： 内部实现
+         */
         return triggerSavepointInternal(properties, targetLocation);
     }
 
@@ -493,7 +503,10 @@ public class CheckpointCoordinator {
 
         /*************************************************
          * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-         *  注释：
+         *  注释： 触发一次， 其实 savepoint 就变成了 checkpoint 了
+         *  所以注意区分：
+         *  1、 savepoint 是手动触发的 checkpoint
+         *  2、 checkpoint 是系统定期触发的
          */
         timer.execute(() -> triggerCheckpoint(checkpointProperties,
                 targetLocation,
@@ -544,7 +557,7 @@ public class CheckpointCoordinator {
 
         /*************************************************
          * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-         *  注释：
+         *  注释： 提交请求
          */
         chooseRequestToExecute(request).ifPresent(this::startTriggeringCheckpoint);
 
@@ -553,6 +566,8 @@ public class CheckpointCoordinator {
 
     private void startTriggeringCheckpoint(CheckpointTriggerRequest request) {
         try {
+
+            // TODO_MA 马中华 注释： 检查状态和配置
             synchronized (lock) {
                 preCheckGlobalState(request.isPeriodic);
             }
@@ -575,6 +590,8 @@ public class CheckpointCoordinator {
                             /*************************************************
                              * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
                              *  注释： initializeCheckpoint
+                             *  1、生成 checkpointID = ZooKeeperCheckpointIDCounter
+                             *  2、构造 CheckpointStorageLocaltion = FsCheckpointStorageLocation
                              */
                             CheckpointIdAndStorageLocation checkpointIdAndStorageLocation = initializeCheckpoint(request.props,
                                     request.externalSavepointLocation
@@ -589,6 +606,9 @@ public class CheckpointCoordinator {
                             /*************************************************
                              * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
                              *  注释： createPendingCheckpoint
+                             *  主要做两件事：
+                             *  1、 创建 PendingCheckpoint 对象封装各种信息，然后进行登记注册
+                             *  2、 启动了一个 checkpoint 超时取消任务
                              */
                             (checkpointInfo) -> createPendingCheckpoint(timestamp,
                                     request.props,
@@ -600,32 +620,25 @@ public class CheckpointCoordinator {
                             ), timer);
 
             final CompletableFuture<?> coordinatorCheckpointsComplete = pendingCheckpointCompletableFuture.thenComposeAsync(
-
-                    /*************************************************
-                     * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-                     *  注释：
-                     */
                     (pendingCheckpoint) -> OperatorCoordinatorCheckpoints.triggerAndAcknowledgeAllCoordinatorCheckpointsWithCompletion(
                             coordinatorsToCheckpoint,
                             pendingCheckpoint,
                             timer
-                    ), timer);
+                    ),
+                    timer
+            );
 
-            // We have to take the snapshot of the master hooks after the coordinator checkpoints
-            // has completed.
+            // We have to take the snapshot of the master hooks after the coordinator checkpoints has completed.
             // This is to ensure the tasks are checkpointed after the OperatorCoordinators in case
             // ExternallyInducedSource is used.
             final CompletableFuture<?> masterStatesComplete = coordinatorCheckpointsComplete.thenComposeAsync(ignored -> {
-                // If the code reaches here, the pending checkpoint is guaranteed to
-                // be not null.
+                // If the code reaches here, the pending checkpoint is guaranteed to be not null.
                 // We use FutureUtils.getWithoutException() to make compiler happy
-                // with checked
-                // exceptions in the signature.
+                // with checked exceptions in the signature.
                 PendingCheckpoint checkpoint = FutureUtils.getWithoutException(pendingCheckpointCompletableFuture);
                 return snapshotMasterState(checkpoint);
             }, timer);
 
-            // TODO_MA 马中华 注释： 有异常，则进行失败处理
             FutureUtils.assertNoException(CompletableFuture
                     .allOf(masterStatesComplete, coordinatorCheckpointsComplete)
                     .handleAsync((ignored, throwable) -> {
@@ -635,8 +648,6 @@ public class CheckpointCoordinator {
                         Preconditions.checkState(checkpoint != null || throwable != null,
                                 "Either the pending checkpoint needs to be created or an error must have occurred."
                         );
-
-                        // TODO_MA 马中华 注释： 有异常，失败处理
                         if (throwable != null) {
                             // the initialization might not be finished yet
                             if (checkpoint == null) {
@@ -647,7 +658,7 @@ public class CheckpointCoordinator {
                         } else {
                             /*************************************************
                              * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-                             *  注释：
+                             *  注释： 触发 checkpoint 执行
                              */
                             triggerCheckpointRequest(request, timestamp, checkpoint);
                         }
@@ -680,7 +691,7 @@ public class CheckpointCoordinator {
         } else {
             /*************************************************
              * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-             *  注释：
+             *  注释： 触发 Task 的 checkpoint
              */
             triggerTasks(request, timestamp, checkpoint).exceptionally(failure -> {
                 LOG.info("Triggering Checkpoint {} for job {} failed due to {}",
@@ -695,6 +706,11 @@ public class CheckpointCoordinator {
                 } else {
                     cause = new CheckpointException(CheckpointFailureReason.TRIGGER_CHECKPOINT_FAILURE, failure);
                 }
+
+                /*************************************************
+                 * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+                 *  注释： 如果 triggerTasks() 则处理异常，也就是 取消 PendingCheckpoint
+                 */
                 timer.execute(() -> {
                     synchronized (lock) {
                         abortPendingCheckpoint(checkpoint, cause);
@@ -710,7 +726,7 @@ public class CheckpointCoordinator {
             // So we need to complete this pending checkpoint.
             /*************************************************
              * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-             *  注释：
+             *  注释： checkpoint 执行成功了，进行成功回调
              */
             if (maybeCompleteCheckpoint(checkpoint)) {
                 onTriggerSuccess();
@@ -734,12 +750,15 @@ public class CheckpointCoordinator {
         // send messages to the tasks to trigger their checkpoints
         List<CompletableFuture<Acknowledge>> acks = new ArrayList<>();
 
-        // TODO_MA 马中华 注释： 给某个 Job 的所有的 Source Operator 的 Task 发送命令让执行 Checkpoint
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释： 给某个 Job 的所有的 Source Operator 的 Task 发送命令让执行 Checkpoint
+         */
         for (Execution execution : checkpoint.getCheckpointPlan().getTasksToTrigger()) {
 
             /*************************************************
              * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-             *  注释： 同步
+             *  注释： 同步，也就是 savepoint
              */
             if (request.props.isSynchronous()) {
                 acks.add(execution.triggerSynchronousSavepoint(checkpointId, timestamp, checkpointOptions));
@@ -749,7 +768,7 @@ public class CheckpointCoordinator {
             else {
                 /*************************************************
                  * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-                 *  注释：
+                 *  注释： 触发 checkpoint
                  */
                 acks.add(execution.triggerCheckpoint(checkpointId, timestamp, checkpointOptions));
             }
@@ -772,13 +791,26 @@ public class CheckpointCoordinator {
         // this must happen outside the coordinator-wide lock, because it
         // communicates
         // with external services (in HA mode) and may block for a while.
+        // TODO_MA 马中华 注释： 生成一个 checkpointID，注意，是递增的
+        // TODO_MA 马中华 注释： 基于 zk 实现， /checkpoint_id_counter， 通过 curator 的 sharedCounter 来实现
         long checkpointID = checkpointIdCounter.getAndIncrement();
 
-        CheckpointStorageLocation checkpointStorageLocation = props.isSavepoint() ? checkpointStorageView.initializeLocationForSavepoint(
-                checkpointID,
-                externalSavepointLocation
-        ) : checkpointStorageView.initializeLocationForCheckpoint(checkpointID);
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释： 根据情况来生成 目录， 到底是 checkpoint 还是 savepoint 呢
+         *  实际实现是： checkpointStorageView = FsCheckpointStorageAccess
+         *  结果： FsCheckpointStorageLocation
+         */
+        CheckpointStorageLocation checkpointStorageLocation = props.isSavepoint() ?
+                // TODO_MA 马中华 注释： savepoint 路径
+                checkpointStorageView.initializeLocationForSavepoint(checkpointID, externalSavepointLocation) :
+                // TODO_MA 马中华 注释： checkpoint 路径
+                checkpointStorageView.initializeLocationForCheckpoint(checkpointID);
 
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释： 将二者包装
+         */
         return new CheckpointIdAndStorageLocation(checkpointID, checkpointStorageLocation);
     }
 
@@ -800,6 +832,10 @@ public class CheckpointCoordinator {
             }
         }
 
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释： 封装 checkpoint 的各种信息
+         */
         final PendingCheckpoint checkpoint = new PendingCheckpoint(job,
                 checkpointID,
                 timestamp,
@@ -813,9 +849,17 @@ public class CheckpointCoordinator {
 
         trackPendingCheckpointStats(checkpoint);
 
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释：
+         */
         synchronized (lock) {
+
+            // TODO_MA 马中华 注释： 注册
             pendingCheckpoints.put(checkpointID, checkpoint);
 
+            // TODO_MA 马中华 注释： 调度一个 取消 checkpoint 的超时任务
+            // TODO_MA 马中华 注释： 如果超时，则调用 abortPendingCheckpoint 来取消这次 checkpoint
             ScheduledFuture<?> cancellerHandle = timer.schedule(new CheckpointCanceller(checkpoint),
                     checkpointTimeout,
                     TimeUnit.MILLISECONDS
@@ -844,6 +888,7 @@ public class CheckpointCoordinator {
      * @return the future represents master hook states are finished or not
      */
     private CompletableFuture<Void> snapshotMasterState(PendingCheckpoint checkpoint) {
+
         if (masterHooks.isEmpty()) {
             return CompletableFuture.completedFuture(null);
         }
@@ -934,6 +979,11 @@ public class CheckpointCoordinator {
                 final CheckpointException cause = getCheckpointException(CheckpointFailureReason.TRIGGER_CHECKPOINT_FAILURE,
                         throwable
                 );
+
+                /*************************************************
+                 * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+                 *  注释：
+                 */
                 synchronized (lock) {
                     abortPendingCheckpoint(checkpoint, cause);
                 }
@@ -1767,6 +1817,10 @@ public class CheckpointCoordinator {
         synchronized (lock) {
             periodicScheduling = false;
 
+            /*************************************************
+             * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+             *  注释：
+             */
             cancelPeriodicTrigger();
 
             final CheckpointException reason = new CheckpointException(CheckpointFailureReason.CHECKPOINT_COORDINATOR_SUSPEND);
@@ -1938,7 +1992,10 @@ public class CheckpointCoordinator {
     }
 
     private void abortPendingCheckpoint(PendingCheckpoint pendingCheckpoint, CheckpointException exception) {
-
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释：
+         */
         abortPendingCheckpoint(pendingCheckpoint, exception, null);
     }
 
@@ -1951,6 +2008,11 @@ public class CheckpointCoordinator {
         if (!pendingCheckpoint.isDisposed()) {
             try {
                 // release resource here
+
+                /*************************************************
+                 * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+                 *  注释：
+                 */
                 pendingCheckpoint.abort(exception.getCheckpointFailureReason(),
                         exception.getCause(),
                         checkpointsCleaner,
@@ -2022,6 +2084,10 @@ public class CheckpointCoordinator {
                             job
                     );
 
+                    /*************************************************
+                     * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+                     *  注释： 取消 checkpoint
+                     */
                     abortPendingCheckpoint(pendingCheckpoint,
                             new CheckpointException(CheckpointFailureReason.CHECKPOINT_EXPIRED)
                     );

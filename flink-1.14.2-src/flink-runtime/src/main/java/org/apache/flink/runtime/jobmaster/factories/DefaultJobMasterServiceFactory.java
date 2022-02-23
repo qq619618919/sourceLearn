@@ -84,6 +84,10 @@ public class DefaultJobMasterServiceFactory implements JobMasterServiceFactory {
         this.initializationTimestamp = initializationTimestamp;
     }
 
+    /*************************************************
+     * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+     *  注释： createJobMasterService 方法创建一个 JobMaster
+     */
     @Override
     public CompletableFuture<JobMasterService> createJobMasterService(UUID leaderSessionId,
                                                                       OnCompletionActions onCompletionActions) {
@@ -92,17 +96,25 @@ public class DefaultJobMasterServiceFactory implements JobMasterServiceFactory {
 
                 /*************************************************
                  * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-                 *  注释：
+                 *  注释： 创建 JobMaster
                  */
                 () -> internalCreateJobMasterService(leaderSessionId, onCompletionActions)), executor);
     }
 
+    /*************************************************
+     * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+     *  注释： 分为两个重点步骤：
+     *  1、创建 Jobmaster
+     *  2、启动 jobmaster
+     *  -
+     *  Dispatcher 在调用！
+     */
     private JobMasterService internalCreateJobMasterService(UUID leaderSessionId,
                                                             OnCompletionActions onCompletionActions) throws Exception {
 
         /*************************************************
          * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-         *  注释：
+         *  注释： 内部最重要的事情，就是创建 Scheduler 以及完成 JobGraph 到 ExecutionGraph 的转变
          */
         final JobMaster jobMaster = new JobMaster(rpcService,
                 JobMasterId.fromUuidOrNull(leaderSessionId),
@@ -129,6 +141,9 @@ public class DefaultJobMasterServiceFactory implements JobMasterServiceFactory {
          *  注释： 调用 onStart() 方法
          */
         jobMaster.start();
+        // TODO_MA 马中华 注释： jobMaster 有可能是 一个 线程？ RpcEndpoint？
+        // TODO_MA 马中华 注释： JobMaster = RpcEndpoint
+        // TODO_MA 马中华 注释： 调用 jobMaster.onStart() 方法
 
         return jobMaster;
     }

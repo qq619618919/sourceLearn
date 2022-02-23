@@ -88,8 +88,7 @@ import java.util.concurrent.CompletableFuture;
  */
 public abstract class AbstractAsynchronousOperationHandlers<K extends OperationKey, R> {
 
-    private final CompletedOperationCache<K, R> completedOperationCache =
-            new CompletedOperationCache<>();
+    private final CompletedOperationCache<K, R> completedOperationCache = new CompletedOperationCache<>();
 
     /**
      * Handler which is responsible for triggering an asynchronous operation. After the operation
@@ -99,30 +98,30 @@ public abstract class AbstractAsynchronousOperationHandlers<K extends OperationK
      * @param <B> type of the request
      * @param <M> type of the message parameters
      */
-    protected abstract class TriggerHandler<
-                    T extends RestfulGateway, B extends RequestBody, M extends MessageParameters>
-            extends AbstractRestHandler<T, B, TriggerResponse, M> {
+    protected abstract class TriggerHandler<T extends RestfulGateway, B extends RequestBody, M extends MessageParameters> extends AbstractRestHandler<T, B, TriggerResponse, M> {
 
-        protected TriggerHandler(
-                GatewayRetriever<? extends T> leaderRetriever,
-                Time timeout,
-                Map<String, String> responseHeaders,
-                MessageHeaders<B, TriggerResponse, M> messageHeaders) {
+        protected TriggerHandler(GatewayRetriever<? extends T> leaderRetriever,
+                                 Time timeout,
+                                 Map<String, String> responseHeaders,
+                                 MessageHeaders<B, TriggerResponse, M> messageHeaders) {
             super(leaderRetriever, timeout, responseHeaders, messageHeaders);
         }
 
         @Override
-        public CompletableFuture<TriggerResponse> handleRequest(
-                @Nonnull HandlerRequest<B, M> request, @Nonnull T gateway)
-                throws RestHandlerException {
+        public CompletableFuture<TriggerResponse> handleRequest(@Nonnull HandlerRequest<B, M> request,
+                                                                @Nonnull T gateway) throws RestHandlerException {
+
+            /*************************************************
+             * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+             *  注释：
+             */
             final CompletableFuture<R> resultFuture = triggerOperation(request, gateway);
 
             final K operationKey = createOperationKey(request);
 
             completedOperationCache.registerOngoingOperation(operationKey, resultFuture);
 
-            return CompletableFuture.completedFuture(
-                    new TriggerResponse(operationKey.getTriggerId()));
+            return CompletableFuture.completedFuture(new TriggerResponse(operationKey.getTriggerId()));
         }
 
         /**
@@ -130,17 +129,20 @@ public abstract class AbstractAsynchronousOperationHandlers<K extends OperationK
          *
          * @param request with which the trigger handler has been called
          * @param gateway to the leader
+         *
          * @return Future result of the asynchronous operation
+         *
          * @throws RestHandlerException if something went wrong
          */
-        protected abstract CompletableFuture<R> triggerOperation(
-                HandlerRequest<B, M> request, T gateway) throws RestHandlerException;
+        protected abstract CompletableFuture<R> triggerOperation(HandlerRequest<B, M> request,
+                                                                 T gateway) throws RestHandlerException;
 
         /**
          * Create the operation key under which the result future of the asynchronous operation will
          * be stored.
          *
          * @param request with which the trigger handler has been called.
+         *
          * @return Operation key under which the result future will be stored
          */
         protected abstract K createOperationKey(HandlerRequest<B, M> request);
@@ -156,22 +158,18 @@ public abstract class AbstractAsynchronousOperationHandlers<K extends OperationK
      * @param <V> type of the operation result
      * @param <M> type of the message headers
      */
-    protected abstract class StatusHandler<T extends RestfulGateway, V, M extends MessageParameters>
-            extends AbstractRestHandler<T, EmptyRequestBody, AsynchronousOperationResult<V>, M> {
+    protected abstract class StatusHandler<T extends RestfulGateway, V, M extends MessageParameters> extends AbstractRestHandler<T, EmptyRequestBody, AsynchronousOperationResult<V>, M> {
 
-        protected StatusHandler(
-                GatewayRetriever<? extends T> leaderRetriever,
-                Time timeout,
-                Map<String, String> responseHeaders,
-                MessageHeaders<EmptyRequestBody, AsynchronousOperationResult<V>, M>
-                        messageHeaders) {
+        protected StatusHandler(GatewayRetriever<? extends T> leaderRetriever,
+                                Time timeout,
+                                Map<String, String> responseHeaders,
+                                MessageHeaders<EmptyRequestBody, AsynchronousOperationResult<V>, M> messageHeaders) {
             super(leaderRetriever, timeout, responseHeaders, messageHeaders);
         }
 
         @Override
-        public CompletableFuture<AsynchronousOperationResult<V>> handleRequest(
-                @Nonnull HandlerRequest<EmptyRequestBody, M> request, @Nonnull T gateway)
-                throws RestHandlerException {
+        public CompletableFuture<AsynchronousOperationResult<V>> handleRequest(@Nonnull HandlerRequest<EmptyRequestBody, M> request,
+                                                                               @Nonnull T gateway) throws RestHandlerException {
 
             final K key = getOperationKey(request);
 
@@ -179,20 +177,18 @@ public abstract class AbstractAsynchronousOperationHandlers<K extends OperationK
             try {
                 operationResultOrError = completedOperationCache.get(key);
             } catch (UnknownOperationKeyException e) {
-                return FutureUtils.completedExceptionally(
-                        new NotFoundException("Operation not found under key: " + key, e));
+                return FutureUtils.completedExceptionally(new NotFoundException("Operation not found under key: " + key,
+                        e
+                ));
             }
 
             if (operationResultOrError != null) {
                 if (operationResultOrError.isLeft()) {
-                    return CompletableFuture.completedFuture(
-                            AsynchronousOperationResult.completed(
-                                    exceptionalOperationResultResponse(
-                                            operationResultOrError.left())));
+                    return CompletableFuture.completedFuture(AsynchronousOperationResult.completed(
+                            exceptionalOperationResultResponse(operationResultOrError.left())));
                 } else {
-                    return CompletableFuture.completedFuture(
-                            AsynchronousOperationResult.completed(
-                                    operationResultResponse(operationResultOrError.right())));
+                    return CompletableFuture.completedFuture(AsynchronousOperationResult.completed(
+                            operationResultResponse(operationResultOrError.right())));
                 }
             } else {
                 return CompletableFuture.completedFuture(AsynchronousOperationResult.inProgress());
@@ -208,6 +204,7 @@ public abstract class AbstractAsynchronousOperationHandlers<K extends OperationK
          * Extract the operation key under which the operation result future is stored.
          *
          * @param request with which the status handler has been called
+         *
          * @return Operation key under which the operation result future is stored
          */
         protected abstract K getOperationKey(HandlerRequest<EmptyRequestBody, M> request);
@@ -217,6 +214,7 @@ public abstract class AbstractAsynchronousOperationHandlers<K extends OperationK
          * called if the asynchronous operation failed.
          *
          * @param throwable failure of the asynchronous operation
+         *
          * @return Exceptional operation result
          */
         protected abstract V exceptionalOperationResultResponse(Throwable throwable);
@@ -225,6 +223,7 @@ public abstract class AbstractAsynchronousOperationHandlers<K extends OperationK
          * Create the operation result from the given value.
          *
          * @param operationResult of the asynchronous operation
+         *
          * @return Operation result
          */
         protected abstract V operationResultResponse(R operationResult);

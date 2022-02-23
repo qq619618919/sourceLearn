@@ -59,7 +59,10 @@ import java.util.concurrent.Executor;
 import java.util.function.BiFunction;
 import java.util.stream.Collectors;
 
-/** Implementation of {@link SlotManager} supporting declarative slot management. */
+/**
+ * // TODO_MA 马中华 注释： 支持声明式插槽管理的 {@link SlotManager} 的实现。
+ * Implementation of {@link SlotManager} supporting declarative slot management.
+ */
 public class DeclarativeSlotManager implements SlotManager {
     private static final Logger LOG = LoggerFactory.getLogger(DeclarativeSlotManager.class);
 
@@ -199,6 +202,7 @@ public class DeclarativeSlotManager implements SlotManager {
         this.resourceManagerId = Preconditions.checkNotNull(newResourceManagerId);
         mainThreadExecutor = Preconditions.checkNotNull(newMainThreadExecutor);
         resourceActions = Preconditions.checkNotNull(newResourceActions);
+
         taskExecutorManager = taskExecutorManagerFactory.apply(newMainThreadExecutor, newResourceActions);
 
         started = true;
@@ -282,17 +286,14 @@ public class DeclarativeSlotManager implements SlotManager {
             jobMasterTargetAddresses.put(resourceRequirements.getJobId(), resourceRequirements.getTargetAddress());
         }
 
-        /*************************************************
-         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-         *  注释：
-         */
         resourceTracker.notifyResourceRequirements(resourceRequirements.getJobId(),
                 resourceRequirements.getResourceRequirements()
         );
 
         /*************************************************
          * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-         *  注释：
+         *  注释： 检查资源需求
+         *  满足资源需求匹配
          */
         checkResourceRequirements();
     }
@@ -337,6 +338,11 @@ public class DeclarativeSlotManager implements SlotManager {
             reportSlotStatus(taskExecutorConnection.getInstanceID(), initialSlotReport);
             return false;
         } else {
+
+            /*************************************************
+             * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+             *  注释：
+             */
             if (!taskExecutorManager.registerTaskManager(taskExecutorConnection,
                     initialSlotReport,
                     totalResourceProfile,
@@ -347,6 +353,10 @@ public class DeclarativeSlotManager implements SlotManager {
             }
 
             // register the new slots
+            /*************************************************
+             * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+             *  注释：
+             */
             for (SlotStatus slotStatus : initialSlotReport) {
                 slotTracker.addSlot(slotStatus.getSlotID(),
                         slotStatus.getResourceProfile(),
@@ -355,6 +365,7 @@ public class DeclarativeSlotManager implements SlotManager {
                 );
             }
 
+            // TODO_MA 马中华 注释：
             checkResourceRequirements();
             return true;
         }
@@ -366,8 +377,22 @@ public class DeclarativeSlotManager implements SlotManager {
 
         LOG.debug("Unregistering task executor {} from the slot manager.", instanceId);
 
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释：
+         */
         if (taskExecutorManager.isTaskManagerRegistered(instanceId)) {
+
+            /*************************************************
+             * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+             *  注释：
+             */
             slotTracker.removeSlots(taskExecutorManager.getSlotsOf(instanceId));
+
+            /*************************************************
+             * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+             *  注释：
+             */
             taskExecutorManager.unregisterTaskExecutor(instanceId);
             checkResourceRequirements();
 
@@ -465,12 +490,18 @@ public class DeclarativeSlotManager implements SlotManager {
         }
 
         final Map<JobID, ResourceCounter> unfulfilledRequirements = new LinkedHashMap<>();
+
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释：  遍历需求
+         *  每次便利得到一个 ResourceRequirement， 就是一个 Slot 申请请求的一个 代表
+         */
         for (Map.Entry<JobID, Collection<ResourceRequirement>> resourceRequirements : missingResources.entrySet()) {
             final JobID jobId = resourceRequirements.getKey();
 
             /*************************************************
              * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-             *  注释：
+             *  注释： 为job申请slot
              */
             final ResourceCounter unfulfilledJobRequirements = tryAllocateSlotsForJob(jobId,
                     resourceRequirements.getValue()
@@ -496,9 +527,12 @@ public class DeclarativeSlotManager implements SlotManager {
 
         /*************************************************
          * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-         *  注释：
+         *  注释： Fulfill：  满足 匹配
+         *  资源需求 SlotRequest
          */
         for (Map.Entry<JobID, ResourceCounter> unfulfilledRequirement : unfulfilledRequirements.entrySet()) {
+
+            // TODO_MA 马中华 注释： 满足 PendingSlot
             pendingSlots = tryFulfillRequirementsWithPendingSlots(unfulfilledRequirement.getKey(),
                     unfulfilledRequirement.getValue().getResourcesWithCount(),
                     pendingSlots
@@ -506,6 +540,7 @@ public class DeclarativeSlotManager implements SlotManager {
         }
     }
 
+    // TODO_MA 马中华 注释： ResourceManager 的逻辑分派
     private ResourceCounter tryAllocateSlotsForJob(JobID jobId, Collection<ResourceRequirement> missingResources) {
         ResourceCounter outstandingRequirements = ResourceCounter.empty();
 
@@ -551,16 +586,26 @@ public class DeclarativeSlotManager implements SlotManager {
 
             /*************************************************
              * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-             *  注释：
+             *  注释： match:
+             *  slotRequest 需要多少： 我身上的每个 slot 的资源大小是多少
+             *  找 匹配的 slot
              */
             final Optional<TaskManagerSlotInformation> reservedSlot = slotMatchingStrategy.findMatchingSlot(
                     requiredResource,
                     freeSlots,
                     this::getNumberRegisteredSlotsOf
             );
+
+            /*************************************************
+             * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+             *  注释： 匹配上了
+             */
             if (reservedSlot.isPresent()) {
-                // we do not need to modify freeSlots because it is indirectly modified by the
-                // allocation
+                // we do not need to modify freeSlots because it is indirectly modified by the allocation
+                // TODO_MA 马中华 注释： 完成申请
+                // TODO_MA 马中华 注释： ResourceManager 做的是逻辑分配
+                // TODO_MA 马中华 注释： 真正提供资源的是：TaskExecutor
+                // TODO_MA 马中华 注释： 开始告知 TaskExecutor 我已经吧你身上的某个 slot 分配给了某个 job
                 allocateSlot(reservedSlot.get(), jobId, targetAddress, requiredResource);
             } else {
                 // exit loop early; we won't find a matching slot for this requirement
@@ -611,10 +656,9 @@ public class DeclarativeSlotManager implements SlotManager {
         // RPC call to the task manager
         /*************************************************
          * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-         *  注释：
+         *  注释： JobManager 将请求发送给 TaskExecutor 来处理 Slot 申请
          */
-        CompletableFuture<Acknowledge> requestFuture = gateway.requestSlot(slotId,
-                jobId,
+        CompletableFuture<Acknowledge> requestFuture = gateway.requestSlot(slotId, jobId,
                 allocationId,
                 resourceProfile,
                 targetAddress,
@@ -663,15 +707,29 @@ public class DeclarativeSlotManager implements SlotManager {
         FutureUtils.assertNoException(slotAllocationResponseProcessingFuture);
     }
 
+    /*************************************************
+     * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+     *  注释：
+     */
     private ResourceCounter tryFulfillRequirementsWithPendingSlots(JobID jobId,
                                                                    Collection<Map.Entry<ResourceProfile, Integer>> missingResources,
                                                                    ResourceCounter pendingSlots) {
         for (Map.Entry<ResourceProfile, Integer> missingResource : missingResources) {
             ResourceProfile profile = missingResource.getKey();
+
+            // TODO_MA 马中华 注释：
             for (int i = 0; i < missingResource.getValue(); i++) {
+
+                /*************************************************
+                 * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+                 *  注释：
+                 */
                 final MatchingResult matchingResult = tryFulfillWithPendingSlots(profile, pendingSlots);
                 pendingSlots = matchingResult.getNewAvailableResources();
+
                 if (!matchingResult.isSuccessfulMatching()) {
+
+                    // TODO_MA 马中华 注释：
                     final WorkerAllocationResult allocationResult = tryAllocateWorkerAndReserveSlot(profile,
                             pendingSlots
                     );

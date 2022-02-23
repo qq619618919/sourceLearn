@@ -48,7 +48,7 @@ import java.util.concurrent.Executor;
  * MasterTriggerRestoreHook.Factory}.
  *
  * @param <T> The type of the data produced by the hook and stored as part of the checkpoint
- *     metadata. If the hook never stores any data, this can be typed to {@code Void}.
+ *         metadata. If the hook never stores any data, this can be typed to {@code Void}.
  */
 public interface MasterTriggerRestoreHook<T> {
 
@@ -77,14 +77,16 @@ public interface MasterTriggerRestoreHook<T> {
      *
      * @throws Exception Exceptions encountered when calling the hook will cause execution to fail.
      */
-    default void reset() throws Exception {}
+    default void reset() throws Exception {
+    }
 
     /**
      * Tear-down method for the hook.
      *
      * @throws Exception Exceptions encountered when calling close will be logged.
      */
-    default void close() throws Exception {}
+    default void close() throws Exception {
+    }
 
     /**
      * This method is called by the checkpoint coordinator prior when triggering a checkpoint, prior
@@ -108,16 +110,17 @@ public interface MasterTriggerRestoreHook<T> {
      *
      * @param checkpointId The ID (logical timestamp, monotonously increasing) of the checkpoint
      * @param timestamp The wall clock timestamp when the checkpoint was triggered, for info/logging
-     *     purposes.
+     *         purposes.
      * @param executor The executor for asynchronous actions
+     *
      * @return Optionally, a future that signals when the hook has completed and that contains data
-     *     to be stored with the checkpoint.
+     *         to be stored with the checkpoint.
+     *
      * @throws Exception Exceptions encountered when calling the hook will cause the checkpoint to
-     *     abort.
+     *         abort.
      */
     @Nullable
-    CompletableFuture<T> triggerCheckpoint(long checkpointId, long timestamp, Executor executor)
-            throws Exception;
+    CompletableFuture<T> triggerCheckpoint(long checkpointId, long timestamp, Executor executor) throws Exception;
 
     /**
      * This method is called by the checkpoint coordinator prior to restoring the state of a
@@ -126,9 +129,10 @@ public interface MasterTriggerRestoreHook<T> {
      *
      * @param checkpointId The ID (logical timestamp) of the restored checkpoint
      * @param checkpointData The data originally stored in the checkpoint by this hook, possibly
-     *     null.
+     *         null.
+     *
      * @throws Exception Exceptions thrown while restoring the checkpoint will cause the restore
-     *     operation to fail and to possibly fall back to another checkpoint.
+     *         operation to fail and to possibly fall back to another checkpoint.
      */
     void restoreCheckpoint(long checkpointId, @Nullable T checkpointData) throws Exception;
 

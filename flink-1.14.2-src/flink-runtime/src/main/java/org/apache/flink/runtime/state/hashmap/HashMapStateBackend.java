@@ -126,6 +126,10 @@ public class HashMapStateBackend extends AbstractStateBackend implements Configu
                                                            @Nonnull Collection<OperatorStateHandle> stateHandles,
                                                            CloseableRegistry cancelStreamRegistry) throws BackendBuildingException {
 
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释：
+         */
         return new DefaultOperatorStateBackendBuilder(env.getUserCodeClassLoader()
                 .asClassLoader(), env.getExecutionConfig(), true, stateHandles, cancelStreamRegistry).build();
     }

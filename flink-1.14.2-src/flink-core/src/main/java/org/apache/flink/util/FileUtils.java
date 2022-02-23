@@ -68,9 +68,7 @@ public final class FileUtils {
     private static final Object DELETE_LOCK = new Object();
 
     /** The alphabet to construct the random part of the filename from. */
-    private static final char[] ALPHABET = {
-        '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '0', 'a', 'b', 'c', 'd', 'e', 'f'
-    };
+    private static final char[] ALPHABET = {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '0', 'a', 'b', 'c', 'd', 'e', 'f'};
 
     /** The length of the random part of the filename. */
     private static final int RANDOM_FILE_NAME_LENGTH = 12;
@@ -92,8 +90,7 @@ public final class FileUtils {
 
     // ------------------------------------------------------------------------
 
-    public static void writeCompletely(WritableByteChannel channel, ByteBuffer src)
-            throws IOException {
+    public static void writeCompletely(WritableByteChannel channel, ByteBuffer src) throws IOException {
         while (src.hasRemaining()) {
             channel.write(src);
         }
@@ -102,8 +99,7 @@ public final class FileUtils {
     // ------------------------------------------------------------------------
 
     /** Lists the given directory in a resource-leak-safe way. */
-    public static java.nio.file.Path[] listDirectory(java.nio.file.Path directory)
-            throws IOException {
+    public static java.nio.file.Path[] listDirectory(java.nio.file.Path directory) throws IOException {
         try (Stream<java.nio.file.Path> stream = Files.list(directory)) {
             return stream.toArray(java.nio.file.Path[]::new);
         }
@@ -116,6 +112,7 @@ public final class FileUtils {
      * characters.
      *
      * @param prefix the prefix to the filename to be constructed
+     *
      * @return the generated random filename with the given prefix
      */
     public static String getRandomFilename(final String prefix) {
@@ -162,14 +159,15 @@ public final class FileUtils {
      * this in the future, we should remove it.
      *
      * @param path the path to the file
+     *
      * @return a byte array containing the bytes read from the file
+     *
      * @throws IOException if an I/O error occurs reading from the stream
      * @throws OutOfMemoryError if an array of the required size cannot be allocated, for example
-     *     the file is larger that {@code 2GB}
+     *         the file is larger that {@code 2GB}
      */
     public static byte[] readAllBytes(java.nio.file.Path path) throws IOException {
-        try (SeekableByteChannel channel = Files.newByteChannel(path);
-                InputStream in = Channels.newInputStream(channel)) {
+        try (SeekableByteChannel channel = Files.newByteChannel(path); InputStream in = Channels.newInputStream(channel)) {
 
             long size = channel.size();
             if (size > (long) MAX_BUFFER_SIZE) {
@@ -187,7 +185,9 @@ public final class FileUtils {
      *
      * @param source the input stream to read from
      * @param initialSize the initial size of the byte array to allocate
+     *
      * @return a byte array containing the bytes read from the file
+     *
      * @throws IOException if an I/O error occurs reading from the stream
      * @throws OutOfMemoryError if an array of the required size cannot be allocated
      */
@@ -238,8 +238,9 @@ public final class FileUtils {
      * <p>This method is safe against other concurrent deletion attempts.
      *
      * @param file The file or directory to delete.
+     *
      * @throws IOException Thrown if the directory could not be cleaned for some reason, for example
-     *     due to missing access/write permissions.
+     *         due to missing access/write permissions.
      */
     public static void deleteFileOrDirectory(File file) throws IOException {
         checkNotNull(file, "file");
@@ -256,8 +257,9 @@ public final class FileUtils {
      * <p>This method is safe against other concurrent deletion attempts.
      *
      * @param directory The directory to be deleted.
+     *
      * @throws IOException Thrown if the given file is not a directory, or if the directory could
-     *     not be deleted for some reason, for example due to missing access/write permissions.
+     *         not be deleted for some reason, for example due to missing access/write permissions.
      */
     public static void deleteDirectory(File directory) throws IOException {
         checkNotNull(directory, "directory");
@@ -291,10 +293,11 @@ public final class FileUtils {
      * <p>This method is safe against other concurrent deletion attempts.
      *
      * @param directory The directory to remove all files from.
+     *
      * @throws FileNotFoundException Thrown if the directory itself does not exist.
      * @throws IOException Thrown if the file indicates a proper file and not a directory, or if the
-     *     directory could not be cleaned for some reason, for example due to missing access/write
-     *     permissions.
+     *         directory could not be cleaned for some reason, for example due to missing access/write
+     *         permissions.
      */
     public static void cleanDirectory(File directory) throws IOException {
         checkNotNull(directory, "directory");
@@ -369,8 +372,7 @@ public final class FileUtils {
         }
     }
 
-    private static void guardIfNotThreadSafe(ThrowingConsumer<File, IOException> toRun, File file)
-            throws IOException {
+    private static void guardIfNotThreadSafe(ThrowingConsumer<File, IOException> toRun, File file) throws IOException {
         if (OperatingSystem.isWindows()) {
             guardIfWindows(toRun, file);
             return;
@@ -388,8 +390,7 @@ public final class FileUtils {
     // in the future, we may want to find either a good way of working around file visibility
     // under concurrent operations (the behavior seems completely unpredictable)
     // or  make this locking more fine grained, for example  on directory path prefixes
-    private static void guardIfWindows(ThrowingConsumer<File, IOException> toRun, File file)
-            throws IOException {
+    private static void guardIfWindows(ThrowingConsumer<File, IOException> toRun, File file) throws IOException {
         synchronized (DELETE_LOCK) {
             for (int attempt = 1; attempt <= 10; attempt++) {
                 try {
@@ -414,8 +415,7 @@ public final class FileUtils {
     // Guard Mac for the same reason we guard windows. Refer to guardIfWindows for details.
     // The difference to guardIfWindows is that we don't swallow the AccessDeniedException because
     // doing that would lead to wrong behaviour.
-    private static void guardIfMac(ThrowingConsumer<File, IOException> toRun, File file)
-            throws IOException {
+    private static void guardIfMac(ThrowingConsumer<File, IOException> toRun, File file) throws IOException {
         synchronized (DELETE_LOCK) {
             toRun.accept(file);
             // briefly wait and fall through the loop
@@ -439,7 +439,9 @@ public final class FileUtils {
      *
      * @param fileSystem to use
      * @param path to be deleted if empty
+     *
      * @return true if the path could be deleted; otherwise false
+     *
      * @throws IOException if the delete operation fails
      */
     public static boolean deletePathIfEmpty(FileSystem fileSystem, Path path) throws IOException {
@@ -475,10 +477,10 @@ public final class FileUtils {
      * @param sourcePath source path to copy from
      * @param targetPath target path to copy to
      * @param executable if target file should be executable
+     *
      * @throws IOException if the copy fails
      */
-    public static void copy(Path sourcePath, Path targetPath, boolean executable)
-            throws IOException {
+    public static void copy(Path sourcePath, Path targetPath, boolean executable) throws IOException {
         // we unwrap the file system to get raw streams without safety net
         FileSystem sFS = FileSystem.getUnguardedFileSystem(sourcePath.toUri());
         FileSystem tFS = FileSystem.getUnguardedFileSystem(targetPath.toUri());
@@ -491,9 +493,11 @@ public final class FileUtils {
         }
     }
 
-    private static void internalCopyDirectory(
-            Path sourcePath, Path targetPath, boolean executable, FileSystem sFS, FileSystem tFS)
-            throws IOException {
+    private static void internalCopyDirectory(Path sourcePath,
+                                              Path targetPath,
+                                              boolean executable,
+                                              FileSystem sFS,
+                                              FileSystem tFS) throws IOException {
         tFS.mkdirs(targetPath);
         FileStatus[] contents = sFS.listStatus(sourcePath);
         for (FileStatus content : contents) {
@@ -508,12 +512,14 @@ public final class FileUtils {
         }
     }
 
-    private static void internalCopyFile(
-            Path sourcePath, Path targetPath, boolean executable, FileSystem sFS, FileSystem tFS)
-            throws IOException {
-        try (FSDataOutputStream lfsOutput =
-                        tFS.create(targetPath, FileSystem.WriteMode.NO_OVERWRITE);
-                FSDataInputStream fsInput = sFS.open(sourcePath)) {
+    private static void internalCopyFile(Path sourcePath,
+                                         Path targetPath,
+                                         boolean executable,
+                                         FileSystem sFS,
+                                         FileSystem tFS) throws IOException {
+        try (FSDataOutputStream lfsOutput = tFS.create(targetPath,
+                FileSystem.WriteMode.NO_OVERWRITE
+        ); FSDataInputStream fsInput = sFS.open(sourcePath)) {
             IOUtils.copyBytes(fsInput, lfsOutput);
             //noinspection ResultOfMethodCallIgnored
             new File(targetPath.toString()).setExecutable(executable);
@@ -526,17 +532,18 @@ public final class FileUtils {
 
         Path absolutePath = absolutizePath(directory);
         Path absoluteTargetPath = absolutizePath(target);
-        try (ZipOutputStream out =
-                new ZipOutputStream(
-                        targetFs.create(absoluteTargetPath, FileSystem.WriteMode.NO_OVERWRITE))) {
+        try (ZipOutputStream out = new ZipOutputStream(targetFs.create(absoluteTargetPath,
+                FileSystem.WriteMode.NO_OVERWRITE
+        ))) {
             addToZip(absolutePath, sourceFs, absolutePath.getParent(), out);
         }
         return target;
     }
 
-    private static void addToZip(
-            Path fileOrDirectory, FileSystem fs, Path rootDir, ZipOutputStream out)
-            throws IOException {
+    private static void addToZip(Path fileOrDirectory,
+                                 FileSystem fs,
+                                 Path rootDir,
+                                 ZipOutputStream out) throws IOException {
         String relativePath = fileOrDirectory.getPath().replace(rootDir.getPath() + '/', "");
         if (fs.getFileStatus(fileOrDirectory).isDir()) {
             out.putNextEntry(new ZipEntry(relativePath + '/'));
@@ -571,8 +578,7 @@ public final class FileUtils {
                 if (entry.isDirectory()) {
                     targetFs.mkdirs(newFile);
                 } else {
-                    try (FSDataOutputStream fileStream =
-                            targetFs.create(newFile, FileSystem.WriteMode.NO_OVERWRITE)) {
+                    try (FSDataOutputStream fileStream = targetFs.create(newFile, FileSystem.WriteMode.NO_OVERWRITE)) {
                         // do not close the streams here as it prevents access to further zip
                         // entries
                         IOUtils.copyBytes(zis, fileStream, false);
@@ -590,31 +596,26 @@ public final class FileUtils {
      *
      * @param directory the directory to be listed
      * @param fileFilter a file filter
+     *
      * @return a collection of {@code File}s
+     *
      * @throws IOException if an I/O error occurs while listing the files in the given directory
      */
-    public static Collection<java.nio.file.Path> listFilesInDirectory(
-            final java.nio.file.Path directory, final Predicate<java.nio.file.Path> fileFilter)
-            throws IOException {
+    public static Collection<java.nio.file.Path> listFilesInDirectory(final java.nio.file.Path directory,
+                                                                      final Predicate<java.nio.file.Path> fileFilter) throws IOException {
         checkNotNull(directory, "directory");
         checkNotNull(fileFilter, "fileFilter");
 
         if (!Files.exists(directory)) {
-            throw new IllegalArgumentException(
-                    String.format("The directory %s dose not exist.", directory));
+            throw new IllegalArgumentException(String.format("The directory %s dose not exist.", directory));
         }
         if (!Files.isDirectory(directory)) {
-            throw new IllegalArgumentException(
-                    String.format("The %s is not a directory.", directory));
+            throw new IllegalArgumentException(String.format("The %s is not a directory.", directory));
         }
 
         final FilterFileVisitor filterFileVisitor = new FilterFileVisitor(fileFilter);
 
-        Files.walkFileTree(
-                directory,
-                EnumSet.of(FileVisitOption.FOLLOW_LINKS),
-                Integer.MAX_VALUE,
-                filterFileVisitor);
+        Files.walkFileTree(directory, EnumSet.of(FileVisitOption.FOLLOW_LINKS), Integer.MAX_VALUE, filterFileVisitor);
 
         return filterFileVisitor.getFiles();
     }
@@ -623,6 +624,7 @@ public final class FileUtils {
      * Absolutize the given path if it is relative.
      *
      * @param pathToAbsolutize path which is being absolutized if it is a relative path
+     *
      * @return the absolutized path
      */
     public static Path absolutizePath(Path pathToAbsolutize) throws IOException {
@@ -639,10 +641,10 @@ public final class FileUtils {
      *
      * @param basePath to relativize against
      * @param pathToRelativize path which is being relativized if it is an absolute path
+     *
      * @return the relativized path
      */
-    public static java.nio.file.Path relativizePath(
-            java.nio.file.Path basePath, java.nio.file.Path pathToRelativize) {
+    public static java.nio.file.Path relativizePath(java.nio.file.Path basePath, java.nio.file.Path pathToRelativize) {
         if (pathToRelativize.isAbsolute()) {
             return basePath.relativize(pathToRelativize);
         } else {
@@ -663,24 +665,23 @@ public final class FileUtils {
      * Checks whether the given file has a jar extension.
      *
      * @param file to check
+     *
      * @return true if the file has a jar extension, otherwise false
      */
     public static boolean isJarFile(java.nio.file.Path file) {
-        return JAR_FILE_EXTENSION.equals(
-                org.apache.flink.shaded.guava30.com.google.common.io.Files.getFileExtension(
-                        file.toString()));
+        return JAR_FILE_EXTENSION.equals(org.apache.flink.shaded.guava30.com.google.common.io.Files.getFileExtension(
+                file.toString()));
     }
 
     /**
      * Remove the extension of the file name.
      *
      * @param fileName to strip
+     *
      * @return the file name without extension
      */
     public static String stripFileExtension(String fileName) {
-        final String extension =
-                org.apache.flink.shaded.guava30.com.google.common.io.Files.getFileExtension(
-                        fileName);
+        final String extension = org.apache.flink.shaded.guava30.com.google.common.io.Files.getFileExtension(fileName);
         if (!extension.isEmpty()) {
             return fileName.substring(0, fileName.lastIndexOf(extension) - 1);
         }
@@ -692,7 +693,9 @@ public final class FileUtils {
      * relative iff the given path is relative.
      *
      * @param path to convert into a {@link URL}.
+     *
      * @return URL
+     *
      * @throws MalformedURLException if the path could not be converted into a file {@link URL}
      */
     public static URL toURL(java.nio.file.Path path) throws MalformedURLException {
@@ -712,8 +715,7 @@ public final class FileUtils {
         }
 
         @Override
-        public FileVisitResult visitFile(java.nio.file.Path file, BasicFileAttributes attrs)
-                throws IOException {
+        public FileVisitResult visitFile(java.nio.file.Path file, BasicFileAttributes attrs) throws IOException {
             FileVisitResult fileVisitResult = super.visitFile(file, attrs);
 
             if (fileFilter.test(file)) {
@@ -731,5 +733,6 @@ public final class FileUtils {
     // ------------------------------------------------------------------------
 
     /** Private default constructor to avoid instantiation. */
-    private FileUtils() {}
+    private FileUtils() {
+    }
 }

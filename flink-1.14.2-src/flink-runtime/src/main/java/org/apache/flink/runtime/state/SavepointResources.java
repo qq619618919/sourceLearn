@@ -34,9 +34,8 @@ public class SavepointResources<K> {
     private final FullSnapshotResources<K> snapshotResources;
     private final SnapshotExecutionType preferredSnapshotExecutionType;
 
-    public SavepointResources(
-            FullSnapshotResources<K> snapshotResources,
-            SnapshotExecutionType preferredSnapshotExecutionType) {
+    public SavepointResources(FullSnapshotResources<K> snapshotResources,
+                              SnapshotExecutionType preferredSnapshotExecutionType) {
         this.snapshotResources = snapshotResources;
         this.preferredSnapshotExecutionType = preferredSnapshotExecutionType;
     }

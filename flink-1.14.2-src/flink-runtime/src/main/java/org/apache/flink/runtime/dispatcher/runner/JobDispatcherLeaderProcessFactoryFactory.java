@@ -75,6 +75,11 @@ public class JobDispatcherLeaderProcessFactoryFactory implements DispatcherLeade
     }
 
     public static JobDispatcherLeaderProcessFactoryFactory create(JobGraphRetriever jobGraphRetriever) {
+
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释：
+         */
         return new JobDispatcherLeaderProcessFactoryFactory(jobGraphRetriever);
     }
 }

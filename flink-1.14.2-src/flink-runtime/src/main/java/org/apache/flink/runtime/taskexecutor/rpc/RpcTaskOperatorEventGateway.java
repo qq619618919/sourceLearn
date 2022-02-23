@@ -41,10 +41,9 @@ public class RpcTaskOperatorEventGateway implements TaskOperatorEventGateway {
 
     private final Consumer<Throwable> errorHandler;
 
-    public RpcTaskOperatorEventGateway(
-            JobMasterOperatorEventGateway rpcGateway,
-            ExecutionAttemptID taskExecutionId,
-            Consumer<Throwable> errorHandler) {
+    public RpcTaskOperatorEventGateway(JobMasterOperatorEventGateway rpcGateway,
+                                       ExecutionAttemptID taskExecutionId,
+                                       Consumer<Throwable> errorHandler) {
 
         this.rpcGateway = rpcGateway;
         this.taskExecutionId = taskExecutionId;
@@ -52,16 +51,21 @@ public class RpcTaskOperatorEventGateway implements TaskOperatorEventGateway {
     }
 
     @Override
-    public void sendOperatorEventToCoordinator(
-            OperatorID operator, SerializedValue<OperatorEvent> event) {
-        final CompletableFuture<Acknowledge> result =
-                rpcGateway.sendOperatorEventToCoordinator(taskExecutionId, operator, event);
+    public void sendOperatorEventToCoordinator(OperatorID operator, SerializedValue<OperatorEvent> event) {
 
-        result.whenComplete(
-                (success, exception) -> {
-                    if (exception != null) {
-                        errorHandler.accept(exception);
-                    }
-                });
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释：
+         */
+        final CompletableFuture<Acknowledge> result = rpcGateway.sendOperatorEventToCoordinator(taskExecutionId,
+                operator,
+                event
+        );
+
+        result.whenComplete((success, exception) -> {
+            if (exception != null) {
+                errorHandler.accept(exception);
+            }
+        });
     }
 }

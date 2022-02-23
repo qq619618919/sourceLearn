@@ -125,19 +125,21 @@ class SlotSharingExecutionSlotAllocator implements ExecutionSlotAllocator {
                 .stream()
                 .collect(Collectors.groupingBy(slotSharingStrategy::getExecutionSlotSharingGroup));
 
+        // TODO_MA 马中华 注释： 申请 Slot
         Map<ExecutionSlotSharingGroup, SharedSlot> slots = executionsByGroup
                 .keySet()
                 .stream()
                 /*************************************************
                  * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-                 *  注释：
+                 *  注释： 申请物理 slot
+                 *  PhysicalSlot = ShareSlot
                  */
                 .map(group -> getOrAllocateSharedSlot(group, sharedSlotProfileRetriever))
                 .collect(Collectors.toMap(SharedSlot::getExecutionSlotSharingGroup, Function.identity()));
 
         /*************************************************
          * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-         *  注释：
+         *  注释： 申请 逻辑 slot
          */
         Map<ExecutionVertexID, SlotExecutionVertexAssignment> assignments = allocateLogicalSlotsFromSharedSlots(slots,
                 executionsByGroup
@@ -147,10 +149,6 @@ class SlotSharingExecutionSlotAllocator implements ExecutionSlotAllocator {
         // 'sharedSlots'
         // because if any physical slots have already failed, their shared slots have been removed
         // from the allocator's 'sharedSlots' by failed logical slots.
-        /*************************************************
-         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-         *  注释：
-         */
         SharingPhysicalSlotRequestBulk bulk = createBulk(slots, executionsByGroup);
 
         bulkChecker.schedulePendingRequestBulkTimeoutCheck(bulk, allocationTimeout);
@@ -163,7 +161,8 @@ class SlotSharingExecutionSlotAllocator implements ExecutionSlotAllocator {
         cancelLogicalSlotRequest(executionVertexId, null);
     }
 
-    private void cancelLogicalSlotRequest(ExecutionVertexID executionVertexId, Throwable cause) {
+    private void cancelLogicalSlotRequest(ExecutionVertexID executionVertexId,
+                                          Throwable cause) {
         ExecutionSlotSharingGroup executionSlotSharingGroup = slotSharingStrategy.getExecutionSlotSharingGroup(
                 executionVertexId);
         checkNotNull(executionSlotSharingGroup,
@@ -182,9 +181,11 @@ class SlotSharingExecutionSlotAllocator implements ExecutionSlotAllocator {
     private static Map<ExecutionVertexID, SlotExecutionVertexAssignment> allocateLogicalSlotsFromSharedSlots(Map<ExecutionSlotSharingGroup, SharedSlot> slots,
                                                                                                              Map<ExecutionSlotSharingGroup, List<ExecutionVertexID>> executionsByGroup) {
 
+        // TODO_MA 马中华 注释： 结果容器
         Map<ExecutionVertexID, SlotExecutionVertexAssignment> assignments = new HashMap<>();
 
         for (Map.Entry<ExecutionSlotSharingGroup, List<ExecutionVertexID>> entry : executionsByGroup.entrySet()) {
+
             ExecutionSlotSharingGroup group = entry.getKey();
             List<ExecutionVertexID> executionIds = entry.getValue();
 
@@ -197,15 +198,19 @@ class SlotSharingExecutionSlotAllocator implements ExecutionSlotAllocator {
                 SlotExecutionVertexAssignment assignment = new SlotExecutionVertexAssignment(executionId,
                         logicalSlotFuture
                 );
+
+                // TODO_MA 马中华 注释： 放入结果容器
                 assignments.put(executionId, assignment);
             }
         }
 
+        // TODO_MA 马中华 注释： 返回结果
         return assignments;
     }
 
     private SharedSlot getOrAllocateSharedSlot(ExecutionSlotSharingGroup executionSlotSharingGroup,
                                                SharedSlotProfileRetriever sharedSlotProfileRetriever) {
+
         return sharedSlots.computeIfAbsent(executionSlotSharingGroup, group -> {
             SlotRequestId physicalSlotRequestId = new SlotRequestId();
             ResourceProfile physicalSlotResourceProfile = getPhysicalSlotResourceProfile(group);
@@ -216,14 +221,21 @@ class SlotSharingExecutionSlotAllocator implements ExecutionSlotAllocator {
              *  注释：
              */
             PhysicalSlotRequest physicalSlotRequest = new PhysicalSlotRequest(physicalSlotRequestId,
-                    slotProfile,
+                    slotProfile,  // TODO_MA 马中华 注释： 资源配置
                     slotWillBeOccupiedIndefinitely
             );
+
+            /*************************************************
+             * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+             *  注释： 申请 Slot
+             *  可能这个代码会卡住比较长的时间
+             *  返回是有的，但是没有申请到slot
+             */
             CompletableFuture<PhysicalSlot> physicalSlotFuture = slotProvider
                     .allocatePhysicalSlot(physicalSlotRequest)
                     .thenApply(PhysicalSlotRequest.Result::getPhysicalSlot);
 
-            // TODO_MA 马中华 注释：
+            // TODO_MA 马中华 注释： 其实就是封装了 PhysicalSlot
             return new SharedSlot(physicalSlotRequestId,
                     physicalSlotResourceProfile,
                     group,

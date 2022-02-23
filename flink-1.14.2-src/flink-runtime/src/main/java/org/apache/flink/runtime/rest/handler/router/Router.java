@@ -78,6 +78,15 @@ import java.util.Set;
  * }</pre>
  */
 public class Router<T> {
+
+    /*************************************************
+     * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+     *  注释： 方法 到 方法路由器的映射
+     *  get
+     *  post
+     *  ....
+     *  HTTP 的方法！
+     */
     private final Map<HttpMethod, MethodlessRouter<T>> routers = new HashMap<HttpMethod, MethodlessRouter<T>>();
 
     private final MethodlessRouter<T> anyMethodRouter = new MethodlessRouter<T>();

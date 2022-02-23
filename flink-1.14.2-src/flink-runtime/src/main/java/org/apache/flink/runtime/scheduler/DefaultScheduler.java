@@ -125,19 +125,13 @@ public class DefaultScheduler extends SchedulerBase implements SchedulerOperatio
                      final ShuffleMaster<?> shuffleMaster,
                      final Time rpcTimeout) throws Exception {
 
-        super(log,
-                jobGraph,
-                ioExecutor,
-                jobMasterConfiguration,
-                userCodeLoader,
-                checkpointRecoveryFactory,
-                jobManagerJobMetricGroup,
-                executionVertexVersioner,
-                initializationTimestamp,
-                mainThreadExecutor,
-                jobStatusListener,
-                executionGraphFactory
-        );
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释： 创建 ExecutionGraph
+         */
+        super(log, jobGraph, ioExecutor, jobMasterConfiguration, userCodeLoader, checkpointRecoveryFactory,
+                jobManagerJobMetricGroup, executionVertexVersioner, initializationTimestamp, mainThreadExecutor, jobStatusListener,
+                executionGraphFactory);
 
         this.log = log;
 
@@ -152,20 +146,19 @@ public class DefaultScheduler extends SchedulerBase implements SchedulerOperatio
          *  注释： Task 恢复策略
          */
         final FailoverStrategy failoverStrategy = failoverStrategyFactory.create(getSchedulingTopology(),
-                getResultPartitionAvailabilityChecker()
-        );
+                getResultPartitionAvailabilityChecker());
         log.info("Using failover strategy {} for {} ({}).", failoverStrategy, jobGraph.getName(), jobGraph.getJobID());
 
         enrichResourceProfile();
 
         /*************************************************
          * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-         *  注释：
+         *  注释： 异常处理器，包含两个：
+         *  1、FailoverStrategy
+         *  2、RestartStrategy
          */
-        this.executionFailureHandler = new ExecutionFailureHandler(getSchedulingTopology(),
-                failoverStrategy,
-                restartBackoffTimeStrategy
-        );
+        this.executionFailureHandler = new ExecutionFailureHandler(getSchedulingTopology(), failoverStrategy,
+                restartBackoffTimeStrategy);
 
         /*************************************************
          * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
@@ -173,7 +166,8 @@ public class DefaultScheduler extends SchedulerBase implements SchedulerOperatio
          */
         this.schedulingStrategy = schedulingStrategyFactory.createInstance(this, getSchedulingTopology());
 
-        this.executionSlotAllocator = checkNotNull(executionSlotAllocatorFactory).createInstance(new DefaultExecutionSlotAllocationContext());
+        this.executionSlotAllocator = checkNotNull(executionSlotAllocatorFactory).createInstance(
+                new DefaultExecutionSlotAllocationContext());
 
         this.verticesWaitingForRestart = new HashSet<>();
         startUpAction.accept(mainThreadExecutor);
@@ -190,10 +184,7 @@ public class DefaultScheduler extends SchedulerBase implements SchedulerOperatio
 
     @Override
     protected void cancelAllPendingSlotRequestsInternal() {
-        IterableUtils
-                .toStream(getSchedulingTopology().getVertices())
-                .map(Vertex::getId)
-                .forEach(executionSlotAllocator::cancel);
+        IterableUtils.toStream(getSchedulingTopology().getVertices()).map(Vertex::getId).forEach(executionSlotAllocator::cancel);
     }
 
     @Override
@@ -202,13 +193,20 @@ public class DefaultScheduler extends SchedulerBase implements SchedulerOperatio
 
         /*************************************************
          * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-         *  注释：
+         *  注释： 首先修改 Job 的状态
          */
         transitionToRunning();
 
         /*************************************************
          * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-         *  注释：
+         *  注释： 调度策略，其实只有一种：PipelinedRegion SchedulingStrategy
+         *  PipelinedRegion (血缘区域：有上下游依赖关系的Task链， slot共享) 这是重点：
+         *  我们在申请资源和部署Task的时候，都跟这个有关系
+         *  Execution 的逻辑执行图 = Topology = 在执行规划，到底启动多少Task，需要申请多少slot
+         *  四层图： StrewamGraph + JobGraph + ExecutionGraph + 物理执行图
+         *  -
+         *  一个 PipelinedRegion 申请一个 Slot
+         *  一个 Topology 会有多个 PipelinedRegion，按照 PipelinedRegion 的逻辑顺序来顺序调度的
          */
         schedulingStrategy.startScheduling();
     }
@@ -217,7 +215,12 @@ public class DefaultScheduler extends SchedulerBase implements SchedulerOperatio
     protected void updateTaskExecutionStateInternal(final ExecutionVertexID executionVertexId,
                                                     final TaskExecutionStateTransition taskExecutionState) {
 
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释：  taskExecutionState.getExecutionState() = Initializing
+         */
         schedulingStrategy.onExecutionStateChange(executionVertexId, taskExecutionState.getExecutionState());
+
         maybeHandleTaskFailure(taskExecutionState, executionVertexId);
     }
 
@@ -230,15 +233,13 @@ public class DefaultScheduler extends SchedulerBase implements SchedulerOperatio
         }
     }
 
-    private void handleTaskFailure(final ExecutionVertexID executionVertexId, @Nullable final Throwable error) {
+    private void handleTaskFailure(final ExecutionVertexID executionVertexId,
+                                   @Nullable final Throwable error) {
         final long timestamp = System.currentTimeMillis();
         setGlobalFailureCause(error, timestamp);
         notifyCoordinatorsAboutTaskFailure(executionVertexId, error);
-        final FailureHandlingResult failureHandlingResult = executionFailureHandler.getFailureHandlingResult(
-                executionVertexId,
-                error,
-                timestamp
-        );
+        final FailureHandlingResult failureHandlingResult = executionFailureHandler.getFailureHandlingResult(executionVertexId,
+                error, timestamp);
         maybeRestartTasks(failureHandlingResult);
     }
 
@@ -257,13 +258,21 @@ public class DefaultScheduler extends SchedulerBase implements SchedulerOperatio
 
         log.info("Trying to recover from a global failure.", error);
         final FailureHandlingResult failureHandlingResult = executionFailureHandler.getGlobalFailureHandlingResult(error,
-                timestamp
-        );
+                timestamp);
+
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释：
+         */
         maybeRestartTasks(failureHandlingResult);
     }
 
     private void maybeRestartTasks(final FailureHandlingResult failureHandlingResult) {
         if (failureHandlingResult.canRestart()) {
+            /*************************************************
+             * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+             *  注释：
+             */
             restartTasksWithDelay(failureHandlingResult);
         } else {
             failJob(failureHandlingResult.getError(), failureHandlingResult.getTimestamp());
@@ -273,9 +282,8 @@ public class DefaultScheduler extends SchedulerBase implements SchedulerOperatio
     private void restartTasksWithDelay(final FailureHandlingResult failureHandlingResult) {
         final Set<ExecutionVertexID> verticesToRestart = failureHandlingResult.getVerticesToRestart();
 
-        final Set<ExecutionVertexVersion> executionVertexVersions = new HashSet<>(executionVertexVersioner
-                .recordVertexModifications(verticesToRestart)
-                .values());
+        final Set<ExecutionVertexVersion> executionVertexVersions = new HashSet<>(
+                executionVertexVersioner.recordVertexModifications(verticesToRestart).values());
         final boolean globalRecovery = failureHandlingResult.isGlobalFailure();
 
         addVerticesToRestartPending(verticesToRestart);
@@ -283,11 +291,14 @@ public class DefaultScheduler extends SchedulerBase implements SchedulerOperatio
         final CompletableFuture<?> cancelFuture = cancelTasksAsync(verticesToRestart);
 
         final FailureHandlingResultSnapshot failureHandlingResultSnapshot = FailureHandlingResultSnapshot.create(
-                failureHandlingResult,
-                id -> this.getExecutionVertex(id).getCurrentExecutionAttempt()
-        );
+                failureHandlingResult, id -> this.getExecutionVertex(id).getCurrentExecutionAttempt());
+
         delayExecutor.schedule(() -> FutureUtils.assertNoException(cancelFuture.thenRunAsync(() -> {
             archiveFromFailureHandlingResult(failureHandlingResultSnapshot);
+            /*************************************************
+             * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+             *  注释：
+             */
             restartTasks(executionVertexVersions, globalRecovery);
         }, getMainThreadExecutor())), failureHandlingResult.getRestartDelayMS(), TimeUnit.MILLISECONDS);
     }
@@ -320,6 +331,10 @@ public class DefaultScheduler extends SchedulerBase implements SchedulerOperatio
             return;
         }
 
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释：
+         */
         schedulingStrategy.restartTasks(verticesToRestart);
     }
 
@@ -328,9 +343,7 @@ public class DefaultScheduler extends SchedulerBase implements SchedulerOperatio
         // is used to fulfill the pending requests of these tasks
         verticesToRestart.stream().forEach(executionSlotAllocator::cancel);
 
-        final List<CompletableFuture<?>> cancelFutures = verticesToRestart
-                .stream()
-                .map(this::cancelExecutionVertex)
+        final List<CompletableFuture<?>> cancelFutures = verticesToRestart.stream().map(this::cancelExecutionVertex)
                 .collect(Collectors.toList());
 
         return FutureUtils.combineAll(cancelFutures);
@@ -346,6 +359,10 @@ public class DefaultScheduler extends SchedulerBase implements SchedulerOperatio
 
     @Override
     protected void notifyPartitionDataAvailableInternal(final IntermediateResultPartitionID partitionId) {
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释：
+         */
         schedulingStrategy.onPartitionConsumable(partitionId);
     }
 
@@ -365,54 +382,52 @@ public class DefaultScheduler extends SchedulerBase implements SchedulerOperatio
         final Map<ExecutionVertexID, ExecutionVertexDeploymentOption> deploymentOptionsByVertex = groupDeploymentOptionsByVertexId(
                 executionVertexDeploymentOptions);
 
-        final List<ExecutionVertexID> verticesToDeploy = executionVertexDeploymentOptions
-                .stream()
-                .map(ExecutionVertexDeploymentOption::getExecutionVertexId)
-                .collect(Collectors.toList());
+        final List<ExecutionVertexID> verticesToDeploy = executionVertexDeploymentOptions.stream()
+                .map(ExecutionVertexDeploymentOption::getExecutionVertexId).collect(Collectors.toList());
 
         final Map<ExecutionVertexID, ExecutionVertexVersion> requiredVersionByVertex = executionVertexVersioner.recordVertexModifications(
                 verticesToDeploy);
 
+        // TODO_MA 马中华 注释： 更新 job 的状态
         transitionToScheduled(verticesToDeploy);
 
         /*************************************************
          * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
          *  注释： 第一步： 申请 slot
+         *  SlotExecutionVertexAssignment:  记录了 Task 和 Slot 的映射关系
+         *  1、Slot  资源
+         *  2、ExecutionVertex  ExecutionGraph中的一个顶点，需要运行一个Task
+         *  3、Assignment  分配关系
          */
-        final List<SlotExecutionVertexAssignment> slotExecutionVertexAssignments = allocateSlots(
-                executionVertexDeploymentOptions);
+        final List<SlotExecutionVertexAssignment> slotExecutionVertexAssignments = allocateSlots(executionVertexDeploymentOptions);
 
         /*************************************************
          * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-         *  注释：
+         *  注释： 把 List<SlotExecutionVertexAssignment> 变成了 List<DeploymentHandle>
+         *      简化一下：SlotExecutionVertexAssignment 变成了 DeploymentHandle
+         *      SlotExecutionVertexAssignment: 存储是 资源和 Task 的映射关系
+         *      DeploymentHandle： 给这个 Task 的部署，提供行为
+         *  如果代码是我们自己写的，极有可能通过一个类就直接搞定了
+         *  高度抽象，就为了提供扩展性和可读性： Java： 各司其职
          */
-        final List<DeploymentHandle> deploymentHandles = createDeploymentHandles(requiredVersionByVertex,
-                deploymentOptionsByVertex,
-                slotExecutionVertexAssignments
-        );
+        final List<DeploymentHandle> deploymentHandles = createDeploymentHandles(requiredVersionByVertex, deploymentOptionsByVertex,
+                slotExecutionVertexAssignments);
 
         /*************************************************
          * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-         *  注释： 第二步： 部署 Task
+         *  注释： 第二步： 部署 Task（一个 PiplineRegion 中的所有 Task）
          */
         waitForAllSlotsAndDeploy(deploymentHandles);
     }
 
     private void validateDeploymentOptions(final Collection<ExecutionVertexDeploymentOption> deploymentOptions) {
-        deploymentOptions
-                .stream()
-                .map(ExecutionVertexDeploymentOption::getExecutionVertexId)
-                .map(this::getExecutionVertex)
-                .forEach(v -> checkState(v.getExecutionState() == ExecutionState.CREATED,
-                        "expected vertex %s to be in CREATED state, was: %s",
-                        v.getID(),
-                        v.getExecutionState()
-                ));
+        deploymentOptions.stream().map(ExecutionVertexDeploymentOption::getExecutionVertexId).map(this::getExecutionVertex).forEach(
+                v -> checkState(v.getExecutionState() == ExecutionState.CREATED,
+                        "expected vertex %s to be in CREATED state, was: %s", v.getID(), v.getExecutionState()));
     }
 
     private static Map<ExecutionVertexID, ExecutionVertexDeploymentOption> groupDeploymentOptionsByVertexId(final Collection<ExecutionVertexDeploymentOption> executionVertexDeploymentOptions) {
-        return executionVertexDeploymentOptions
-                .stream()
+        return executionVertexDeploymentOptions.stream()
                 .collect(Collectors.toMap(ExecutionVertexDeploymentOption::getExecutionVertexId, Function.identity()));
     }
 
@@ -422,22 +437,28 @@ public class DefaultScheduler extends SchedulerBase implements SchedulerOperatio
          * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
          *  注释：
          */
-        return executionSlotAllocator.allocateSlotsFor(executionVertexDeploymentOptions
-                .stream()
-                .map(ExecutionVertexDeploymentOption::getExecutionVertexId)
-                .collect(Collectors.toList()));
+        return executionSlotAllocator.allocateSlotsFor(
+                executionVertexDeploymentOptions.stream().map(ExecutionVertexDeploymentOption::getExecutionVertexId)
+                        .collect(Collectors.toList()));
     }
 
+    /*************************************************
+     * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+     *  注释：
+     */
     private static List<DeploymentHandle> createDeploymentHandles(final Map<ExecutionVertexID, ExecutionVertexVersion> requiredVersionByVertex,
                                                                   final Map<ExecutionVertexID, ExecutionVertexDeploymentOption> deploymentOptionsByVertex,
                                                                   final List<SlotExecutionVertexAssignment> slotExecutionVertexAssignments) {
 
         return slotExecutionVertexAssignments.stream().map(slotExecutionVertexAssignment -> {
             final ExecutionVertexID executionVertexId = slotExecutionVertexAssignment.getExecutionVertexId();
+            
+            /*************************************************
+             * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+             *  注释： 
+             */
             return new DeploymentHandle(requiredVersionByVertex.get(executionVertexId),
-                    deploymentOptionsByVertex.get(executionVertexId),
-                    slotExecutionVertexAssignment
-            );
+                    deploymentOptionsByVertex.get(executionVertexId), slotExecutionVertexAssignment);
         }).collect(Collectors.toList());
     }
 
@@ -456,7 +477,8 @@ public class DefaultScheduler extends SchedulerBase implements SchedulerOperatio
 
                         /*************************************************
                          * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-                         *  注释：
+                         *  注释： 部署所有的 Task
+                         *  一个 PiplineRegion 中的所有 Task
                          */
                         deployAll(deploymentHandles)));
     }
@@ -469,17 +491,17 @@ public class DefaultScheduler extends SchedulerBase implements SchedulerOperatio
          *  注释：
          */
         for (DeploymentHandle deploymentHandle : deploymentHandles) {
-            final CompletableFuture<Void> resultFuture = deploymentHandle
-                    .getSlotExecutionVertexAssignment()
-                    .getLogicalSlotFuture()
+            final CompletableFuture<Void> resultFuture = deploymentHandle.getSlotExecutionVertexAssignment().getLogicalSlotFuture()
 
                     /*************************************************
                      * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-                     *  注释：
-                     */
-                    .handle(assignResource(deploymentHandle))
-                    .thenCompose(registerProducedPartitions(deploymentHandle))
-                    .handle((ignore, throwable) -> {
+                     *  注释： 第一件事： 分配资源
+                     */.handle(assignResource(deploymentHandle))
+
+                    /*************************************************
+                     * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+                     *  注释： 第二件事： 生成 ResultPartitionDeploymentDescriptor 并且注册
+                     */.thenCompose(registerProducedPartitions(deploymentHandle)).handle((ignore, throwable) -> {
                         if (throwable != null) {
                             handleTaskDeploymentFailure(deploymentHandle.getExecutionVertexId(), throwable);
                         }
@@ -491,19 +513,28 @@ public class DefaultScheduler extends SchedulerBase implements SchedulerOperatio
         return FutureUtils.waitForAll(resultFutures);
     }
 
+    /*************************************************
+     * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+     *  注释：
+     */
     private BiFunction<Void, Throwable, Void> deployAll(final List<DeploymentHandle> deploymentHandles) {
         return (ignored, throwable) -> {
             propagateIfNonNull(throwable);
 
-            // TODO_MA 马中华 注释：
+            // TODO_MA 马中华 注释： 遍历每个 DeploymentHandle
+            // TODO_MA 马中华 注释： 其实，就是遍历每个 Task 执行部署
             for (final DeploymentHandle deploymentHandle : deploymentHandles) {
+
+                // TODO_MA 马中华 注释： 获取对应的 SlotExecutionVertexAssignment
                 final SlotExecutionVertexAssignment slotExecutionVertexAssignment = deploymentHandle.getSlotExecutionVertexAssignment();
+
+                // TODO_MA 马中华 注释： 拿到 LogicalSlot
                 final CompletableFuture<LogicalSlot> slotAssigned = slotExecutionVertexAssignment.getLogicalSlotFuture();
                 checkState(slotAssigned.isDone());
 
                 /*************************************************
                  * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-                 *  注释：
+                 *  注释： 部署一个 Task
                  */
                 FutureUtils.assertNoException(slotAssigned.handle(deployOrHandleError(deploymentHandle)));
             }
@@ -525,8 +556,9 @@ public class DefaultScheduler extends SchedulerBase implements SchedulerOperatio
         return (logicalSlot, throwable) -> {
             if (executionVertexVersioner.isModified(requiredVertexVersion)) {
                 if (throwable == null) {
-                    log.debug("Refusing to assign slot to execution vertex {} because this deployment was "
-                            + "superseded by another deployment", executionVertexId);
+                    log.debug(
+                            "Refusing to assign slot to execution vertex {} because this deployment was " + "superseded by another deployment",
+                            executionVertexId);
                     releaseSlotIfPresent(logicalSlot);
                 }
                 return null;
@@ -551,26 +583,31 @@ public class DefaultScheduler extends SchedulerBase implements SchedulerOperatio
     }
 
     private Function<LogicalSlot, CompletableFuture<Void>> registerProducedPartitions(final DeploymentHandle deploymentHandle) {
+
         final ExecutionVertexID executionVertexId = deploymentHandle.getExecutionVertexId();
 
         return logicalSlot -> {
             // a null logicalSlot means the slot assignment is skipped, in which case
             // the produced partition registration process can be skipped as well
             if (logicalSlot != null) {
-                final ExecutionVertex executionVertex = getExecutionVertex(executionVertexId);
-                final boolean notifyPartitionDataAvailable = deploymentHandle
-                        .getDeploymentOption()
-                        .notifyPartitionDataAvailable();
 
-                final CompletableFuture<Void> partitionRegistrationFuture = executionVertex
-                        .getCurrentExecutionAttempt()
+                /*************************************************
+                 * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+                 *  注释：
+                 */
+                final ExecutionVertex executionVertex = getExecutionVertex(executionVertexId);
+
+                final boolean notifyPartitionDataAvailable = deploymentHandle.getDeploymentOption().notifyPartitionDataAvailable();
+
+                /*************************************************
+                 * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+                 *  注释：
+                 */
+                final CompletableFuture<Void> partitionRegistrationFuture = executionVertex.getCurrentExecutionAttempt()
                         .registerProducedPartitions(logicalSlot.getTaskManagerLocation(), notifyPartitionDataAvailable);
 
-                return FutureUtils.orTimeout(partitionRegistrationFuture,
-                        rpcTimeout.toMilliseconds(),
-                        TimeUnit.MILLISECONDS,
-                        getMainThreadExecutor()
-                );
+                return FutureUtils.orTimeout(partitionRegistrationFuture, rpcTimeout.toMilliseconds(), TimeUnit.MILLISECONDS,
+                        getMainThreadExecutor());
             } else {
                 return FutureUtils.completedVoidFuture();
             }
@@ -583,28 +620,42 @@ public class DefaultScheduler extends SchedulerBase implements SchedulerOperatio
         }
     }
 
-    private void handleTaskDeploymentFailure(final ExecutionVertexID executionVertexId, final Throwable error) {
+    private void handleTaskDeploymentFailure(final ExecutionVertexID executionVertexId,
+                                             final Throwable error) {
         executionVertexOperations.markFailed(getExecutionVertex(executionVertexId), error);
     }
 
     private static Throwable maybeWrapWithNoResourceAvailableException(final Throwable failure) {
         final Throwable strippedThrowable = ExceptionUtils.stripCompletionException(failure);
         if (strippedThrowable instanceof TimeoutException) {
-            return new NoResourceAvailableException("Could not allocate the required slot within slot request timeout. "
-                    + "Please make sure that the cluster has enough resources.", failure);
+            return new NoResourceAvailableException(
+                    "Could not allocate the required slot within slot request timeout. " + "Please make sure that the cluster has enough resources.",
+                    failure);
         } else {
             return failure;
         }
     }
 
+    /*************************************************
+     * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+     *  注释： DeploymentHandle
+     *  1、Task
+     *  2、Slot（Slot 属于哪个 TaskExecutor， TaskExecutorGateway ）
+     *  3、部署行为
+     *  最终：
+     *  发送 RPC 请求：TaskExecutorGateway.submitTask()
+     */
     private BiFunction<Object, Throwable, Void> deployOrHandleError(final DeploymentHandle deploymentHandle) {
+
+        // TODO_MA 马中华 注释： 获取 ExecutionVertexID
         final ExecutionVertexVersion requiredVertexVersion = deploymentHandle.getRequiredVertexVersion();
         final ExecutionVertexID executionVertexId = requiredVertexVersion.getExecutionVertexId();
 
         return (ignored, throwable) -> {
             if (executionVertexVersioner.isModified(requiredVertexVersion)) {
-                log.debug("Refusing to deploy execution vertex {} because this deployment was "
-                        + "superseded by another deployment", executionVertexId);
+                log.debug(
+                        "Refusing to deploy execution vertex {} because this deployment was " + "superseded by another deployment",
+                        executionVertexId);
                 return null;
             }
 
@@ -623,6 +674,7 @@ public class DefaultScheduler extends SchedulerBase implements SchedulerOperatio
 
     private void deployTaskSafe(final ExecutionVertexID executionVertexId) {
         try {
+            // TODO_MA 马中华 注释： 根据 ExecutionVertexID 获取 ExecutionVertex
             final ExecutionVertex executionVertex = getExecutionVertex(executionVertexId);
 
             /*************************************************
@@ -642,8 +694,7 @@ public class DefaultScheduler extends SchedulerBase implements SchedulerOperatio
         // we don't notify if the task is already FAILED, CANCELLING, or CANCELED
 
         final ExecutionState currentState = vertex.getExecutionState();
-        if (currentState == ExecutionState.FAILED || currentState == ExecutionState.CANCELING
-                || currentState == ExecutionState.CANCELED) {
+        if (currentState == ExecutionState.FAILED || currentState == ExecutionState.CANCELING || currentState == ExecutionState.CANCELED) {
             return;
         }
 
@@ -698,9 +749,6 @@ public class DefaultScheduler extends SchedulerBase implements SchedulerOperatio
     private void enrichResourceProfile() {
         Set<SlotSharingGroup> ssgs = new HashSet<>();
         getJobGraph().getVertices().forEach(jv -> ssgs.add(jv.getSlotSharingGroup()));
-        ssgs.forEach(ssg -> SsgNetworkMemoryCalculationUtils.enrichNetworkMemory(ssg,
-                this::getExecutionJobVertex,
-                shuffleMaster
-        ));
+        ssgs.forEach(ssg -> SsgNetworkMemoryCalculationUtils.enrichNetworkMemory(ssg, this::getExecutionJobVertex, shuffleMaster));
     }
 }

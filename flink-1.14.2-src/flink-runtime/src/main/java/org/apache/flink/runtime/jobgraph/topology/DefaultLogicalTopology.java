@@ -58,29 +58,24 @@ public class DefaultLogicalTopology implements LogicalTopology {
     public static DefaultLogicalTopology fromJobGraph(final JobGraph jobGraph) {
         checkNotNull(jobGraph);
 
-        return fromTopologicallySortedJobVertices(
-                jobGraph.getVerticesSortedTopologicallyFromSources());
+        return fromTopologicallySortedJobVertices(jobGraph.getVerticesSortedTopologicallyFromSources());
     }
 
-    public static DefaultLogicalTopology fromTopologicallySortedJobVertices(
-            final List<JobVertex> jobVertices) {
+    public static DefaultLogicalTopology fromTopologicallySortedJobVertices(final List<JobVertex> jobVertices) {
         return new DefaultLogicalTopology(jobVertices);
     }
 
     private void buildVerticesAndResults(final Iterable<JobVertex> topologicallySortedJobVertices) {
         final Function<JobVertexID, DefaultLogicalVertex> vertexRetriever = this::getVertex;
-        final Function<IntermediateDataSetID, DefaultLogicalResult> resultRetriever =
-                this::getResult;
+        final Function<IntermediateDataSetID, DefaultLogicalResult> resultRetriever = this::getResult;
 
         for (JobVertex jobVertex : topologicallySortedJobVertices) {
-            final DefaultLogicalVertex logicalVertex =
-                    new DefaultLogicalVertex(jobVertex, resultRetriever);
+            final DefaultLogicalVertex logicalVertex = new DefaultLogicalVertex(jobVertex, resultRetriever);
             this.verticesSorted.add(logicalVertex);
             this.idToVertexMap.put(logicalVertex.getId(), logicalVertex);
 
             for (IntermediateDataSet intermediateDataSet : jobVertex.getProducedDataSets()) {
-                final DefaultLogicalResult logicalResult =
-                        new DefaultLogicalResult(intermediateDataSet, vertexRetriever);
+                final DefaultLogicalResult logicalResult = new DefaultLogicalResult(intermediateDataSet, vertexRetriever);
                 idToResultMap.put(logicalResult.getId(), logicalResult);
             }
         }
@@ -93,21 +88,27 @@ public class DefaultLogicalTopology implements LogicalTopology {
 
     private DefaultLogicalVertex getVertex(final JobVertexID vertexId) {
         return Optional.ofNullable(idToVertexMap.get(vertexId))
-                .orElseThrow(
-                        () -> new IllegalArgumentException("can not find vertex: " + vertexId));
+                .orElseThrow(() -> new IllegalArgumentException("can not find vertex: " + vertexId));
     }
 
     private DefaultLogicalResult getResult(final IntermediateDataSetID resultId) {
         return Optional.ofNullable(idToResultMap.get(resultId))
-                .orElseThrow(
-                        () -> new IllegalArgumentException("can not find result: " + resultId));
+                .orElseThrow(() -> new IllegalArgumentException("can not find result: " + resultId));
     }
 
     @Override
     public Iterable<DefaultLogicalPipelinedRegion> getAllPipelinedRegions() {
-        final Set<Set<LogicalVertex>> regionsRaw =
-                LogicalPipelinedRegionComputeUtil.computePipelinedRegions(verticesSorted);
 
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释： 对 ExecutionGraph 划分 Region 生成 Region 集合： Set<Set<LogicalVertex>>
+         */
+        final Set<Set<LogicalVertex>> regionsRaw = LogicalPipelinedRegionComputeUtil.computePipelinedRegions(verticesSorted);
+
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释： 将构建得到的 Region = Set<LogicalVertex> 封装成一个 DefaultLogicalPipelinedRegion 返回
+         */
         final Set<DefaultLogicalPipelinedRegion> regions = new HashSet<>();
         for (Set<LogicalVertex> regionVertices : regionsRaw) {
             regions.add(new DefaultLogicalPipelinedRegion(regionVertices));

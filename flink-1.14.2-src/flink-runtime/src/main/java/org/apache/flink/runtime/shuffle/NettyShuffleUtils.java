@@ -37,8 +37,7 @@ public class NettyShuffleUtils {
     /**
      * Calculates and returns the number of required exclusive network buffers per input channel.
      */
-    public static int getNetworkBuffersPerInputChannel(
-            final int configuredNetworkBuffersPerChannel) {
+    public static int getNetworkBuffersPerInputChannel(final int configuredNetworkBuffersPerChannel) {
         return configuredNetworkBuffersPerChannel;
     }
 
@@ -46,8 +45,7 @@ public class NettyShuffleUtils {
      * Calculates and returns the floating network buffer pool size used by the input gate. The
      * left/right value of the returned pair represent the min/max buffers require by the pool.
      */
-    public static Pair<Integer, Integer> getMinMaxFloatingBuffersPerInputGate(
-            final int numFloatingBuffersPerGate) {
+    public static Pair<Integer, Integer> getMinMaxFloatingBuffersPerInputGate(final int numFloatingBuffersPerGate) {
         // We should guarantee at-least one floating buffer for local channel state recovery.
         return Pair.of(1, numFloatingBuffersPerGate);
     }
@@ -56,22 +54,16 @@ public class NettyShuffleUtils {
      * Calculates and returns local network buffer pool size used by the result partition. The
      * left/right value of the returned pair represent the min/max buffers require by the pool.
      */
-    public static Pair<Integer, Integer> getMinMaxNetworkBuffersPerResultPartition(
-            final int configuredNetworkBuffersPerChannel,
-            final int numFloatingBuffersPerGate,
-            final int sortShuffleMinParallelism,
-            final int sortShuffleMinBuffers,
-            final int numSubpartitions,
-            final ResultPartitionType type) {
-        int min =
-                type.isBlocking() && numSubpartitions >= sortShuffleMinParallelism
-                        ? sortShuffleMinBuffers
-                        : numSubpartitions + 1;
-        int max =
-                type.isBounded()
-                        ? numSubpartitions * configuredNetworkBuffersPerChannel
-                                + numFloatingBuffersPerGate
-                        : Integer.MAX_VALUE;
+    public static Pair<Integer, Integer> getMinMaxNetworkBuffersPerResultPartition(final int configuredNetworkBuffersPerChannel,
+                                                                                   final int numFloatingBuffersPerGate,
+                                                                                   final int sortShuffleMinParallelism,
+                                                                                   final int sortShuffleMinBuffers,
+                                                                                   final int numSubpartitions,
+                                                                                   final ResultPartitionType type) {
+        int min = type.isBlocking() && numSubpartitions >= sortShuffleMinParallelism ? sortShuffleMinBuffers :
+                numSubpartitions + 1;
+        int max = type.isBounded() ?
+                numSubpartitions * configuredNetworkBuffersPerChannel + numFloatingBuffersPerGate : Integer.MAX_VALUE;
         // for each upstream hash-based blocking/pipelined subpartition, at least one buffer is
         // needed even the configured network buffers per channel is 0 and this behavior is for
         // performance. If it's not guaranteed that each subpartition can get at least one buffer,
@@ -80,22 +72,19 @@ public class NettyShuffleUtils {
         return Pair.of(min, Math.max(min, max));
     }
 
-    public static int computeNetworkBuffersForAnnouncing(
-            final int numBuffersPerChannel,
-            final int numFloatingBuffersPerGate,
-            final int sortShuffleMinParallelism,
-            final int sortShuffleMinBuffers,
-            final int numTotalInputChannels,
-            final int numTotalInputGates,
-            final Map<IntermediateDataSetID, Integer> subpartitionNums,
-            final Map<IntermediateDataSetID, ResultPartitionType> partitionTypes) {
+    public static int computeNetworkBuffersForAnnouncing(final int numBuffersPerChannel,
+                                                         final int numFloatingBuffersPerGate,
+                                                         final int sortShuffleMinParallelism,
+                                                         final int sortShuffleMinBuffers,
+                                                         final int numTotalInputChannels,
+                                                         final int numTotalInputGates,
+                                                         final Map<IntermediateDataSetID, Integer> subpartitionNums,
+                                                         final Map<IntermediateDataSetID, ResultPartitionType> partitionTypes) {
 
         // Each input channel will retain N exclusive network buffers, N = numBuffersPerChannel.
         // Each input gate is guaranteed to have a number of floating buffers.
-        int requirementForInputs =
-                getNetworkBuffersPerInputChannel(numBuffersPerChannel) * numTotalInputChannels
-                        + getMinMaxFloatingBuffersPerInputGate(numFloatingBuffersPerGate).getRight()
-                                * numTotalInputGates;
+        int requirementForInputs = getNetworkBuffersPerInputChannel(numBuffersPerChannel) * numTotalInputChannels
+                + getMinMaxFloatingBuffersPerInputGate(numFloatingBuffersPerGate).getRight() * numTotalInputGates;
 
         int requirementForOutputs = 0;
         for (IntermediateDataSetID dataSetId : subpartitionNums.keySet()) {
@@ -103,35 +92,32 @@ public class NettyShuffleUtils {
             checkArgument(partitionTypes.containsKey(dataSetId));
             ResultPartitionType partitionType = partitionTypes.get(dataSetId);
 
-            requirementForOutputs +=
-                    getNumBuffersToAnnounceForResultPartition(
-                            partitionType,
-                            numBuffersPerChannel,
-                            numFloatingBuffersPerGate,
-                            sortShuffleMinParallelism,
-                            sortShuffleMinBuffers,
-                            numSubs);
+            requirementForOutputs += getNumBuffersToAnnounceForResultPartition(partitionType,
+                    numBuffersPerChannel,
+                    numFloatingBuffersPerGate,
+                    sortShuffleMinParallelism,
+                    sortShuffleMinBuffers,
+                    numSubs
+            );
         }
 
         return requirementForInputs + requirementForOutputs;
     }
 
-    private static int getNumBuffersToAnnounceForResultPartition(
-            ResultPartitionType type,
-            int configuredNetworkBuffersPerChannel,
-            int floatingBuffersPerGate,
-            int sortShuffleMinParallelism,
-            int sortShuffleMinBuffers,
-            int numSubpartitions) {
+    private static int getNumBuffersToAnnounceForResultPartition(ResultPartitionType type,
+                                                                 int configuredNetworkBuffersPerChannel,
+                                                                 int floatingBuffersPerGate,
+                                                                 int sortShuffleMinParallelism,
+                                                                 int sortShuffleMinBuffers,
+                                                                 int numSubpartitions) {
 
-        Pair<Integer, Integer> minAndMax =
-                getMinMaxNetworkBuffersPerResultPartition(
-                        configuredNetworkBuffersPerChannel,
-                        floatingBuffersPerGate,
-                        sortShuffleMinParallelism,
-                        sortShuffleMinBuffers,
-                        numSubpartitions,
-                        type);
+        Pair<Integer, Integer> minAndMax = getMinMaxNetworkBuffersPerResultPartition(configuredNetworkBuffersPerChannel,
+                floatingBuffersPerGate,
+                sortShuffleMinParallelism,
+                sortShuffleMinBuffers,
+                numSubpartitions,
+                type
+        );
 
         // In order to avoid network buffer request timeout (see FLINK-12852), we announce
         // network buffer requirement by below:
@@ -147,12 +133,12 @@ public class NettyShuffleUtils {
             // buffer pool only when type is ResultPartitionType.PIPELINED. But fine-grained
             // resource management is disabled in such case.
             throw new IllegalArgumentException(
-                    "Illegal to announce network memory requirement as Integer.MAX_VALUE, partition type: "
-                            + type);
+                    "Illegal to announce network memory requirement as Integer.MAX_VALUE, partition type: " + type);
         }
         return ret;
     }
 
     /** Private default constructor to avoid being instantiated. */
-    private NettyShuffleUtils() {}
+    private NettyShuffleUtils() {
+    }
 }

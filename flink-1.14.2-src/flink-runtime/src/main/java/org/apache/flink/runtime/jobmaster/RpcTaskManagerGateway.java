@@ -60,7 +60,7 @@ public class RpcTaskManagerGateway implements TaskManagerGateway {
 
         /*************************************************
          * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-         *  注释：
+         *  注释： 真正的 发送 RPC 请求部署Task
          */
         return taskExecutorGateway.submitTask(tdd, jobMasterId, timeout);
     }
@@ -108,7 +108,7 @@ public class RpcTaskManagerGateway implements TaskManagerGateway {
 
         /*************************************************
          * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-         *  注释：
+         *  注释： 发送 RPC 请求给 SourceTask 所在的 TaskExecutor
          */
         return taskExecutorGateway.triggerCheckpoint(executionAttemptID, checkpointId, timestamp, checkpointOptions);
     }

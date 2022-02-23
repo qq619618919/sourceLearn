@@ -58,6 +58,11 @@ public final class DefaultDispatcherRunner implements DispatcherRunner, LeaderCo
 
     private CompletableFuture<Void> previousDispatcherLeaderProcessTerminationFuture;
 
+    /*************************************************
+     * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+     *  注释： 将来在内存管理的源码中， 有一个内存页的大小。 pagsize
+     *  逆向寻找的方式，找出到底在哪里赋值的，或者初始化的
+     */
     private DefaultDispatcherRunner(LeaderElectionService leaderElectionService,
                                     FatalErrorHandler fatalErrorHandler,
                                     DispatcherLeaderProcessFactory dispatcherLeaderProcessFactory) {
@@ -109,7 +114,9 @@ public final class DefaultDispatcherRunner implements DispatcherRunner, LeaderCo
             );
             /*************************************************
              * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-             *  注释：
+             *  注释： 启动 DispatcherRunner
+             *  1、创建 Dispatcher
+             *  2、启动 Dispatcher
              */
             startNewDispatcherLeaderProcess(leaderSessionID);
         });
@@ -117,12 +124,12 @@ public final class DefaultDispatcherRunner implements DispatcherRunner, LeaderCo
 
     private void startNewDispatcherLeaderProcess(UUID leaderSessionID) {
 
-        // TODO_MA 马中华 注释：
+        // TODO_MA 马中华 注释： 先停止已有的
         stopDispatcherLeaderProcess();
 
         /*************************************************
          * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-         *  注释：
+         *  注释： 创建 DispatcherLeaderProcess = SessionDispatcherLeaderProcess
          */
         dispatcherLeaderProcess = createNewDispatcherLeaderProcess(leaderSessionID);
 
@@ -130,7 +137,7 @@ public final class DefaultDispatcherRunner implements DispatcherRunner, LeaderCo
 
         /*************************************************
          * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-         *  注释：
+         *  注释： 启动 SessionDispatcherLeaderProcess
          */
         FutureUtils.assertNoException(previousDispatcherLeaderProcessTerminationFuture.thenRun(
                 newDispatcherLeaderProcess::start));
@@ -219,7 +226,9 @@ public final class DefaultDispatcherRunner implements DispatcherRunner, LeaderCo
 
         /*************************************************
          * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-         *  注释：
+         *  注释： 这才是真正干活的组件
+         *  LeaderContender 其实有四个组件： 就包括： DefaultDispatcherRunner
+         *  ResourceManagerServiceImpl
          */
         final DefaultDispatcherRunner dispatcherRunner = new DefaultDispatcherRunner(leaderElectionService,
                 fatalErrorHandler,
@@ -228,7 +237,8 @@ public final class DefaultDispatcherRunner implements DispatcherRunner, LeaderCo
 
         /*************************************************
          * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-         *  注释：
+         *  注释： 被包装了，提供了生命周期管理
+         *  DispatcherRunnerLeaderElectionLifecycleManager 是 DispatcherRunner 的子类
          */
         return DispatcherRunnerLeaderElectionLifecycleManager.createFor(dispatcherRunner, leaderElectionService);
     }

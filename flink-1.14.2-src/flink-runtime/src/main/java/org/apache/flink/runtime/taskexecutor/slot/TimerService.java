@@ -52,13 +52,12 @@ public class TimerService<K> {
     /** Listener which is notified about occurring timeouts. */
     private TimeoutListener<K> timeoutListener;
 
-    public TimerService(
-            final ScheduledExecutorService scheduledExecutorService, final long shutdownTimeout) {
+    public TimerService(final ScheduledExecutorService scheduledExecutorService, final long shutdownTimeout) {
         this.scheduledExecutorService = Preconditions.checkNotNull(scheduledExecutorService);
 
-        Preconditions.checkArgument(
-                shutdownTimeout >= 0L,
-                "The shut down timeout must be larger than or equal than 0.");
+        Preconditions.checkArgument(shutdownTimeout >= 0L,
+                "The shut down timeout must be larger than or equal than 0."
+        );
         this.shutdownTimeout = shutdownTimeout;
 
         this.timeouts = new HashMap<>(16);
@@ -81,17 +80,12 @@ public class TimerService<K> {
         scheduledExecutorService.shutdown();
 
         try {
-            if (!scheduledExecutorService.awaitTermination(
-                    shutdownTimeout, TimeUnit.MILLISECONDS)) {
-                LOG.debug(
-                        "The scheduled executor service did not properly terminate. Shutting "
-                                + "it down now.");
+            if (!scheduledExecutorService.awaitTermination(shutdownTimeout, TimeUnit.MILLISECONDS)) {
+                LOG.debug("The scheduled executor service did not properly terminate. Shutting " + "it down now.");
                 scheduledExecutorService.shutdownNow();
             }
         } catch (InterruptedException e) {
-            LOG.debug(
-                    "Could not properly await the termination of the scheduled executor service.",
-                    e);
+            LOG.debug("Could not properly await the termination of the scheduled executor service.", e);
             scheduledExecutorService.shutdownNow();
         }
     }
@@ -104,16 +98,15 @@ public class TimerService<K> {
      * @param unit of the timeout delay
      */
     public void registerTimeout(final K key, final long delay, final TimeUnit unit) {
-        Preconditions.checkState(
-                timeoutListener != null,
-                "The " + getClass().getSimpleName() + " has not been started.");
+        Preconditions.checkState(timeoutListener != null,
+                "The " + getClass().getSimpleName() + " has not been started."
+        );
 
         if (timeouts.containsKey(key)) {
             unregisterTimeout(key);
         }
 
-        timeouts.put(
-                key, new Timeout<>(timeoutListener, key, delay, unit, scheduledExecutorService));
+        timeouts.put(key, new Timeout<>(timeoutListener, key, delay, unit, scheduledExecutorService));
     }
 
     /**
@@ -122,8 +115,11 @@ public class TimerService<K> {
      * @param key for which to unregister the timeout
      */
     public void unregisterTimeout(K key) {
+
+        // TODO_MA 马中华 注释： 根据 key 获取 TimeOut 任务
         Timeout<K> timeout = timeouts.remove(key);
 
+        // TODO_MA 马中华 注释： 任务取消
         if (timeout != null) {
             timeout.cancel();
         }
@@ -143,6 +139,7 @@ public class TimerService<K> {
      *
      * @param key for which to check the timeout
      * @param ticket of the timeout
+     *
      * @return True if the timeout ticket is still valid; otherwise false
      */
     public boolean isValid(K key, UUID ticket) {
@@ -166,8 +163,7 @@ public class TimerService<K> {
         private final ScheduledFuture<?> scheduledTimeout;
         private final UUID ticket;
 
-        Timeout(
-                final TimeoutListener<K> timeoutListener,
+        Timeout(final TimeoutListener<K> timeoutListener,
                 final K key,
                 final long delay,
                 final TimeUnit unit,
@@ -191,6 +187,10 @@ public class TimerService<K> {
 
         @Override
         public void run() {
+            /*************************************************
+             * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+             *  注释：
+             */
             timeoutListener.notifyTimeout(key, ticket);
         }
     }

@@ -32,14 +32,13 @@ import static org.apache.flink.util.Preconditions.checkNotNull;
  *
  * @param <CommT> The committable type of the {@link Committer}.
  */
-final class StreamingCommitterHandler<CommT>
-        extends AbstractStreamingCommitterHandler<CommT, CommT> {
+final class StreamingCommitterHandler<CommT> extends AbstractStreamingCommitterHandler<CommT, CommT> {
 
     /** Responsible for committing the committable to the external system. * */
     private final Committer<CommT> committer;
 
-    public StreamingCommitterHandler(
-            Committer<CommT> committer, SimpleVersionedSerializer<CommT> committableSerializer) {
+    public StreamingCommitterHandler(Committer<CommT> committer,
+                                     SimpleVersionedSerializer<CommT> committableSerializer) {
         super(committableSerializer);
         this.committer = checkNotNull(committer);
     }
@@ -61,8 +60,7 @@ final class StreamingCommitterHandler<CommT>
     }
 
     @Override
-    public Collection<CommT> notifyCheckpointCompleted(long checkpointId)
-            throws IOException, InterruptedException {
+    public Collection<CommT> notifyCheckpointCompleted(long checkpointId) throws IOException, InterruptedException {
         return commitUpTo(checkpointId);
     }
 }

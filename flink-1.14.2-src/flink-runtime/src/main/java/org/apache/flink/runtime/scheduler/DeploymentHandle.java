@@ -46,16 +46,16 @@ class DeploymentHandle {
 
     private final SlotExecutionVertexAssignment slotExecutionVertexAssignment;
 
-    public DeploymentHandle(
-            final ExecutionVertexVersion requiredVertexVersion,
-            final ExecutionVertexDeploymentOption executionVertexDeploymentOption,
-            final SlotExecutionVertexAssignment slotExecutionVertexAssignment) {
-
+    /*************************************************
+     * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+     *  注释：
+     */
+    public DeploymentHandle(final ExecutionVertexVersion requiredVertexVersion,
+                            final ExecutionVertexDeploymentOption executionVertexDeploymentOption,
+                            final SlotExecutionVertexAssignment slotExecutionVertexAssignment) {
         this.requiredVertexVersion = Preconditions.checkNotNull(requiredVertexVersion);
-        this.executionVertexDeploymentOption =
-                Preconditions.checkNotNull(executionVertexDeploymentOption);
-        this.slotExecutionVertexAssignment =
-                Preconditions.checkNotNull(slotExecutionVertexAssignment);
+        this.executionVertexDeploymentOption = Preconditions.checkNotNull(executionVertexDeploymentOption);
+        this.slotExecutionVertexAssignment = Preconditions.checkNotNull(slotExecutionVertexAssignment);
     }
 
     public ExecutionVertexID getExecutionVertexId() {
@@ -75,10 +75,8 @@ class DeploymentHandle {
     }
 
     public Optional<LogicalSlot> getLogicalSlot() {
-        final CompletableFuture<LogicalSlot> logicalSlotFuture =
-                slotExecutionVertexAssignment.getLogicalSlotFuture();
-        Preconditions.checkState(
-                logicalSlotFuture.isDone(), "method can only be called after slot future is done");
+        final CompletableFuture<LogicalSlot> logicalSlotFuture = slotExecutionVertexAssignment.getLogicalSlotFuture();
+        Preconditions.checkState(logicalSlotFuture.isDone(), "method can only be called after slot future is done");
 
         if (logicalSlotFuture.isCompletedExceptionally()) {
             return Optional.empty();

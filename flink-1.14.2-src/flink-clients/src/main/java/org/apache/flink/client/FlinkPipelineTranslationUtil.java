@@ -35,7 +35,8 @@ public final class FlinkPipelineTranslationUtil {
                                        Configuration optimizerConfiguration,
                                        int defaultParallelism) {
 
-        // TODO_MA 马中华 注释：
+        // TODO_MA 马中华 注释： StreamGraphTranslator
+        // TODO_MA 马中华 注释： 流处理的翻译器，批处理的翻译器
         FlinkPipelineTranslator pipelineTranslator = getPipelineTranslator(pipeline);
 
         /*************************************************
@@ -68,14 +69,15 @@ public final class FlinkPipelineTranslationUtil {
     }
 
     private static FlinkPipelineTranslator getPipelineTranslator(Pipeline pipeline) {
-        PlanTranslator planTranslator = new PlanTranslator();
 
+        // TODO_MA 马中华 注释： 批处理 PlanTranslator
+        PlanTranslator planTranslator = new PlanTranslator();
         if (planTranslator.canTranslate(pipeline)) {
             return planTranslator;
         }
 
+        // TODO_MA 马中华 注释： 流式处理 StreamGraphTranslator
         StreamGraphTranslator streamGraphTranslator = new StreamGraphTranslator();
-
         if (streamGraphTranslator.canTranslate(pipeline)) {
             return streamGraphTranslator;
         }

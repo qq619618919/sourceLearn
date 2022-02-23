@@ -132,13 +132,13 @@ public final class MemorySegmentFactory {
 
         /*************************************************
          * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-         *  注释：
+         *  注释： 申请 32k 的内存
          */
         ByteBuffer memory = allocateDirectMemory(size);
 
         /*************************************************
          * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-         *  注释：
+         *  注释： 封装成一个 MemorySegment
          */
         return new MemorySegment(memory, owner);
     }

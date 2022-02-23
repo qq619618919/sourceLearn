@@ -95,7 +95,7 @@ import static org.apache.flink.util.Preconditions.checkNotNull;
  * <p>In the case of a standalone cluster, that cluster-id needs to be configured via {@link
  * HighAvailabilityOptions#HA_CLUSTER_ID}. All nodes with the same cluster id will join the same
  * cluster and participate in the execution of the same set of jobs.
- *
+ * <p>
  * // TODO_MA 马中华 注释： ZooKeeperHaServices 就是 FLink 提供的基于 ZK 的一种高可用服务
  */
 public class ZooKeeperHaServices extends AbstractHaServices {
@@ -125,6 +125,11 @@ public class ZooKeeperHaServices extends AbstractHaServices {
 
     @Override
     public CheckpointRecoveryFactory createCheckpointRecoveryFactory() throws Exception {
+
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释： ZooKeeperCheckpointRecoveryFactory
+         */
         return new ZooKeeperCheckpointRecoveryFactory(ZooKeeperUtils.useNamespaceAndEnsurePath(client,
                 ZooKeeperUtils.getJobsPath()
         ), configuration, ioExecutor);

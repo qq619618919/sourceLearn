@@ -29,36 +29,40 @@ import java.util.Map;
 
 /** Configuration specific to {@link org.apache.flink.yarn.YarnResourceManagerDriver}. */
 public class YarnResourceManagerDriverConfiguration {
-    @Nullable private final String webInterfaceUrl;
+    @Nullable
+    private final String webInterfaceUrl;
     private final String rpcAddress;
     private final String yarnFiles;
     private final String flinkClasspath;
     private final String clientShipFiles;
     private final String flinkDistJar;
     private final String currentDir;
-    @Nullable private final String remoteKeytabPath;
-    @Nullable private final String localKeytabPath;
-    @Nullable private final String keytabPrinciple;
-    @Nullable private final String krb5Path;
-    @Nullable private final String yarnSiteXMLPath;
+    @Nullable
+    private final String remoteKeytabPath;
+    @Nullable
+    private final String localKeytabPath;
+    @Nullable
+    private final String keytabPrinciple;
+    @Nullable
+    private final String krb5Path;
+    @Nullable
+    private final String yarnSiteXMLPath;
 
-    public YarnResourceManagerDriverConfiguration(
-            Map<String, String> env, String rpcAddress, @Nullable String webInterfaceUrl) {
+    public YarnResourceManagerDriverConfiguration(Map<String, String> env,
+                                                  String rpcAddress,
+                                                  @Nullable String webInterfaceUrl) {
         this.rpcAddress = Preconditions.checkNotNull(rpcAddress);
         this.webInterfaceUrl = webInterfaceUrl;
         this.yarnFiles = Preconditions.checkNotNull(env.get(YarnConfigKeys.FLINK_YARN_FILES));
-        this.flinkClasspath =
-                Preconditions.checkNotNull(env.get(YarnConfigKeys.ENV_FLINK_CLASSPATH));
-        this.clientShipFiles =
-                Preconditions.checkNotNull(env.get(YarnConfigKeys.ENV_CLIENT_SHIP_FILES));
+        this.flinkClasspath = Preconditions.checkNotNull(env.get(YarnConfigKeys.ENV_FLINK_CLASSPATH));
+        this.clientShipFiles = Preconditions.checkNotNull(env.get(YarnConfigKeys.ENV_CLIENT_SHIP_FILES));
         this.flinkDistJar = Preconditions.checkNotNull(env.get(YarnConfigKeys.FLINK_DIST_JAR));
         this.remoteKeytabPath = env.get(YarnConfigKeys.REMOTE_KEYTAB_PATH);
         this.localKeytabPath = env.get(YarnConfigKeys.LOCAL_KEYTAB_PATH);
         this.keytabPrinciple = env.get(YarnConfigKeys.KEYTAB_PRINCIPAL);
         this.krb5Path = env.get(YarnConfigKeys.ENV_KRB5_PATH);
         this.yarnSiteXMLPath = env.get(YarnConfigKeys.ENV_YARN_SITE_XML_PATH);
-        this.currentDir =
-                Preconditions.checkNotNull(env.get(ApplicationConstants.Environment.PWD.key()));
+        this.currentDir = Preconditions.checkNotNull(env.get(ApplicationConstants.Environment.PWD.key()));
     }
 
     public String getRpcAddress() {

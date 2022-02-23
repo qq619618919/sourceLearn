@@ -74,6 +74,10 @@ public abstract class AbstractResourceManagerDriver<WorkerType extends ResourceI
         this.mainThreadExecutor = Preconditions.checkNotNull(mainThreadExecutor);
         this.ioExecutor = Preconditions.checkNotNull(ioExecutor);
 
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释：
+         */
         initializeInternal();
     }
 

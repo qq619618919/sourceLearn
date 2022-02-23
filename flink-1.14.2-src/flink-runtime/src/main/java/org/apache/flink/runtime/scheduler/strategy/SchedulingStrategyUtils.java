@@ -34,51 +34,38 @@ import java.util.stream.Collectors;
 class SchedulingStrategyUtils {
 
     static Set<ExecutionVertexID> getAllVertexIdsFromTopology(final SchedulingTopology topology) {
-        return IterableUtils.toStream(topology.getVertices())
-                .map(SchedulingExecutionVertex::getId)
-                .collect(Collectors.toSet());
+        return IterableUtils.toStream(topology.getVertices()).map(SchedulingExecutionVertex::getId).collect(Collectors.toSet());
     }
 
-    static Set<SchedulingExecutionVertex> getVerticesFromIds(
-            final SchedulingTopology topology, final Set<ExecutionVertexID> vertexIds) {
+    static Set<SchedulingExecutionVertex> getVerticesFromIds(final SchedulingTopology topology,
+                                                             final Set<ExecutionVertexID> vertexIds) {
 
         return vertexIds.stream().map(topology::getVertex).collect(Collectors.toSet());
     }
 
-    static List<ExecutionVertexDeploymentOption>
-            createExecutionVertexDeploymentOptionsInTopologicalOrder(
-                    final SchedulingTopology topology,
-                    final Set<ExecutionVertexID> verticesToDeploy,
-                    final Function<ExecutionVertexID, DeploymentOption> deploymentOptionRetriever) {
+    static List<ExecutionVertexDeploymentOption> createExecutionVertexDeploymentOptionsInTopologicalOrder(final SchedulingTopology topology,
+                                                                                                          final Set<ExecutionVertexID> verticesToDeploy,
+                                                                                                          final Function<ExecutionVertexID, DeploymentOption> deploymentOptionRetriever) {
 
-        return IterableUtils.toStream(topology.getVertices())
-                .map(SchedulingExecutionVertex::getId)
-                .filter(verticesToDeploy::contains)
-                .map(
-                        executionVertexID ->
-                                new ExecutionVertexDeploymentOption(
-                                        executionVertexID,
-                                        deploymentOptionRetriever.apply(executionVertexID)))
-                .collect(Collectors.toList());
+        return IterableUtils.toStream(topology.getVertices()).map(SchedulingExecutionVertex::getId)
+                .filter(verticesToDeploy::contains).map(executionVertexID -> new ExecutionVertexDeploymentOption(executionVertexID,
+                        deploymentOptionRetriever.apply(executionVertexID))).collect(Collectors.toList());
     }
 
-    static List<ExecutionVertexDeploymentOption> createExecutionVertexDeploymentOptions(
-            final Collection<ExecutionVertexID> verticesToDeploy,
-            final Function<ExecutionVertexID, DeploymentOption> deploymentOptionRetriever) {
+    static List<ExecutionVertexDeploymentOption> createExecutionVertexDeploymentOptions(final Collection<ExecutionVertexID> verticesToDeploy,
+                                                                                        final Function<ExecutionVertexID, DeploymentOption> deploymentOptionRetriever) {
 
-        final List<ExecutionVertexDeploymentOption> deploymentOptions =
-                new ArrayList<>(verticesToDeploy.size());
+        final List<ExecutionVertexDeploymentOption> deploymentOptions = new ArrayList<>(verticesToDeploy.size());
         for (ExecutionVertexID executionVertexId : verticesToDeploy) {
-            final ExecutionVertexDeploymentOption deploymentOption =
-                    new ExecutionVertexDeploymentOption(
-                            executionVertexId, deploymentOptionRetriever.apply(executionVertexId));
+            final ExecutionVertexDeploymentOption deploymentOption = new ExecutionVertexDeploymentOption(executionVertexId,
+                    deploymentOptionRetriever.apply(executionVertexId));
             deploymentOptions.add(deploymentOption);
         }
         return deploymentOptions;
     }
 
-    static List<SchedulingPipelinedRegion> sortPipelinedRegionsInTopologicalOrder(
-            final SchedulingTopology topology, final Set<SchedulingPipelinedRegion> regions) {
+    static List<SchedulingPipelinedRegion> sortPipelinedRegionsInTopologicalOrder(final SchedulingTopology topology,
+                                                                                  final Set<SchedulingPipelinedRegion> regions) {
 
         // Avoid the O(V) (V is the number of vertices in the topology) sorting
         // complexity if the given set of regions is small enough

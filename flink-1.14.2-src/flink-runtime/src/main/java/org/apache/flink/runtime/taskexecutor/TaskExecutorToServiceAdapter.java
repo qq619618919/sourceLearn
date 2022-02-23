@@ -34,6 +34,10 @@ public class TaskExecutorToServiceAdapter implements TaskManagerRunner.TaskExecu
 
     @Override
     public void start() {
+
+        // TODO_MA 马中华 注释： 回到 TaskExecutor 的 onStart() 方法
+        // TODO_MA 马中华 注释： TaskExecutor 是一个 RpcEndpoint
+        // TODO_MA 马中华 注释： 此时启动一个 RpcEndpoint，然后跳转到 TaskExecutor 的 onStart();
         taskExecutor.start();
     }
 
