@@ -57,8 +57,7 @@ public class SingleOutputStreamOperator<T> extends DataStream<T> {
      */
     private Map<OutputTag<?>, TypeInformation<?>> requestedSideOutputs = new HashMap<>();
 
-    protected SingleOutputStreamOperator(
-            StreamExecutionEnvironment environment, Transformation<T> transformation) {
+    protected SingleOutputStreamOperator(StreamExecutionEnvironment environment, Transformation<T> transformation) {
         super(environment, transformation);
     }
 
@@ -172,8 +171,7 @@ public class SingleOutputStreamOperator<T> extends DataStream<T> {
      * @param preferredResources The preferred resources for this operator.
      * @return The operator with set minimum and preferred resources.
      */
-    private SingleOutputStreamOperator<T> setResources(
-            ResourceSpec minResources, ResourceSpec preferredResources) {
+    private SingleOutputStreamOperator<T> setResources(ResourceSpec minResources, ResourceSpec preferredResources) {
         transformation.setResources(minResources, preferredResources);
 
         return this;
@@ -242,8 +240,7 @@ public class SingleOutputStreamOperator<T> extends DataStream<T> {
         if (transformation instanceof PhysicalTransformation) {
             ((PhysicalTransformation<T>) transformation).setChainingStrategy(strategy);
         } else {
-            throw new UnsupportedOperationException(
-                    "Cannot set chaining strategy on " + transformation);
+            throw new UnsupportedOperationException("Cannot set chaining strategy on " + transformation);
         }
         return this;
     }
@@ -298,9 +295,7 @@ public class SingleOutputStreamOperator<T> extends DataStream<T> {
             return returns(TypeInformation.of(typeClass));
         } catch (InvalidTypesException e) {
             throw new InvalidTypesException(
-                    "Cannot infer the type information from the class alone."
-                            + "This is most likely because the class represents a generic type. In that case,"
-                            + "please use the 'returns(TypeHint)' method instead.");
+                    "Cannot infer the type information from the class alone." + "This is most likely because the class represents a generic type. In that case," + "please use the 'returns(TypeHint)' method instead.");
         }
     }
 
@@ -328,8 +323,7 @@ public class SingleOutputStreamOperator<T> extends DataStream<T> {
             return returns(TypeInformation.of(typeHint));
         } catch (InvalidTypesException e) {
             throw new InvalidTypesException(
-                    "Cannot infer the type information from the type hint. "
-                            + "Make sure that the TypeHint does not use any generic type variables.");
+                    "Cannot infer the type information from the type hint. " + "Make sure that the TypeHint does not use any generic type variables.");
         }
     }
 
@@ -408,15 +402,13 @@ public class SingleOutputStreamOperator<T> extends DataStream<T> {
         TypeInformation<?> type = requestedSideOutputs.get(sideOutputTag);
         if (type != null && !type.equals(sideOutputTag.getTypeInfo())) {
             throw new UnsupportedOperationException(
-                    "A side output with a matching id was "
-                            + "already requested with a different type. This is not allowed, side output "
-                            + "ids need to be unique.");
+                    "A side output with a matching id was " + "already requested with a different type. This is not allowed, side output " + "ids need to be unique.");
         }
 
         requestedSideOutputs.put(sideOutputTag, sideOutputTag.getTypeInfo());
 
-        SideOutputTransformation<X> sideOutputTransformation =
-                new SideOutputTransformation<>(this.getTransformation(), sideOutputTag);
+        SideOutputTransformation<X> sideOutputTransformation = new SideOutputTransformation<>(this.getTransformation(),
+                sideOutputTag);
         return new DataStream<>(this.getExecutionEnvironment(), sideOutputTransformation);
     }
 }

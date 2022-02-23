@@ -38,7 +38,7 @@ public class StreamMap<IN, OUT> extends AbstractUdfStreamOperator<OUT, MapFuncti
 
         /*************************************************
          * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-         *  注释：
+         *  注释： 这就是真正的完成逻辑处理的地方
          */
         output.collect(element.replace(userFunction.map(element.getValue())));
     }

@@ -504,7 +504,7 @@ public class PipelinedSubpartition extends ResultSubpartition implements Checkpo
 
         /*************************************************
          * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-         *  注释：
+         *  注释： 在通知下游有数据可用， 真正的内部实现，就是把数据写给下游
          */
         if (notifyDataAvailable) {
             notifyDataAvailable();
@@ -575,8 +575,10 @@ public class PipelinedSubpartition extends ResultSubpartition implements Checkpo
     }
 
     private void notifyDataAvailable() {
+
         // TODO_MA 马中华 注释：
         final PipelinedSubpartitionView readView = this.readView;
+
         if (readView != null) {
             /*************************************************
              * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513

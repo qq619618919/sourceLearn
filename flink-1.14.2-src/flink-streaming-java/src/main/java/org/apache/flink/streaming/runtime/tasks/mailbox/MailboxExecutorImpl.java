@@ -35,7 +35,8 @@ import java.util.concurrent.RejectedExecutionException;
 public final class MailboxExecutorImpl implements MailboxExecutor {
 
     /** The mailbox that manages the submitted runnable objects. */
-    @Nonnull private final TaskMailbox mailbox;
+    @Nonnull
+    private final TaskMailbox mailbox;
 
     private final int priority;
 
@@ -43,16 +44,12 @@ public final class MailboxExecutorImpl implements MailboxExecutor {
 
     private final MailboxProcessor mailboxProcessor;
 
-    public MailboxExecutorImpl(
-            @Nonnull TaskMailbox mailbox, int priority, StreamTaskActionExecutor actionExecutor) {
+    public MailboxExecutorImpl(@Nonnull TaskMailbox mailbox, int priority, StreamTaskActionExecutor actionExecutor) {
         this(mailbox, priority, actionExecutor, null);
     }
 
-    public MailboxExecutorImpl(
-            @Nonnull TaskMailbox mailbox,
-            int priority,
-            StreamTaskActionExecutor actionExecutor,
-            MailboxProcessor mailboxProcessor) {
+    public MailboxExecutorImpl(@Nonnull TaskMailbox mailbox, int priority, StreamTaskActionExecutor actionExecutor,
+                               MailboxProcessor mailboxProcessor) {
         this.mailbox = mailbox;
         this.priority = priority;
         this.actionExecutor = Preconditions.checkNotNull(actionExecutor);
@@ -60,20 +57,14 @@ public final class MailboxExecutorImpl implements MailboxExecutor {
     }
 
     public boolean isIdle() {
-        return !mailboxProcessor.isDefaultActionAvailable()
-                && !mailbox.hasMail()
-                && mailbox.getState().isAcceptingMails();
+        return !mailboxProcessor.isDefaultActionAvailable() && !mailbox.hasMail() && mailbox.getState().isAcceptingMails();
     }
 
     @Override
-    public void execute(
-            final ThrowingRunnable<? extends Exception> command,
-            final String descriptionFormat,
-            final Object... descriptionArgs) {
+    public void execute(final ThrowingRunnable<? extends Exception> command, final String descriptionFormat,
+                        final Object... descriptionArgs) {
         try {
-            mailbox.put(
-                    new Mail(
-                            command, priority, actionExecutor, descriptionFormat, descriptionArgs));
+            mailbox.put(new Mail(command, priority, actionExecutor, descriptionFormat, descriptionArgs));
         } catch (MailboxClosedException mbex) {
             throw new RejectedExecutionException(mbex);
         }

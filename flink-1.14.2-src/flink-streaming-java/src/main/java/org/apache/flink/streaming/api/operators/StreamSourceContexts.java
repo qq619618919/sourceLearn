@@ -44,33 +44,27 @@ public class StreamSourceContexts {
      */
     public static <OUT> SourceFunction.SourceContext<OUT> getSourceContext(TimeCharacteristic timeCharacteristic,
                                                                            ProcessingTimeService processingTimeService,
-                                                                           Object checkpointLock,
-                                                                           Output<StreamRecord<OUT>> output,
-                                                                           long watermarkInterval,
-                                                                           long idleTimeout,
+                                                                           Object checkpointLock, Output<StreamRecord<OUT>> output,
+                                                                           long watermarkInterval, long idleTimeout,
                                                                            boolean emitProgressiveWatermarks) {
 
         final SourceFunction.SourceContext<OUT> ctx;
+
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释：
+         */
         switch (timeCharacteristic) {
             case EventTime:
-                ctx = new ManualWatermarkContext<>(output,
-                        processingTimeService,
-                        checkpointLock,
-                        idleTimeout,
-                        emitProgressiveWatermarks
-                );
+                ctx = new ManualWatermarkContext<>(output, processingTimeService, checkpointLock, idleTimeout,
+                        emitProgressiveWatermarks);
 
                 break;
             case IngestionTime:
                 Preconditions.checkState(emitProgressiveWatermarks,
-                        "Ingestion time is not available when emitting progressive watermarks " + "is disabled."
-                );
-                ctx = new AutomaticWatermarkContext<>(output,
-                        watermarkInterval,
-                        processingTimeService,
-                        checkpointLock,
-                        idleTimeout
-                );
+                        "Ingestion time is not available when emitting progressive watermarks " + "is disabled.");
+                ctx = new AutomaticWatermarkContext<>(output, watermarkInterval, processingTimeService, checkpointLock,
+                        idleTimeout);
                 break;
             case ProcessingTime:
                 ctx = new NonTimestampContext<>(checkpointLock, output);
@@ -78,6 +72,8 @@ public class StreamSourceContexts {
             default:
                 throw new IllegalArgumentException(String.valueOf(timeCharacteristic));
         }
+
+        // TODO_MA 马中华 注释： 返回值
         return new SwitchingOnClose<>(ctx);
     }
 
@@ -96,6 +92,12 @@ public class StreamSourceContexts {
 
         @Override
         public void collect(T element) {
+
+            /*************************************************
+             * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+             *  注释： 包装
+             *  nestedContext = ？有三种情况！
+             */
             nestedContext.collect(element);
         }
 
@@ -175,6 +177,7 @@ public class StreamSourceContexts {
      */
     private static class NonTimestampContext<T> implements SourceFunction.SourceContext<T> {
 
+        // TODO_MA 马中华 注释： 一把锁，CheckpointLock
         private final Object lock;
         private final Output<StreamRecord<T>> output;
         private final StreamRecord<T> reuse;
@@ -190,7 +193,7 @@ public class StreamSourceContexts {
             synchronized (lock) {
                 /*************************************************
                  * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-                 *  注释：output = RecordWriter
+                 *  注释： output = RecordWriter
                  */
                 output.collect(reuse.replace(element));
             }
@@ -244,10 +247,8 @@ public class StreamSourceContexts {
 
         private boolean idle = false;
 
-        private AutomaticWatermarkContext(final Output<StreamRecord<T>> output,
-                                          final long watermarkInterval,
-                                          final ProcessingTimeService timeService,
-                                          final Object checkpointLock,
+        private AutomaticWatermarkContext(final Output<StreamRecord<T>> output, final long watermarkInterval,
+                                          final ProcessingTimeService timeService, final Object checkpointLock,
                                           final long idleTimeout) {
 
             super(timeService, checkpointLock, idleTimeout);
@@ -263,8 +264,7 @@ public class StreamSourceContexts {
 
             long now = this.timeService.getCurrentProcessingTime();
             this.nextWatermarkTimer = this.timeService.registerTimer(now + watermarkInterval,
-                    new WatermarkEmittingTask(this.timeService, checkpointLock, output)
-            );
+                    new WatermarkEmittingTask(this.timeService, checkpointLock, output));
         }
 
         @Override
@@ -336,8 +336,7 @@ public class StreamSourceContexts {
             private final Object lock;
             private final Output<StreamRecord<T>> output;
 
-            private WatermarkEmittingTask(ProcessingTimeService timeService,
-                                          Object checkpointLock,
+            private WatermarkEmittingTask(ProcessingTimeService timeService, Object checkpointLock,
                                           Output<StreamRecord<T>> output) {
                 this.timeService = timeService;
                 this.lock = checkpointLock;
@@ -375,8 +374,7 @@ public class StreamSourceContexts {
 
                 long nextWatermark = currentTime + watermarkInterval;
                 nextWatermarkTimer = this.timeService.registerTimer(nextWatermark,
-                        new WatermarkEmittingTask(this.timeService, lock, output)
-                );
+                        new WatermarkEmittingTask(this.timeService, lock, output));
             }
         }
     }
@@ -396,10 +394,8 @@ public class StreamSourceContexts {
         private final StreamRecord<T> reuse;
         private boolean idle = false;
 
-        private ManualWatermarkContext(final Output<StreamRecord<T>> output,
-                                       final ProcessingTimeService timeService,
-                                       final Object checkpointLock,
-                                       final long idleTimeout,
+        private ManualWatermarkContext(final Output<StreamRecord<T>> output, final ProcessingTimeService timeService,
+                                       final Object checkpointLock, final long idleTimeout,
                                        final boolean emitProgressiveWatermarks) {
 
             super(timeService, checkpointLock, idleTimeout);
@@ -480,9 +476,7 @@ public class StreamSourceContexts {
          * @param checkpointLock the checkpoint lock
          * @param idleTimeout (-1 if idleness checking is disabled)
          */
-        public WatermarkContext(final ProcessingTimeService timeService,
-                                final Object checkpointLock,
-                                final long idleTimeout) {
+        public WatermarkContext(final ProcessingTimeService timeService, final Object checkpointLock, final long idleTimeout) {
 
             this.timeService = Preconditions.checkNotNull(timeService, "Time Service cannot be null.");
             this.checkpointLock = Preconditions.checkNotNull(checkpointLock, "Checkpoint Lock cannot be null.");
@@ -588,8 +582,7 @@ public class StreamSourceContexts {
                 // reset flag; if it remains true when task fires, we have detected idleness
                 failOnNextCheck = true;
                 nextCheck = this.timeService.registerTimer(this.timeService.getCurrentProcessingTime() + idleTimeout,
-                        new IdlenessDetectionTask()
-                );
+                        new IdlenessDetectionTask());
             }
         }
 

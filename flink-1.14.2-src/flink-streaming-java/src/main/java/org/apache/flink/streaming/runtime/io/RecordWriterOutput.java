@@ -39,9 +39,7 @@ import java.io.IOException;
 
 import static org.apache.flink.util.Preconditions.checkNotNull;
 
-/** Implementation of {@link Output} that sends data using a {@link RecordWriter}.
- * operatorChain 最后的执行结果，输出到该Task 的ResultPartition 内容的某个 ResultSubPartition
- * */
+/** Implementation of {@link Output} that sends data using a {@link RecordWriter}. */
 @Internal
 public class RecordWriterOutput<OUT> implements WatermarkGaugeExposingOutput<StreamRecord<OUT>> {
 
@@ -98,13 +96,16 @@ public class RecordWriterOutput<OUT> implements WatermarkGaugeExposingOutput<Str
         }
     }
 
+    // TODO_MA 马中华 注释： 参数，就是要输出的那条数据。
     private <X> void pushToRecordWriter(StreamRecord<X> record) {
+
+        // TODO_MA 马中华 注释： 通过一个载体来存储这个数据
         serializationDelegate.setInstance(record);
 
         try {
             /*************************************************
              * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-             *  注释：
+             *  注释： 发射，输出
              */
             recordWriter.emit(serializationDelegate);
         } catch (Exception e) {

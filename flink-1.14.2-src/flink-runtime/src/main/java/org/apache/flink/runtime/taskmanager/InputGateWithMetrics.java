@@ -143,6 +143,11 @@ public class InputGateWithMetrics extends IndexedInputGate {
 
     @Override
     public Optional<BufferOrEvent> pollNext() throws IOException, InterruptedException {
+
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释： inputGate = SingleInputGate
+         */
         return inputGate.pollNext().map(this::updateMetrics);
     }
 

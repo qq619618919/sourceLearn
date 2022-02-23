@@ -74,7 +74,7 @@ public class NettyProtocol {
 
         /*************************************************
          * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-         *  注释： 为请求队列
+         *  注释： 请求队列
          */
         PartitionRequestQueue queueOfPartitionQueues = new PartitionRequestQueue();
 

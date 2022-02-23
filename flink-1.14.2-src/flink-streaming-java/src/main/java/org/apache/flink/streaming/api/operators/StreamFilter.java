@@ -35,8 +35,13 @@ public class StreamFilter<IN> extends AbstractUdfStreamOperator<IN, FilterFuncti
 
     @Override
     public void processElement(StreamRecord<IN> element) throws Exception {
+
+        // TODO_MA 马中华 注释： 完成 filter 算子的逻辑计算
+        // TODO_MA 马中华 注释： filter 过滤 =
         if (userFunction.filter(element.getValue())) {
             output.collect(element);
+        } else {
+            // 既然判断不通过，则不输出，也就相当于过滤掉了
         }
     }
 }

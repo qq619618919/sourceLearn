@@ -56,8 +56,6 @@ import static org.apache.flink.util.Preconditions.checkNotNull;
  * write and flush the unannounced credits for the producer.
  *
  * <p>It is used in the new network credit-based mode.
- *  基于信用的分区请求客户端处理器
- *  可以做反压
  */
 class CreditBasedPartitionRequestClientHandler extends ChannelInboundHandlerAdapter implements NetworkClientHandler {
 
@@ -119,33 +117,29 @@ class CreditBasedPartitionRequestClientHandler extends ChannelInboundHandlerAdap
 
     @Override
     public void notifyCreditAvailable(final RemoteInputChannel inputChannel) {
-        ctx.executor()
-                .execute(() -> ctx.pipeline()
-                        .fireUserEventTriggered(new AddCreditMessage(inputChannel)));
+
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释：
+         */
+        ctx.executor().execute(() -> ctx.pipeline().fireUserEventTriggered(new AddCreditMessage(inputChannel)));
     }
 
     @Override
-    public void notifyNewBufferSize(final RemoteInputChannel inputChannel,
-                                    int bufferSize) {
-        ctx.executor()
-                .execute(() -> ctx.pipeline()
-                        .fireUserEventTriggered(new NewBufferSizeMessage(inputChannel, bufferSize)));
+    public void notifyNewBufferSize(final RemoteInputChannel inputChannel, int bufferSize) {
+        ctx.executor().execute(() -> ctx.pipeline().fireUserEventTriggered(new NewBufferSizeMessage(inputChannel, bufferSize)));
     }
 
     @Override
     public void resumeConsumption(RemoteInputChannel inputChannel) {
-        ctx.executor()
-                .execute(() -> ctx.pipeline()
-                        .fireUserEventTriggered(new ResumeConsumptionMessage(inputChannel)));
+        ctx.executor().execute(() -> ctx.pipeline().fireUserEventTriggered(new ResumeConsumptionMessage(inputChannel)));
     }
 
     @Override
     public void acknowledgeAllRecordsProcessed(RemoteInputChannel inputChannel) {
-        ctx.executor()
-                .execute(() -> {
-                    ctx.pipeline()
-                            .fireUserEventTriggered(new AcknowledgeAllRecordsProcessedMessage(inputChannel));
-                });
+        ctx.executor().execute(() -> {
+            ctx.pipeline().fireUserEventTriggered(new AcknowledgeAllRecordsProcessedMessage(inputChannel));
+        });
     }
 
     // ------------------------------------------------------------------------
@@ -166,8 +160,7 @@ class CreditBasedPartitionRequestClientHandler extends ChannelInboundHandlerAdap
         // Unexpected close. In normal operation, the client closes the connection after all input
         // channels have been removed. This indicates a problem with the remote task manager.
         if (!inputChannels.isEmpty()) {
-            final SocketAddress remoteAddr = ctx.channel()
-                    .remoteAddress();
+            final SocketAddress remoteAddr = ctx.channel().remoteAddress();
 
             notifyAllChannelsOfErrorAndClose(new RemoteTransportException(
                     "Connection unexpectedly closed by remote task manager '" + remoteAddr + "'. " + "This might indicate that the remote task manager was lost.",
@@ -183,25 +176,21 @@ class CreditBasedPartitionRequestClientHandler extends ChannelInboundHandlerAdap
      * <p>Remote exceptions are received as regular payload.
      */
     @Override
-    public void exceptionCaught(ChannelHandlerContext ctx,
-                                Throwable cause) throws Exception {
+    public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
         if (cause instanceof TransportException) {
             notifyAllChannelsOfErrorAndClose(cause);
         } else {
-            final SocketAddress remoteAddr = ctx.channel()
-                    .remoteAddress();
+            final SocketAddress remoteAddr = ctx.channel().remoteAddress();
 
             final TransportException tex;
 
             // Improve on the connection reset by peer error message
-            if (cause.getMessage() != null && cause.getMessage()
-                    .contains("Connection reset by peer")) {
+            if (cause.getMessage() != null && cause.getMessage().contains("Connection reset by peer")) {
                 tex = new RemoteTransportException(
                         "Lost connection to task manager '" + remoteAddr + "'. " + "This indicates that the remote task manager was lost.",
                         remoteAddr, cause);
             } else {
-                final SocketAddress localAddr = ctx.channel()
-                        .localAddress();
+                final SocketAddress localAddr = ctx.channel().localAddress();
                 tex = new LocalTransportException(String.format("%s (connection to '%s')", cause.getMessage(), remoteAddr),
                         localAddr, cause);
             }
@@ -210,6 +199,8 @@ class CreditBasedPartitionRequestClientHandler extends ChannelInboundHandlerAdap
         }
     }
 
+    // TODO_MA 马中华 注释： MesseageDecoder 解码器
+    // TODO_MA 马中华 注释： 网络上传送数据，要进行序列化
     @Override
     public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
         try {
@@ -230,11 +221,15 @@ class CreditBasedPartitionRequestClientHandler extends ChannelInboundHandlerAdap
      * channel if it is the first one in the queue.
      */
     @Override
-    public void userEventTriggered(ChannelHandlerContext ctx,
-                                   Object msg) throws Exception {
+    public void userEventTriggered(ChannelHandlerContext ctx, Object msg) throws Exception {
         if (msg instanceof ClientOutboundMessage) {
             boolean triggerWrite = clientOutboundMessages.isEmpty();
             clientOutboundMessages.add((ClientOutboundMessage) msg);
+
+            /*************************************************
+             * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+             *  注释：
+             */
             if (triggerWrite) {
                 writeAndFlushNextMessageIfPossible(ctx.channel());
             }
@@ -289,6 +284,8 @@ class CreditBasedPartitionRequestClientHandler extends ChannelInboundHandlerAdap
      *  注释：
      */
     private void decodeMsg(Object msg) throws Throwable {
+
+        // TODO_MA 马中华 注释： Message 的类型，有很多种
         final Class<?> msgClazz = msg.getClass();
 
         // ---- Buffer --------------------------------------------------------
@@ -306,6 +303,9 @@ class CreditBasedPartitionRequestClientHandler extends ChannelInboundHandlerAdap
                 /*************************************************
                  * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
                  *  注释： 对数据进行解码
+                 *  解析出来到底是数据还是事件 ？
+                 *  1、Buffer = 正常的待处理的数据
+                 *  2、Event = 事件：CheckpointBarrier
                  */
                 decodeBufferOrEvent(inputChannel, bufferOrEvent);
             } catch (Throwable t) {
@@ -316,8 +316,7 @@ class CreditBasedPartitionRequestClientHandler extends ChannelInboundHandlerAdap
             // ---- Error ---------------------------------------------------------
             NettyMessage.ErrorResponse error = (NettyMessage.ErrorResponse) msg;
 
-            SocketAddress remoteAddr = ctx.channel()
-                    .remoteAddress();
+            SocketAddress remoteAddr = ctx.channel().remoteAddress();
 
             if (error.isFatalError()) {
                 notifyAllChannelsOfErrorAndClose(
@@ -355,14 +354,7 @@ class CreditBasedPartitionRequestClientHandler extends ChannelInboundHandlerAdap
         }
     }
 
-    /**
-     * 解析消息到底是事件（checkpointBarrier）还是数据
-     * @param inputChannel
-     * @param bufferOrEvent
-     * @throws Throwable
-     */
-    private void decodeBufferOrEvent(RemoteInputChannel inputChannel,
-                                     NettyMessage.BufferResponse bufferOrEvent) throws Throwable {
+    private void decodeBufferOrEvent(RemoteInputChannel inputChannel, NettyMessage.BufferResponse bufferOrEvent) throws Throwable {
         if (bufferOrEvent.isBuffer() && bufferOrEvent.bufferSize == 0) {
             inputChannel.onEmptyBuffer(bufferOrEvent.sequenceNumber, bufferOrEvent.backlog);
         }
@@ -404,8 +396,11 @@ class CreditBasedPartitionRequestClientHandler extends ChannelInboundHandlerAdap
 
                 // Write and flush and wait until this is done before
                 // trying to continue with the next input channel.
-                channel.writeAndFlush(msg)
-                        .addListener(writeListener);
+                /*************************************************
+                 * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+                 *  注释：
+                 */
+                channel.writeAndFlush(msg).addListener(writeListener);
 
                 return;
             }
@@ -457,8 +452,7 @@ class CreditBasedPartitionRequestClientHandler extends ChannelInboundHandlerAdap
     private static class NewBufferSizeMessage extends ClientOutboundMessage {
         private final int bufferSize;
 
-        NewBufferSizeMessage(RemoteInputChannel inputChannel,
-                             int bufferSize) {
+        NewBufferSizeMessage(RemoteInputChannel inputChannel, int bufferSize) {
             super(checkNotNull(inputChannel));
             this.bufferSize = bufferSize;
         }

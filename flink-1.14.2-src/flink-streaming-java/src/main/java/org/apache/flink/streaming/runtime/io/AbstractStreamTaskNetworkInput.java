@@ -79,6 +79,11 @@ public abstract class AbstractStreamTaskNetworkInput<T, R extends RecordDeserial
         this.recordDeserializers = checkNotNull(recordDeserializers);
     }
 
+    /*************************************************
+     * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+     *  注释： emitNext 方法的内部，有三个部分：
+     *
+     */
     @Override
     public DataInputStatus emitNext(DataOutput<T> output) throws Exception {
 
@@ -90,6 +95,8 @@ public abstract class AbstractStreamTaskNetworkInput<T, R extends RecordDeserial
              *  注释：
              */
             if (currentRecordDeserializer != null) {
+
+                // TODO_MA 马中华 注释： 从序列化器中，获取数据记录
                 RecordDeserializer.DeserializationResult result;
                 try {
                     result = currentRecordDeserializer.getNextRecord(deserializationDelegate);
@@ -113,7 +120,7 @@ public abstract class AbstractStreamTaskNetworkInput<T, R extends RecordDeserial
 
             /*************************************************
              * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-             *  注释：
+             *  注释： checkpointedInputGate = CheckpointedInputGate
              */
             Optional<BufferOrEvent> bufferOrEvent = checkpointedInputGate.pollNext();
 
@@ -205,6 +212,10 @@ public abstract class AbstractStreamTaskNetworkInput<T, R extends RecordDeserial
         return DataInputStatus.MORE_AVAILABLE;
     }
 
+    /*************************************************
+     * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+     *  注释： 读取到的数据
+     */
     protected void processBuffer(BufferOrEvent bufferOrEvent) throws IOException {
         lastChannel = bufferOrEvent.getChannelInfo();
         checkState(lastChannel != null);
@@ -212,6 +223,10 @@ public abstract class AbstractStreamTaskNetworkInput<T, R extends RecordDeserial
         currentRecordDeserializer = getActiveSerializer(bufferOrEvent.getChannelInfo());
         checkState(currentRecordDeserializer != null, "currentRecordDeserializer has already been released");
 
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释：
+         */
         currentRecordDeserializer.setNextBuffer(bufferOrEvent.getBuffer());
     }
 

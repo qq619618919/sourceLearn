@@ -712,6 +712,8 @@ public class SingleInputGate extends IndexedInputGate {
 
         // TODO_MA 马中华 注释： 拿到数据
         InputWithData<InputChannel, BufferAndAvailability> inputWithData = next.get();
+
+        // TODO_MA 马中华 注释： 封装成 BufferOrEvent 返回
         return Optional.of(transformToBufferOrEvent(inputWithData.data.buffer(),
                 inputWithData.moreAvailable,
                 inputWithData.input,
@@ -751,6 +753,7 @@ public class SingleInputGate extends IndexedInputGate {
                 final BufferAndAvailability bufferAndAvailability = bufferAndAvailabilityOpt.get();
                 if (bufferAndAvailability.moreAvailable()) {
                     // enqueue the inputChannel at the end to avoid starvation
+                    // TODO_MA 马中华 注释： 加入到 inputChannelsWithData
                     queueChannelUnsafe(inputChannel, bufferAndAvailability.morePriorityEvents());
                 }
 
@@ -832,6 +835,7 @@ public class SingleInputGate extends IndexedInputGate {
                 // 1. releasing inputChannelsWithData lock in this method and reaching this place
                 // 2. empty data notification that re-enqueues a channel we can end up with
                 // moreAvailable flag set to true, while we expect no more data.
+                // TODO_MA 马中华 注释： 获取有数据可读的 InputChannel
                 checkState(!moreAvailable || !pollNext().isPresent());
                 moreAvailable = false;
                 markAvailable();
@@ -1034,6 +1038,8 @@ public class SingleInputGate extends IndexedInputGate {
         return true;
     }
 
+    // TODO_MA 马中华 注释： getChannel 方法的返回值，就是 InputChannel
+    // TODO_MA 马中华 注释： getChannel 方法有返回值，就表示这个返回 InputChannel 有数据可读
     private Optional<InputChannel> getChannel(boolean blocking) throws InterruptedException {
         assert Thread.holdsLock(inputChannelsWithData);
 
@@ -1049,6 +1055,7 @@ public class SingleInputGate extends IndexedInputGate {
             /*************************************************
              * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
              *  注释： 等待
+             *  只要当前这个 Task 的 InputGate 中的所有 InputChannel 都没有数据可读，则阻塞在这儿
              */
             if (blocking) {
                 inputChannelsWithData.wait();

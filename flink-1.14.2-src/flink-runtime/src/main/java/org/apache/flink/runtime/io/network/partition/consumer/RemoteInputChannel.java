@@ -114,17 +114,9 @@ public class RemoteInputChannel extends InputChannel {
 
     private final ChannelStatePersister channelStatePersister;
 
-    public RemoteInputChannel(SingleInputGate inputGate,
-                              int channelIndex,
-                              ResultPartitionID partitionId,
-                              ConnectionID connectionId,
-                              ConnectionManager connectionManager,
-                              int initialBackOff,
-                              int maxBackoff,
-                              int networkBuffersPerChannel,
-                              Counter numBytesIn,
-                              Counter numBuffersIn,
-                              ChannelStateWriter stateWriter) {
+    public RemoteInputChannel(SingleInputGate inputGate, int channelIndex, ResultPartitionID partitionId, ConnectionID connectionId,
+                              ConnectionManager connectionManager, int initialBackOff, int maxBackoff, int networkBuffersPerChannel,
+                              Counter numBytesIn, Counter numBuffersIn, ChannelStateWriter stateWriter) {
 
         super(inputGate, channelIndex, partitionId, initialBackOff, maxBackoff, numBytesIn, numBuffersIn);
         checkArgument(networkBuffersPerChannel >= 0, "Must be non-negative.");
@@ -148,8 +140,7 @@ public class RemoteInputChannel extends InputChannel {
     @Override
     void setup() throws IOException {
         checkState(bufferManager.unsynchronizedGetAvailableExclusiveBuffers() == 0,
-                "Bug in input channel setup logic: exclusive buffers have already been set for this input channel."
-        );
+                "Bug in input channel setup logic: exclusive buffers have already been set for this input channel.");
         /*************************************************
          * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
          *  注释： 申请独家私有的 NetworkBuffer = 2
@@ -166,12 +157,8 @@ public class RemoteInputChannel extends InputChannel {
     @Override
     public void requestSubpartition(int subpartitionIndex) throws IOException, InterruptedException {
         if (partitionRequestClient == null) {
-            LOG.debug("{}: Requesting REMOTE subpartition {} of partition {}. {}",
-                    this,
-                    subpartitionIndex,
-                    partitionId,
-                    channelStatePersister
-            );
+            LOG.debug("{}: Requesting REMOTE subpartition {} of partition {}. {}", this, subpartitionIndex, partitionId,
+                    channelStatePersister);
             // Create a client and request the partition
             try {
                 /*************************************************
@@ -227,13 +214,8 @@ public class RemoteInputChannel extends InputChannel {
             return Optional.empty();
         }
 
-        NetworkActionsLogger.traceInput("RemoteInputChannel#getNextBuffer",
-                next.buffer,
-                inputGate.getOwningTaskName(),
-                channelInfo,
-                channelStatePersister,
-                next.sequenceNumber
-        );
+        NetworkActionsLogger.traceInput("RemoteInputChannel#getNextBuffer", next.buffer, inputGate.getOwningTaskName(), channelInfo,
+                channelStatePersister, next.sequenceNumber);
         numBytesIn.inc(next.buffer.getSize());
         numBuffersIn.inc();
 
@@ -269,10 +251,7 @@ public class RemoteInputChannel extends InputChannel {
 
             final ArrayDeque<Buffer> releasedBuffers;
             synchronized (receivedBuffers) {
-                releasedBuffers = receivedBuffers
-                        .stream()
-                        .map(sb -> sb.buffer)
-                        .collect(Collectors.toCollection(ArrayDeque::new));
+                releasedBuffers = receivedBuffers.stream().map(sb -> sb.buffer).collect(Collectors.toCollection(ArrayDeque::new));
                 receivedBuffers.clear();
             }
             bufferManager.releaseAllBuffers(releasedBuffers);
@@ -320,6 +299,10 @@ public class RemoteInputChannel extends InputChannel {
     private void notifyCreditAvailable() throws IOException {
         checkPartitionRequestQueueInitialized();
 
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释：
+         */
         partitionRequestClient.notifyCreditAvailable(this);
     }
 
@@ -520,13 +503,8 @@ public class RemoteInputChannel extends InputChannel {
             boolean firstPriorityEvent = false;
 
             synchronized (receivedBuffers) {
-                NetworkActionsLogger.traceInput("RemoteInputChannel#onBuffer",
-                        buffer,
-                        inputGate.getOwningTaskName(),
-                        channelInfo,
-                        channelStatePersister,
-                        sequenceNumber
-                );
+                NetworkActionsLogger.traceInput("RemoteInputChannel#onBuffer", buffer, inputGate.getOwningTaskName(), channelInfo,
+                        channelStatePersister, sequenceNumber);
                 // Similar to notifyBufferAvailable(), make sure that we never add a buffer
                 // after releaseAllResources() released all buffers from receivedBuffers
                 // (see above for details).
@@ -557,9 +535,7 @@ public class RemoteInputChannel extends InputChannel {
                         firstPriorityEvent = addPriorityBuffer(announce(sequenceBuffer));
                     }
                 }
-                channelStatePersister
-                        .checkForBarrier(sequenceBuffer.buffer)
-                        .filter(id -> id > lastBarrierId)
+                channelStatePersister.checkForBarrier(sequenceBuffer.buffer).filter(id -> id > lastBarrierId)
 
                         .ifPresent(id -> {
                             // checkpoint was not yet started by task thread,
@@ -601,20 +577,15 @@ public class RemoteInputChannel extends InputChannel {
     }
 
     private SequenceBuffer announce(SequenceBuffer sequenceBuffer) throws IOException {
-        checkState(!sequenceBuffer.buffer.isBuffer(),
-                "Only a CheckpointBarrier can be announced but found %s",
-                sequenceBuffer.buffer
-        );
+        checkState(!sequenceBuffer.buffer.isBuffer(), "Only a CheckpointBarrier can be announced but found %s",
+                sequenceBuffer.buffer);
         checkAnnouncedOnlyOnce(sequenceBuffer);
         AbstractEvent event = EventSerializer.fromBuffer(sequenceBuffer.buffer, getClass().getClassLoader());
-        checkState(event instanceof CheckpointBarrier,
-                "Only a CheckpointBarrier can be announced but found %s",
-                sequenceBuffer.buffer
-        );
+        checkState(event instanceof CheckpointBarrier, "Only a CheckpointBarrier can be announced but found %s",
+                sequenceBuffer.buffer);
         CheckpointBarrier barrier = (CheckpointBarrier) event;
-        return new SequenceBuffer(EventSerializer.toBuffer(new EventAnnouncement(barrier,
-                sequenceBuffer.sequenceNumber
-        ), true), sequenceBuffer.sequenceNumber);
+        return new SequenceBuffer(EventSerializer.toBuffer(new EventAnnouncement(barrier, sequenceBuffer.sequenceNumber), true),
+                sequenceBuffer.sequenceNumber);
     }
 
     private void checkAnnouncedOnlyOnce(SequenceBuffer sequenceBuffer) {
@@ -626,9 +597,7 @@ public class RemoteInputChannel extends InputChannel {
             }
         }
         checkState(count == 1,
-                "Before enqueuing the announcement there should be exactly single occurrence of the buffer, but found [%d]",
-                count
-        );
+                "Before enqueuing the announcement there should be exactly single occurrence of the buffer, but found [%d]", count);
     }
 
     /**
@@ -640,9 +609,8 @@ public class RemoteInputChannel extends InputChannel {
             if (barrier.getId() < lastBarrierId) {
                 throw new CheckpointException(String.format(
                         "Sequence number for checkpoint %d is not known (it was likely been overwritten by a newer checkpoint %d)",
-                        barrier.getId(),
-                        lastBarrierId
-                ), CheckpointFailureReason.CHECKPOINT_SUBSUMED); // currently, at most one active unaligned
+                        barrier.getId(), lastBarrierId),
+                        CheckpointFailureReason.CHECKPOINT_SUBSUMED); // currently, at most one active unaligned
                 // checkpoint is possible
             } else if (barrier.getId() > lastBarrierId) {
                 // This channel has received some obsolete barrier, older compared to the
@@ -678,15 +646,13 @@ public class RemoteInputChannel extends InputChannel {
         synchronized (receivedBuffers) {
             checkState(channelStatePersister.hasBarrierReceived());
             int numPriorityElementsBeforeRemoval = receivedBuffers.getNumPriorityElements();
-            SequenceBuffer toPrioritize = receivedBuffers.getAndRemove(sequenceBuffer -> sequenceBuffer.sequenceNumber
-                    == sequenceNumber);
+            SequenceBuffer toPrioritize = receivedBuffers.getAndRemove(
+                    sequenceBuffer -> sequenceBuffer.sequenceNumber == sequenceNumber);
             checkState(lastBarrierSequenceNumber == sequenceNumber);
             checkState(!toPrioritize.buffer.isBuffer());
             checkState(numPriorityElementsBeforeRemoval == receivedBuffers.getNumPriorityElements(),
-                    "Attempted to convertToPriorityEvent an event [%s] that has already been prioritized [%s]",
-                    toPrioritize,
-                    numPriorityElementsBeforeRemoval
-            );
+                    "Attempted to convertToPriorityEvent an event [%s] that has already been prioritized [%s]", toPrioritize,
+                    numPriorityElementsBeforeRemoval);
             // set the priority flag (checked on poll)
             // don't convert the barrier itself (barrier controller might not have been switched
             // yet)
@@ -752,8 +718,7 @@ public class RemoteInputChannel extends InputChannel {
             return true;
         }
         checkState(receivedBuffers.size() < Integer.MAX_VALUE / 2,
-                "Too many buffers for sequenceNumber overflow detection code to work correctly"
-        );
+                "Too many buffers for sequenceNumber overflow detection code to work correctly");
 
         boolean possibleOverflowAfterOvertaking = Integer.MAX_VALUE / 2 < lastBarrierSequenceNumber;
         boolean possibleOverflowBeforeOvertaking = lastBarrierSequenceNumber < -Integer.MAX_VALUE / 2;
@@ -797,8 +762,7 @@ public class RemoteInputChannel extends InputChannel {
     private void checkPartitionRequestQueueInitialized() throws IOException {
         checkError();
         checkState(partitionRequestClient != null,
-                "Bug: partitionRequestClient is not initialized before processing data and no error is detected."
-        );
+                "Bug: partitionRequestClient is not initialized before processing data and no error is detected.");
     }
 
     private static class BufferReorderingException extends IOException {
@@ -817,9 +781,7 @@ public class RemoteInputChannel extends InputChannel {
         @Override
         public String getMessage() {
             return String.format("Buffer re-ordering: expected buffer with sequence number %d, but received %d.",
-                    expectedSequenceNumber,
-                    actualSequenceNumber
-            );
+                    expectedSequenceNumber, actualSequenceNumber);
         }
     }
 
@@ -835,11 +797,8 @@ public class RemoteInputChannel extends InputChannel {
 
         @Override
         public String toString() {
-            return String.format("SequenceBuffer(isEvent = %s, dataType = %s, sequenceNumber = %s)",
-                    !buffer.isBuffer(),
-                    buffer.getDataType(),
-                    sequenceNumber
-            );
+            return String.format("SequenceBuffer(isEvent = %s, dataType = %s, sequenceNumber = %s)", !buffer.isBuffer(),
+                    buffer.getDataType(), sequenceNumber);
         }
     }
 }

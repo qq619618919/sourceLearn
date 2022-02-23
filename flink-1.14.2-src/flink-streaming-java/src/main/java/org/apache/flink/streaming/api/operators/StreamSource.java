@@ -70,7 +70,7 @@ public class StreamSource<OUT, SRC extends SourceFunction<OUT>> extends Abstract
 
         /*************************************************
          * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-         *  注释：
+         *  注释： output 就是当前 Operator 的输出组件
          */
         run(lockingObject, output, operatorChain);
     }
@@ -101,6 +101,7 @@ public class StreamSource<OUT, SRC extends SourceFunction<OUT>> extends Abstract
 
         final long watermarkInterval = getRuntimeContext().getExecutionConfig().getAutoWatermarkInterval();
 
+        // TODO_MA 马中华 注释： 构建 Context = SwitchingOnClose
         this.ctx = StreamSourceContexts.getSourceContext(timeCharacteristic,
                 getProcessingTimeService(),
                 lockingObject,
@@ -113,7 +114,9 @@ public class StreamSource<OUT, SRC extends SourceFunction<OUT>> extends Abstract
         try {
             /*************************************************
              * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-             *  注释：
+             *  注释： 名义上，是在执行一个 Operator ，事实上，内部在调用 UserFunction 在执行
+             *  StreamOperator： 抽象封装，包含了 Operator 执行时所需要的各种组件
+             *  UserFunction： 仅仅只是数据的处理逻辑， dataStream.flatMap(userFunction)
              */
             userFunction.run(ctx);
         } finally {

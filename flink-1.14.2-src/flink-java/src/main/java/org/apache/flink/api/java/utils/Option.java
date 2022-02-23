@@ -86,10 +86,7 @@ public class Option {
                 return this.setDefaultValue(defaultValue);
             } else {
                 throw new RequiredParametersException(
-                        "Default value "
-                                + defaultValue
-                                + " is not in the list of valid values for option "
-                                + this.longName);
+                        "Default value " + defaultValue + " is not in the list of valid values for option " + this.longName);
             }
         }
     }
@@ -106,10 +103,7 @@ public class Option {
                 Collections.addAll(this.choices, choices);
             } else {
                 throw new RequiredParametersException(
-                        "Valid values for option "
-                                + this.longName
-                                + " do not contain defined default value "
-                                + defaultValue);
+                        "Valid values for option " + this.longName + " do not contain defined default value " + defaultValue);
             }
         } else {
             Collections.addAll(this.choices, choices);
@@ -204,7 +198,6 @@ public class Option {
             case STRING:
                 return true;
         }
-        throw new IllegalStateException(
-                "Invalid value for OptionType " + this.type + " for option " + this.longName);
+        throw new IllegalStateException("Invalid value for OptionType " + this.type + " for option " + this.longName);
     }
 }

@@ -64,26 +64,14 @@ public abstract class BufferWritingResultPartition extends ResultPartition {
 
     private TimerGauge backPressuredTimeMsPerSecond = new TimerGauge();
 
-    public BufferWritingResultPartition(String owningTaskName,
-                                        int partitionIndex,
-                                        ResultPartitionID partitionId,
-                                        ResultPartitionType partitionType,
-                                        ResultSubpartition[] subpartitions,
-                                        int numTargetKeyGroups,
-                                        ResultPartitionManager partitionManager,
+    public BufferWritingResultPartition(String owningTaskName, int partitionIndex, ResultPartitionID partitionId,
+                                        ResultPartitionType partitionType, ResultSubpartition[] subpartitions,
+                                        int numTargetKeyGroups, ResultPartitionManager partitionManager,
                                         @Nullable BufferCompressor bufferCompressor,
                                         SupplierWithException<BufferPool, IOException> bufferPoolFactory) {
 
-        super(owningTaskName,
-                partitionIndex,
-                partitionId,
-                partitionType,
-                subpartitions.length,
-                numTargetKeyGroups,
-                partitionManager,
-                bufferCompressor,
-                bufferPoolFactory
-        );
+        super(owningTaskName, partitionIndex, partitionId, partitionType, subpartitions.length, numTargetKeyGroups,
+                partitionManager, bufferCompressor, bufferPoolFactory);
 
         this.subpartitions = checkNotNull(subpartitions);
         this.unicastBufferBuilders = new BufferBuilder[subpartitions.length];
@@ -94,9 +82,7 @@ public abstract class BufferWritingResultPartition extends ResultPartition {
         super.setup();
 
         checkState(bufferPool.getNumberOfRequiredMemorySegments() >= getNumberOfSubpartitions(),
-                "Bug in result partition setup logic: Buffer pool has not enough guaranteed buffers for"
-                        + " this result partition."
-        );
+                "Bug in result partition setup logic: Buffer pool has not enough guaranteed buffers for" + " this result partition.");
     }
 
     @Override
@@ -142,7 +128,7 @@ public abstract class BufferWritingResultPartition extends ResultPartition {
     @Override
     public void emitRecord(ByteBuffer record, int targetSubpartition) throws IOException {
 
-        // TODO_MA 马中华 注释：
+        // TODO_MA 马中华 注释： 将真正的数据写到 buffer 中
         BufferBuilder buffer = appendUnicastDataForNewRecord(record, targetSubpartition);
 
         while (record.hasRemaining()) {
@@ -259,8 +245,7 @@ public abstract class BufferWritingResultPartition extends ResultPartition {
         super.close();
     }
 
-    private BufferBuilder appendUnicastDataForNewRecord(final ByteBuffer record,
-                                                        final int targetSubpartition) throws IOException {
+    private BufferBuilder appendUnicastDataForNewRecord(final ByteBuffer record, final int targetSubpartition) throws IOException {
         if (targetSubpartition < 0 || targetSubpartition > unicastBufferBuilders.length) {
             throw new ArrayIndexOutOfBoundsException(targetSubpartition);
         }

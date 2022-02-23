@@ -58,12 +58,15 @@ public class RegularOperatorChain<OUT, OP extends StreamOperator<OUT>> extends O
 
     public RegularOperatorChain(StreamTask<OUT, OP> containingTask,
                                 RecordWriterDelegate<SerializationDelegate<StreamRecord<OUT>>> recordWriterDelegate) {
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释：
+         */
         super(containingTask, recordWriterDelegate);
     }
 
     @VisibleForTesting
-    RegularOperatorChain(List<StreamOperatorWrapper<?, ?>> allOperatorWrappers,
-                         RecordWriterOutput<?>[] streamOutputs,
+    RegularOperatorChain(List<StreamOperatorWrapper<?, ?>> allOperatorWrappers, RecordWriterOutput<?>[] streamOutputs,
                          WatermarkGaugeExposingOutput<StreamRecord<OUT>> mainOperatorOutput,
                          StreamOperatorWrapper<OUT, OP> mainOperatorWrapper) {
         super(allOperatorWrappers, streamOutputs, mainOperatorOutput, mainOperatorWrapper);
@@ -179,10 +182,8 @@ public class RegularOperatorChain<OUT, OP extends StreamOperator<OUT>> extends O
 
     @Override
     public void snapshotState(Map<OperatorID, OperatorSnapshotFutures> operatorSnapshotsInProgress,
-                              CheckpointMetaData checkpointMetaData,
-                              CheckpointOptions checkpointOptions,
-                              Supplier<Boolean> isRunning,
-                              ChannelStateWriter.ChannelStateWriteResult channelStateWriteResult,
+                              CheckpointMetaData checkpointMetaData, CheckpointOptions checkpointOptions,
+                              Supplier<Boolean> isRunning, ChannelStateWriter.ChannelStateWriteResult channelStateWriteResult,
                               CheckpointStreamFactory storage) throws Exception {
 
         /*************************************************
@@ -197,21 +198,14 @@ public class RegularOperatorChain<OUT, OP extends StreamOperator<OUT>> extends O
                          * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
                          *  注释：
                          */
-                        buildOperatorSnapshotFutures(checkpointMetaData,
-                                checkpointOptions,
-                                operatorWrapper.getStreamOperator(),
-                                isRunning,
-                                channelStateWriteResult,
-                                storage
-                        )
-                );
+                        buildOperatorSnapshotFutures(checkpointMetaData, checkpointOptions, operatorWrapper.getStreamOperator(),
+                                isRunning, channelStateWriteResult, storage));
             }
         }
     }
 
     private OperatorSnapshotFutures buildOperatorSnapshotFutures(CheckpointMetaData checkpointMetaData,
-                                                                 CheckpointOptions checkpointOptions,
-                                                                 StreamOperator<?> op,
+                                                                 CheckpointOptions checkpointOptions, StreamOperator<?> op,
                                                                  Supplier<Boolean> isRunning,
                                                                  ChannelStateWriter.ChannelStateWriteResult channelStateWriteResult,
                                                                  CheckpointStreamFactory storage) throws Exception {
@@ -220,29 +214,22 @@ public class RegularOperatorChain<OUT, OP extends StreamOperator<OUT>> extends O
          * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
          *  注释：
          */
-        OperatorSnapshotFutures snapshotInProgress = checkpointStreamOperator(op,
-                checkpointMetaData,
-                checkpointOptions,
-                storage,
-                isRunning
-        );
+        OperatorSnapshotFutures snapshotInProgress = checkpointStreamOperator(op, checkpointMetaData, checkpointOptions, storage,
+                isRunning);
         if (op == getMainOperator()) {
-            snapshotInProgress.setInputChannelStateFuture(channelStateWriteResult
-                    .getInputChannelStateHandles()
-                    .thenApply(StateObjectCollection::new)
-                    .thenApply(SnapshotResult::of));
+            snapshotInProgress.setInputChannelStateFuture(
+                    channelStateWriteResult.getInputChannelStateHandles().thenApply(StateObjectCollection::new)
+                            .thenApply(SnapshotResult::of));
         }
         if (op == getTailOperator()) {
-            snapshotInProgress.setResultSubpartitionStateFuture(channelStateWriteResult
-                    .getResultSubpartitionStateHandles()
-                    .thenApply(StateObjectCollection::new)
-                    .thenApply(SnapshotResult::of));
+            snapshotInProgress.setResultSubpartitionStateFuture(
+                    channelStateWriteResult.getResultSubpartitionStateHandles().thenApply(StateObjectCollection::new)
+                            .thenApply(SnapshotResult::of));
         }
         return snapshotInProgress;
     }
 
-    private static OperatorSnapshotFutures checkpointStreamOperator(StreamOperator<?> op,
-                                                                    CheckpointMetaData checkpointMetaData,
+    private static OperatorSnapshotFutures checkpointStreamOperator(StreamOperator<?> op, CheckpointMetaData checkpointMetaData,
                                                                     CheckpointOptions checkpointOptions,
                                                                     CheckpointStreamFactory storageLocation,
                                                                     Supplier<Boolean> isRunning) throws Exception {
@@ -251,11 +238,8 @@ public class RegularOperatorChain<OUT, OP extends StreamOperator<OUT>> extends O
              * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
              *  注释：
              */
-            return op.snapshotState(checkpointMetaData.getCheckpointId(),
-                    checkpointMetaData.getTimestamp(),
-                    checkpointOptions,
-                    storageLocation
-            );
+            return op.snapshotState(checkpointMetaData.getCheckpointId(), checkpointMetaData.getTimestamp(), checkpointOptions,
+                    storageLocation);
         } catch (Exception ex) {
             if (isRunning.get()) {
                 LOG.info(ex.getMessage(), ex);

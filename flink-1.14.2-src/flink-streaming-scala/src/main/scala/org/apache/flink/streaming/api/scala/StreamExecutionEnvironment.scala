@@ -792,6 +792,11 @@ class StreamExecutionEnvironment(javaEnv: JavaEnv) {
 
         val cleanFun = scalaClean(function)
         val typeInfo = implicitly[TypeInformation[T]]
+
+        /**
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释：
+         */
         asScalaStream(javaEnv.addSource(cleanFun, typeInfo))
     }
 
@@ -810,6 +815,11 @@ class StreamExecutionEnvironment(javaEnv: JavaEnv) {
 
             override def cancel() = {}
         }
+
+        /**
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释：
+         */
         addSource(sourceFunction)
     }
 

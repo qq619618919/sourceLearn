@@ -808,6 +808,7 @@ public abstract class FlinkKafkaConsumerBase<T> extends RichParallelSourceFuncti
             /*************************************************
              * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
              *  注释： 跑起来
+             *  不停的从 akfak 的 topic 中拉取数据， 既然该方法没有返回值，所以拉取到的数据，必然存储内部的一个 buffer 中
              */
             kafkaFetcher.runFetchLoop();
         } else {

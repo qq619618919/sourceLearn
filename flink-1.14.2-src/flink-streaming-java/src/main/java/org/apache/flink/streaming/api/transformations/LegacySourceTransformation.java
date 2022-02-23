@@ -40,8 +40,7 @@ import static org.apache.flink.util.Preconditions.checkNotNull;
  * @param <T> The type of the elements that this source produces
  */
 @Internal
-public class LegacySourceTransformation<T> extends PhysicalTransformation<T>
-        implements WithBoundedness {
+public class LegacySourceTransformation<T> extends PhysicalTransformation<T> implements WithBoundedness {
 
     private final StreamOperatorFactory<T> operatorFactory;
 
@@ -57,21 +56,13 @@ public class LegacySourceTransformation<T> extends PhysicalTransformation<T>
      *     LegacySourceTransformation}
      * @param parallelism The parallelism of this {@code LegacySourceTransformation}
      */
-    public LegacySourceTransformation(
-            String name,
-            StreamSource<T, ?> operator,
-            TypeInformation<T> outputType,
-            int parallelism,
-            Boundedness boundedness) {
+    public LegacySourceTransformation(String name, StreamSource<T, ?> operator, TypeInformation<T> outputType, int parallelism,
+                                      Boundedness boundedness) {
         this(name, SimpleOperatorFactory.of(operator), outputType, parallelism, boundedness);
     }
 
-    public LegacySourceTransformation(
-            String name,
-            StreamOperatorFactory<T> operatorFactory,
-            TypeInformation<T> outputType,
-            int parallelism,
-            Boundedness boundedness) {
+    public LegacySourceTransformation(String name, StreamOperatorFactory<T> operatorFactory, TypeInformation<T> outputType,
+                                      int parallelism, Boundedness boundedness) {
         super(name, outputType, parallelism);
         this.operatorFactory = checkNotNull(operatorFactory);
         this.boundedness = checkNotNull(boundedness);

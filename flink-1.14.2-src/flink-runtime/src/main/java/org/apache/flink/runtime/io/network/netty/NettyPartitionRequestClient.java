@@ -184,6 +184,11 @@ public class NettyPartitionRequestClient implements PartitionRequestClient {
 
     @Override
     public void notifyCreditAvailable(RemoteInputChannel inputChannel) {
+
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释：
+         */
         clientHandler.notifyCreditAvailable(inputChannel);
     }
 

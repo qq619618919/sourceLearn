@@ -142,6 +142,7 @@ public class ConsumableNotifyingResultPartitionWriterDecorator {
             /*************************************************
              * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
              *  注释： PipelinedResultPartition 是  BufferWritingResultPartition 的子类
+             *  partitionWriter = BufferWritingResultPartition
              */
             partitionWriter.emitRecord(record, targetSubpartition);
 
@@ -199,6 +200,11 @@ public class ConsumableNotifyingResultPartitionWriterDecorator {
 
         @Override
         public void flush(int subpartitionIndex) {
+
+            /*************************************************
+             * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+             *  注释： partitionWriter =  PipelinedResultPartition
+             */
             partitionWriter.flush(subpartitionIndex);
         }
 

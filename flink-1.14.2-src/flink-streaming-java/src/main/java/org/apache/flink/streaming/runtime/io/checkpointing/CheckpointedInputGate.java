@@ -150,7 +150,7 @@ public class CheckpointedInputGate implements PullingAsyncDataInput<BufferOrEven
 
         /*************************************************
          * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-         *  注释：
+         *  注释： inputGate = InputGateWithMetrics
          */
         Optional<BufferOrEvent> next = inputGate.pollNext();
 

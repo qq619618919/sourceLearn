@@ -176,7 +176,6 @@ public class SourceStreamTask<OUT, SRC extends SourceFunction<OUT>, OP extends S
 
     @Override
     protected void processInput(MailboxDefaultAction.Controller controller) throws Exception {
-
         controller.suspendDefaultAction();
 
         // Against the usual contract of this method, this implementation is not step-wise but

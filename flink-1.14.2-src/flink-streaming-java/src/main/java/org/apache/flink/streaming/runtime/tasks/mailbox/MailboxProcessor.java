@@ -67,6 +67,8 @@ public class MailboxProcessor implements Closeable {
     private static final Logger LOG = LoggerFactory.getLogger(MailboxProcessor.class);
 
     /**
+     * // TODO_MA 马中华 注释： 管理特殊操作请求的邮箱数据结构，例如计时器、检查点……
+     * // TODO_MA 马中华 注释： 内部有一个 queue 管理弯沉给管理
      * The mailbox data-structure that manages request for special actions, like timers,
      * checkpoints, ...
      */
@@ -75,6 +77,7 @@ public class MailboxProcessor implements Closeable {
     /**
      * Action that is repeatedly executed if no action request is in the mailbox. Typically record
      * processing.
+     * // TODO_MA 马中华 注释： 如果邮箱中没有操作请求，则重复执行的操作。通常记录处理。
      */
     protected final MailboxDefaultAction mailboxDefaultAction;
 
@@ -112,8 +115,7 @@ public class MailboxProcessor implements Closeable {
         this(mailboxDefaultAction, new TaskMailboxImpl(Thread.currentThread()), actionExecutor);
     }
 
-    public MailboxProcessor(MailboxDefaultAction mailboxDefaultAction,
-                            TaskMailbox mailbox,
+    public MailboxProcessor(MailboxDefaultAction mailboxDefaultAction, TaskMailbox mailbox,
                             StreamTaskActionExecutor actionExecutor) {
         this.mailboxDefaultAction = Preconditions.checkNotNull(mailboxDefaultAction);
         this.actionExecutor = Preconditions.checkNotNull(actionExecutor);
@@ -190,7 +192,7 @@ public class MailboxProcessor implements Closeable {
 
         /*************************************************
          * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-         *  注释：
+         *  注释： MailBox 控制器，可以控制 MailBoxProcessor 暂停
          */
         final MailboxController defaultActionContext = new MailboxController(this);
 
@@ -210,11 +212,20 @@ public class MailboxProcessor implements Closeable {
 
             /*************************************************
              * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-             *  注释：
+             *  注释： 只要不是暂停了 MailBoxProcessor 就会继续往下执行
              */
             if (isNextLoopPossible()) {
 
-                // TODO_MA 马中华 注释：
+                /*************************************************
+                 * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+                 *  注释： 处理数据输入(只是告诉你，在处理输入，输入到底是什么呢？)
+                 *  这个 mailboxDefaultAction 就是 StreamTask 构造方法的第一个参数。
+                 *  1、对接数据源的 Task 的执行
+                 *  2、普通的 Task 的执行
+                 *  -
+                 *  mailboxDefaultAction 就是 MailBoxProcessor 组件的构造方法的第一个参数
+                 *  mailboxDefaultAction = StreamTask.processInput()
+                 */
                 mailboxDefaultAction.runDefaultAction(defaultActionContext); // lock is acquired inside default action as needed
             }
         }
@@ -299,11 +310,7 @@ public class MailboxProcessor implements Closeable {
      * to control this <code>MailboxProcessor</code>; no interaction with tasks should be performed;
      */
     private void sendControlMail(RunnableWithException mail, String descriptionFormat, Object... descriptionArgs) {
-        mailbox.putFirst(new Mail(mail,
-                Integer.MAX_VALUE /*not used with putFirst*/,
-                descriptionFormat,
-                descriptionArgs
-        ));
+        mailbox.putFirst(new Mail(mail, Integer.MAX_VALUE /*not used with putFirst*/, descriptionFormat, descriptionArgs));
     }
 
     /**
@@ -315,9 +322,9 @@ public class MailboxProcessor implements Closeable {
      * @return true if a mail has been processed.
      */
     private boolean processMail(TaskMailbox mailbox, boolean singleStep) throws Exception {
+
         // Doing this check is an optimization to only have a volatile read in the expected hot
-        // path, locks are only
-        // acquired after this point.
+        // path, locks are only acquired after this point.
         boolean isBatchAvailable = mailbox.createBatch();
 
         // Take mails in a non-blockingly and execute them.
@@ -334,15 +341,22 @@ public class MailboxProcessor implements Closeable {
     }
 
     private boolean processMailsWhenDefaultActionUnavailable() throws Exception {
+
         boolean processedSomething = false;
         Optional<Mail> maybeMail;
+
         while (!isDefaultActionAvailable() && isNextLoopPossible()) {
+
+            // TODO_MA 马中华 注释： 从 MailBox 中获取 Mail
             maybeMail = mailbox.tryTake(MIN_PRIORITY);
             if (!maybeMail.isPresent()) {
                 maybeMail = Optional.of(mailbox.take(MIN_PRIORITY));
             }
             maybePauseIdleTimer();
+
+            // TODO_MA 马中华 注释： 执行
             maybeMail.get().run();
+
             maybeRestartIdleTimer();
             processedSomething = true;
         }
@@ -353,13 +367,15 @@ public class MailboxProcessor implements Closeable {
         long processedMails = 0;
         Optional<Mail> maybeMail;
 
+        // TODO_MA 马中华 注释： mailbox.tryTakeFromBatch(） ===> 获取 Mail
         while (isNextLoopPossible() && (maybeMail = mailbox.tryTakeFromBatch()).isPresent()) {
             if (processedMails++ == 0) {
                 maybePauseIdleTimer();
             }
             /*************************************************
              * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-             *  注释：
+             *  注释： maybeMail 是一个任务，是一个 Runnable
+             *  在主线程中， mail 的处理逻辑，就是在主线程中
              */
             maybeMail.get().run();
             if (singleStep) {

@@ -81,8 +81,7 @@ class PartitionRequestQueue extends ChannelInboundHandlerAdapter {
         // The notification might come from the same thread. For the initial writes this
         // might happen before the reader has set its reference to the view, because
         // creating the queue and the initial notification happen in the same method call.
-        // This can be resolved by separating the creation of the view and allowing
-        // notifications.
+        // This can be resolved by separating the creation of the view and allowing notifications.
 
         // TODO This could potentially have a bad performance impact as in the
         // worst case (network consumes faster than the producer) each buffer
@@ -90,7 +89,11 @@ class PartitionRequestQueue extends ChannelInboundHandlerAdapter {
 
         /*************************************************
          * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-         *  注释：
+         *  注释： 通过网络流，发送数据到 下游 Task
+         *  然后触发 userEventTriggered 方法执行
+         *  -
+         *  fireUserEventTriggered 方法调用，就是会触发 userEventTriggered() 被调用
+         *  userEventTriggered() 真正完成数据写到网络流上
          */
         ctx.executor().execute(() -> ctx.pipeline().fireUserEventTriggered(reader));
     }
@@ -122,6 +125,10 @@ class PartitionRequestQueue extends ChannelInboundHandlerAdapter {
         boolean triggerWrite = availableReaders.isEmpty();
         registerAvailableReader(reader);
 
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释： 写给下游 Task
+         */
         if (triggerWrite) {
             writeAndFlushNextMessageIfPossible(ctx.channel());
         }
@@ -228,9 +235,15 @@ class PartitionRequestQueue extends ChannelInboundHandlerAdapter {
         // The user event triggered event loop callback is used for thread-safe
         // hand over of reader queues and cancelled producers.
 
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释：
+         */
         if (msg instanceof NetworkSequenceViewReader) {
             enqueueAvailableReader((NetworkSequenceViewReader) msg);
-        } else if (msg.getClass() == InputChannelID.class) {
+        }
+
+        else if (msg.getClass() == InputChannelID.class) {
             // Release partition view that get a cancel request.
             InputChannelID toCancel = (InputChannelID) msg;
 
@@ -242,7 +255,9 @@ class PartitionRequestQueue extends ChannelInboundHandlerAdapter {
             if (toRelease != null) {
                 releaseViewReader(toRelease);
             }
-        } else {
+        }
+
+        else {
             ctx.fireUserEventTriggered(msg);
         }
     }
@@ -264,6 +279,8 @@ class PartitionRequestQueue extends ChannelInboundHandlerAdapter {
         BufferAndAvailability next = null;
         try {
             while (true) {
+
+                // TODO_MA 马中华 注释： 获取 可用的 Reader
                 NetworkSequenceViewReader reader = pollAvailableReader();
 
                 // No queue with available data. We allow this here, because
@@ -272,18 +289,17 @@ class PartitionRequestQueue extends ChannelInboundHandlerAdapter {
                     return;
                 }
 
+                // TODO_MA 马中华 注释： 获取 Reader 中的可用数据
                 next = reader.getNextBuffer();
                 if (next == null) {
                     if (!reader.isReleased()) {
                         continue;
                     }
-
                     Throwable cause = reader.getFailureCause();
                     if (cause != null) {
                         ErrorResponse msg = new ErrorResponse(new ProducerFailedException(cause),
                                 reader.getReceiverId()
                         );
-
                         ctx.writeAndFlush(msg);
                     }
                 } else {
@@ -301,6 +317,10 @@ class PartitionRequestQueue extends ChannelInboundHandlerAdapter {
 
                     // Write and flush and wait until this is done before
                     // trying to continue with the next buffer.
+                    /*************************************************
+                     * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+                     *  注释： 完成往下游 Task 所在从节点的 NettyClient 写
+                     */
                     channel.writeAndFlush(msg).addListener(writeListener);
 
                     return;

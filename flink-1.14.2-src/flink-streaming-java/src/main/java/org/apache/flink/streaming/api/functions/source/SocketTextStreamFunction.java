@@ -66,21 +66,13 @@ public class SocketTextStreamFunction implements SourceFunction<String> {
 
     private volatile boolean isRunning = true;
 
-    public SocketTextStreamFunction(
-            String hostname, int port, String delimiter, long maxNumRetries) {
+    public SocketTextStreamFunction(String hostname, int port, String delimiter, long maxNumRetries) {
         this(hostname, port, delimiter, maxNumRetries, DEFAULT_CONNECTION_RETRY_SLEEP);
     }
 
-    public SocketTextStreamFunction(
-            String hostname,
-            int port,
-            String delimiter,
-            long maxNumRetries,
-            long delayBetweenRetries) {
+    public SocketTextStreamFunction(String hostname, int port, String delimiter, long maxNumRetries, long delayBetweenRetries) {
         checkArgument(isValidClientPort(port), "port is out of range");
-        checkArgument(
-                maxNumRetries >= -1,
-                "maxNumRetries must be zero or larger (num retries), or -1 (infinite retries)");
+        checkArgument(maxNumRetries >= -1, "maxNumRetries must be zero or larger (num retries), or -1 (infinite retries)");
         checkArgument(delayBetweenRetries >= 0, "delayBetweenRetries must be zero or positive");
 
         this.hostname = checkNotNull(hostname, "hostname must not be null");
@@ -95,28 +87,42 @@ public class SocketTextStreamFunction implements SourceFunction<String> {
         final StringBuilder buffer = new StringBuilder();
         long attempt = 0;
 
+        // TODO_MA 马中华 注释： 不停的读取数据
         while (isRunning) {
 
+            // TODO_MA 马中华 注释： 客户端
             try (Socket socket = new Socket()) {
                 currentSocket = socket;
 
                 LOG.info("Connecting to server socket " + hostname + ':' + port);
+
+                // TODO_MA 马中华 注释： 链接服务端
+                // executionEnvironment.socketTextStream("bigdata02", 6789);
+                // 启动 ServerSocket 服务端：nc -lk 6789
                 socket.connect(new InetSocketAddress(hostname, port), CONNECTION_TIMEOUT_TIME);
-                try (BufferedReader reader =
-                        new BufferedReader(new InputStreamReader(socket.getInputStream()))) {
+
+                /*************************************************
+                 * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+                 *  注释： 通过链接获取 输入
+                 */
+                try (BufferedReader reader = new BufferedReader(new InputStreamReader(socket.getInputStream()))) {
 
                     char[] cbuf = new char[8192];
                     int bytesRead;
+
+                    // TODO_MA 马中华 注释：  读取一行数据
                     while (isRunning && (bytesRead = reader.read(cbuf)) != -1) {
                         buffer.append(cbuf, 0, bytesRead);
                         int delimPos;
-                        while (buffer.length() >= delimiter.length()
-                                && (delimPos = buffer.indexOf(delimiter)) != -1) {
+                        while (buffer.length() >= delimiter.length() && (delimPos = buffer.indexOf(delimiter)) != -1) {
                             String record = buffer.substring(0, delimPos);
                             // truncate trailing carriage return
                             if (delimiter.equals("\n") && record.endsWith("\r")) {
                                 record = record.substring(0, record.length() - 1);
                             }
+
+                            // TODO_MA 马中华 注释： 这个地方是往下游输出
+                            // TODO_MA 马中华 注释： ctx = SwitchingOnClose
                             ctx.collect(record);
                             buffer.delete(0, delimPos + delimiter.length());
                         }
@@ -128,10 +134,7 @@ public class SocketTextStreamFunction implements SourceFunction<String> {
             if (isRunning) {
                 attempt++;
                 if (maxNumRetries == -1 || attempt < maxNumRetries) {
-                    LOG.warn(
-                            "Lost connection to server socket. Retrying in "
-                                    + delayBetweenRetries
-                                    + " msecs...");
+                    LOG.warn("Lost connection to server socket. Retrying in " + delayBetweenRetries + " msecs...");
                     Thread.sleep(delayBetweenRetries);
                 } else {
                     // this should probably be here, but some examples expect simple exists of the

@@ -24,6 +24,6 @@ import org.apache.flink.runtime.taskmanager.TaskActions;
 /** Test implementation of {@link ResultPartitionConsumableNotifier}. */
 public class NoOpResultPartitionConsumableNotifier implements ResultPartitionConsumableNotifier {
     @Override
-    public void notifyPartitionConsumable(
-            JobID jobId, ResultPartitionID partitionId, TaskActions taskActions) {}
+    public void notifyPartitionConsumable(JobID jobId, ResultPartitionID partitionId, TaskActions taskActions) {
+    }
 }

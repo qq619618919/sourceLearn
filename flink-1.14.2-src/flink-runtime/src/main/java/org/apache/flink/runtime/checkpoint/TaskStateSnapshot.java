@@ -57,8 +57,7 @@ public class TaskStateSnapshot implements CompositeStateHandle {
 
     private static final long serialVersionUID = 1L;
 
-    public static final TaskStateSnapshot FINISHED_ON_RESTORE =
-            new TaskStateSnapshot(new HashMap<>(), true, true);
+    public static final TaskStateSnapshot FINISHED_ON_RESTORE = new TaskStateSnapshot(new HashMap<>(), true, true);
 
     /** Mapping from an operator id to the state of one subtask of this operator. */
     private final Map<OperatorID, OperatorSubtaskState> subtaskStatesByOperatorID;
@@ -79,10 +78,8 @@ public class TaskStateSnapshot implements CompositeStateHandle {
         this(subtaskStatesByOperatorID, false, false);
     }
 
-    private TaskStateSnapshot(
-            Map<OperatorID, OperatorSubtaskState> subtaskStatesByOperatorID,
-            boolean isFinishedOnRestore,
-            boolean isOperatorsFinished) {
+    private TaskStateSnapshot(Map<OperatorID, OperatorSubtaskState> subtaskStatesByOperatorID, boolean isFinishedOnRestore,
+                              boolean isOperatorsFinished) {
         this.subtaskStatesByOperatorID = Preconditions.checkNotNull(subtaskStatesByOperatorID);
         this.isFinishedOnRestore = isFinishedOnRestore;
         this.isOperatorsFinished = isOperatorsFinished;
@@ -108,8 +105,7 @@ public class TaskStateSnapshot implements CompositeStateHandle {
      * Maps the given operator id to the given subtask state. Returns the subtask state of a
      * previous mapping, if such a mapping existed or null otherwise.
      */
-    public OperatorSubtaskState putSubtaskStateByOperatorID(
-            @Nonnull OperatorID operatorID, @Nonnull OperatorSubtaskState state) {
+    public OperatorSubtaskState putSubtaskStateByOperatorID(@Nonnull OperatorID operatorID, @Nonnull OperatorSubtaskState state) {
 
         return subtaskStatesByOperatorID.put(operatorID, Preconditions.checkNotNull(state));
     }
@@ -186,9 +182,8 @@ public class TaskStateSnapshot implements CompositeStateHandle {
 
         TaskStateSnapshot that = (TaskStateSnapshot) o;
 
-        return subtaskStatesByOperatorID.equals(that.subtaskStatesByOperatorID)
-                && isFinishedOnRestore == that.isFinishedOnRestore
-                && isOperatorsFinished == that.isOperatorsFinished;
+        return subtaskStatesByOperatorID.equals(
+                that.subtaskStatesByOperatorID) && isFinishedOnRestore == that.isFinishedOnRestore && isOperatorsFinished == that.isOperatorsFinished;
     }
 
     @Override
@@ -198,24 +193,14 @@ public class TaskStateSnapshot implements CompositeStateHandle {
 
     @Override
     public String toString() {
-        return "TaskOperatorSubtaskStates{"
-                + "subtaskStatesByOperatorID="
-                + subtaskStatesByOperatorID
-                + ", isFinished="
-                + isFinishedOnRestore
-                + ", isOperatorsFinished="
-                + isOperatorsFinished
-                + '}';
+        return "TaskOperatorSubtaskStates{" + "subtaskStatesByOperatorID=" + subtaskStatesByOperatorID + ", isFinished=" + isFinishedOnRestore + ", isOperatorsFinished=" + isOperatorsFinished + '}';
     }
 
     /** Returns the only valid mapping as ensured by {@link StateAssignmentOperation}. */
     private InflightDataRescalingDescriptor getMapping(
             Function<OperatorSubtaskState, InflightDataRescalingDescriptor> mappingExtractor) {
         return Iterators.getOnlyElement(
-                subtaskStatesByOperatorID.values().stream()
-                        .map(mappingExtractor)
-                        .filter(mapping -> !mapping.equals(NO_RESCALE))
-                        .iterator(),
-                NO_RESCALE);
+                subtaskStatesByOperatorID.values().stream().map(mappingExtractor).filter(mapping -> !mapping.equals(NO_RESCALE))
+                        .iterator(), NO_RESCALE);
     }
 }

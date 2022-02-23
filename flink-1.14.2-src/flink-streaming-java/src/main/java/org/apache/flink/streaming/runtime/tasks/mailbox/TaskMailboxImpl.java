@@ -46,6 +46,7 @@ import static org.apache.flink.streaming.runtime.tasks.mailbox.TaskMailbox.State
  */
 @ThreadSafe
 public class TaskMailboxImpl implements TaskMailbox {
+    
     /** Lock for all concurrent ops. */
     private final ReentrantLock lock = new ReentrantLock();
 
@@ -122,6 +123,10 @@ public class TaskMailboxImpl implements TaskMailbox {
         final ReentrantLock lock = this.lock;
         lock.lock();
         try {
+            /*************************************************
+             * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+             *  注释： 从 queue 队列中，获取 Mail
+             */
             final Mail value = takeOrNull(queue, priority);
             if (value == null) {
                 return Optional.empty();
@@ -261,23 +266,21 @@ public class TaskMailboxImpl implements TaskMailbox {
 
     private void checkIsMailboxThread() {
         if (!isMailboxThread()) {
-            throw new IllegalStateException(
-                    "Illegal thread detected. This method must be called from inside the mailbox thread!");
+            throw new IllegalStateException("Illegal thread detected. This method must be called from inside the mailbox thread!");
         }
     }
 
     private void checkPutStateConditions() {
         if (state != OPEN) {
-            throw new MailboxClosedException("Mailbox is in state " + state + ", but is required to be in state " + OPEN
-                    + " for put operations.");
+            throw new MailboxClosedException(
+                    "Mailbox is in state " + state + ", but is required to be in state " + OPEN + " for put operations.");
         }
     }
 
     private void checkTakeStateConditions() {
         if (state == CLOSED) {
             throw new MailboxClosedException(
-                    "Mailbox is in state " + state + ", but is required to be in state " + OPEN + " or " + QUIESCED
-                            + " for take operations.");
+                    "Mailbox is in state " + state + ", but is required to be in state " + OPEN + " or " + QUIESCED + " for take operations.");
         }
     }
 

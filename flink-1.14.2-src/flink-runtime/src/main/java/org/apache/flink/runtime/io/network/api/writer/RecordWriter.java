@@ -102,7 +102,7 @@ public abstract class RecordWriter<T extends IOReadableWritable> implements Avai
 
         /*************************************************
          * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-         *  注释：
+         *  注释： targetPartition = ConsumableNotifyingResultPartitionWriter
          */
         targetPartition.emitRecord(serializeRecord(serializer, record), targetSubpartition);
 

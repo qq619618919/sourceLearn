@@ -93,13 +93,7 @@ public class ConfigOption<T> {
      *     field
      * @param fallbackKeys The list of fallback keys, in the order to be checked
      */
-    ConfigOption(
-            String key,
-            Class<?> clazz,
-            Description description,
-            T defaultValue,
-            boolean isList,
-            FallbackKey... fallbackKeys) {
+    ConfigOption(String key, Class<?> clazz, Description description, T defaultValue, boolean isList, FallbackKey... fallbackKeys) {
         this.key = checkNotNull(key);
         this.description = description;
         this.defaultValue = defaultValue;
@@ -123,15 +117,13 @@ public class ConfigOption<T> {
      * @return A new config options, with the given fallback keys.
      */
     public ConfigOption<T> withFallbackKeys(String... fallbackKeys) {
-        final Stream<FallbackKey> newFallbackKeys =
-                Arrays.stream(fallbackKeys).map(FallbackKey::createFallbackKey);
+        final Stream<FallbackKey> newFallbackKeys = Arrays.stream(fallbackKeys).map(FallbackKey::createFallbackKey);
         final Stream<FallbackKey> currentAlternativeKeys = Arrays.stream(this.fallbackKeys);
 
         // put fallback keys first so that they are prioritized
-        final FallbackKey[] mergedAlternativeKeys =
-                Stream.concat(newFallbackKeys, currentAlternativeKeys).toArray(FallbackKey[]::new);
-        return new ConfigOption<>(
-                key, clazz, description, defaultValue, isList, mergedAlternativeKeys);
+        final FallbackKey[] mergedAlternativeKeys = Stream.concat(newFallbackKeys, currentAlternativeKeys)
+                .toArray(FallbackKey[]::new);
+        return new ConfigOption<>(key, clazz, description, defaultValue, isList, mergedAlternativeKeys);
     }
 
     /**
@@ -147,16 +139,13 @@ public class ConfigOption<T> {
      * @return A new config options, with the given deprecated keys.
      */
     public ConfigOption<T> withDeprecatedKeys(String... deprecatedKeys) {
-        final Stream<FallbackKey> newDeprecatedKeys =
-                Arrays.stream(deprecatedKeys).map(FallbackKey::createDeprecatedKey);
+        final Stream<FallbackKey> newDeprecatedKeys = Arrays.stream(deprecatedKeys).map(FallbackKey::createDeprecatedKey);
         final Stream<FallbackKey> currentAlternativeKeys = Arrays.stream(this.fallbackKeys);
 
         // put deprecated keys last so that they are de-prioritized
-        final FallbackKey[] mergedAlternativeKeys =
-                Stream.concat(currentAlternativeKeys, newDeprecatedKeys)
-                        .toArray(FallbackKey[]::new);
-        return new ConfigOption<>(
-                key, clazz, description, defaultValue, isList, mergedAlternativeKeys);
+        final FallbackKey[] mergedAlternativeKeys = Stream.concat(currentAlternativeKeys, newDeprecatedKeys)
+                .toArray(FallbackKey[]::new);
+        return new ConfigOption<>(key, clazz, description, defaultValue, isList, mergedAlternativeKeys);
     }
 
     /**
@@ -218,8 +207,7 @@ public class ConfigOption<T> {
      */
     @Deprecated
     public boolean hasDeprecatedKeys() {
-        return fallbackKeys != EMPTY
-                && Arrays.stream(fallbackKeys).anyMatch(FallbackKey::isDeprecated);
+        return fallbackKeys != EMPTY && Arrays.stream(fallbackKeys).anyMatch(FallbackKey::isDeprecated);
     }
 
     /**
@@ -230,12 +218,8 @@ public class ConfigOption<T> {
      */
     @Deprecated
     public Iterable<String> deprecatedKeys() {
-        return fallbackKeys == EMPTY
-                ? Collections.emptyList()
-                : Arrays.stream(fallbackKeys)
-                        .filter(FallbackKey::isDeprecated)
-                        .map(FallbackKey::getKey)
-                        .collect(Collectors.toList());
+        return fallbackKeys == EMPTY ? Collections.emptyList() : Arrays.stream(fallbackKeys).filter(FallbackKey::isDeprecated)
+                .map(FallbackKey::getKey).collect(Collectors.toList());
     }
 
     /**
@@ -273,12 +257,11 @@ public class ConfigOption<T> {
             return true;
         } else if (o != null && o.getClass() == ConfigOption.class) {
             ConfigOption<?> that = (ConfigOption<?>) o;
-            return this.key.equals(that.key)
-                    && Arrays.equals(this.fallbackKeys, that.fallbackKeys)
-                    && (this.defaultValue == null
-                            ? that.defaultValue == null
-                            : (that.defaultValue != null
-                                    && this.defaultValue.equals(that.defaultValue)));
+            return this.key.equals(that.key) && Arrays.equals(this.fallbackKeys,
+                    that.fallbackKeys) && (this.defaultValue == null ? that.defaultValue == null : (that.defaultValue != null && this.defaultValue.equals(
+                    that.defaultValue)
+            )
+            );
         } else {
             return false;
         }
@@ -286,15 +269,11 @@ public class ConfigOption<T> {
 
     @Override
     public int hashCode() {
-        return 31 * key.hashCode()
-                + 17 * Arrays.hashCode(fallbackKeys)
-                + (defaultValue != null ? defaultValue.hashCode() : 0);
+        return 31 * key.hashCode() + 17 * Arrays.hashCode(fallbackKeys) + (defaultValue != null ? defaultValue.hashCode() : 0);
     }
 
     @Override
     public String toString() {
-        return String.format(
-                "Key: '%s' , default: %s (fallback keys: %s)",
-                key, defaultValue, Arrays.toString(fallbackKeys));
+        return String.format("Key: '%s' , default: %s (fallback keys: %s)", key, defaultValue, Arrays.toString(fallbackKeys));
     }
 }

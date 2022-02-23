@@ -60,6 +60,7 @@ class GateNotificationHelper implements AutoCloseable {
         /*************************************************
          * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
          *  注释： 解除 inputChannelsWithData 的阻塞，表示有数据可消费
+         *  availabilityMonitor = inputChannelsWithData
          */
         availabilityMonitor.notifyAll();
         toNotify = inputGate.availabilityHelper.getUnavailableToResetAvailable();

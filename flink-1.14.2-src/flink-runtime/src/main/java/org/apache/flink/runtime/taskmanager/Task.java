@@ -126,26 +126,17 @@ import static org.apache.flink.util.Preconditions.checkState;
  * operator (which may be a user function) and runs it, providing all services necessary for example
  * to consume input data, produce its results (intermediate result partitions) and communicate with
  * the JobManager.
- *  Task 表示 taskManager 上的一个并行子任务的执行。Task 包装了 flink operator（也可能是用户自定义函数） 然后运行，
- *   提供所有必需的服务，例如 消费输入数据、生成结果(中间结果分区) 以及 与JobManager通信。
  *
- * <p>The Flink operators implemented as subclasses of {@link TaskInvokable} have only data
+ * <p>The Flink operators (implemented as subclasses of {@link TaskInvokable} have only data
  * readers, writers, and certain event callbacks. The task connects those to the network stack and
  * actor messages, and tracks the state of the execution and handles exceptions.
- *
- *  flink operators 作为 TaskInvokable 的子类实现，仅能进行数据读取，写出 和 一些事件的回调。
- *  task 通过网络堆栈调用和actor 消息（flink rpc ） 来处理 这些事件，同时 进行 执行状态的跟踪 和异常处理。
  *
  * <p>Tasks have no knowledge about how they relate to other tasks, or whether they are the first
  * attempt to execute the task, or a repeated attempt. All of that is only known to the JobManager.
  * All the task knows are its own runnable code, the task's configuration, and the IDs of the
  * intermediate results to consume and produce (if any).
  *
- *  task 不知道它自己和其他 task的关系，也不清楚它是首次执行还是多次尝试。这些只有jobManager清楚。
- *  task 只知道它运行的代码，它的配置以及要消费和生产的中间结果id（如果有的话）。
- *
  * <p>Each Task is run by one dedicated thread.
- *  每个Task由一个专用线程运行。
  */
 public class Task implements Runnable, TaskSlotPayload, TaskActions, PartitionProducerStateProvider {
 
@@ -312,7 +303,6 @@ public class Task implements Runnable, TaskSlotPayload, TaskActions, PartitionPr
     /**
      * <b>IMPORTANT:</b> This constructor may not start any work that would need to be undone in the
      * case of a failing task deployment.
-     * 在启动失败的环境下，这个构造方法不会启动任何需要撤销的工作
      */
     public Task(JobInformation jobInformation,
                 TaskInformation taskInformation,
@@ -602,9 +592,7 @@ public class Task implements Runnable, TaskSlotPayload, TaskActions, PartitionPr
         executingThread.start();
     }
 
-    /** The core work method that bootstraps the task and executes its code.
-     *  启动和执行task的核心工作方法
-     * */
+    /** The core work method that bootstraps the task and executes its code. */
     @Override
     public void run() {
         try {

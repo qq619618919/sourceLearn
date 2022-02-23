@@ -252,8 +252,7 @@ public class StreamExecutionEnvironment {
      * <p>In addition, this constructor allows specifying the user code {@link ClassLoader}.
      */
     @PublicEvolving
-    public StreamExecutionEnvironment(final Configuration configuration,
-                                      final ClassLoader userClassloader) {
+    public StreamExecutionEnvironment(final Configuration configuration, final ClassLoader userClassloader) {
         this(new DefaultExecutorServiceLoader(), configuration, userClassloader);
     }
 
@@ -265,8 +264,7 @@ public class StreamExecutionEnvironment {
      * and user code {@link ClassLoader}.
      */
     @PublicEvolving
-    public StreamExecutionEnvironment(final PipelineExecutorServiceLoader executorServiceLoader,
-                                      final Configuration configuration,
+    public StreamExecutionEnvironment(final PipelineExecutorServiceLoader executorServiceLoader, final Configuration configuration,
                                       final ClassLoader userClassloader) {
         this.executorServiceLoader = checkNotNull(executorServiceLoader);
         this.configuration = new Configuration(checkNotNull(configuration));
@@ -518,8 +516,7 @@ public class StreamExecutionEnvironment {
      * @param mode The checkpointing mode, selecting between "exactly once" and "at least once"
      *         guaranteed.
      */
-    public StreamExecutionEnvironment enableCheckpointing(long interval,
-                                                          CheckpointingMode mode) {
+    public StreamExecutionEnvironment enableCheckpointing(long interval, CheckpointingMode mode) {
         checkpointCfg.setCheckpointingMode(mode);
         checkpointCfg.setCheckpointInterval(interval);
         return this;
@@ -547,9 +544,7 @@ public class StreamExecutionEnvironment {
     @Deprecated
     @SuppressWarnings("deprecation")
     @PublicEvolving
-    public StreamExecutionEnvironment enableCheckpointing(long interval,
-                                                          CheckpointingMode mode,
-                                                          boolean force) {
+    public StreamExecutionEnvironment enableCheckpointing(long interval, CheckpointingMode mode, boolean force) {
         checkpointCfg.setCheckpointingMode(mode);
         checkpointCfg.setCheckpointInterval(interval);
         checkpointCfg.setForceCheckpointing(force);
@@ -787,8 +782,7 @@ public class StreamExecutionEnvironment {
      * @param type The class of the types serialized with the given serializer.
      * @param serializer The serializer to use.
      */
-    public <T extends Serializer<?> & Serializable> void addDefaultKryoSerializer(Class<?> type,
-                                                                                  T serializer) {
+    public <T extends Serializer<?> & Serializable> void addDefaultKryoSerializer(Class<?> type, T serializer) {
         config.addDefaultKryoSerializer(type, serializer);
     }
 
@@ -798,8 +792,7 @@ public class StreamExecutionEnvironment {
      * @param type The class of the types serialized with the given serializer.
      * @param serializerClass The class of the serializer to use.
      */
-    public void addDefaultKryoSerializer(Class<?> type,
-                                         Class<? extends Serializer<?>> serializerClass) {
+    public void addDefaultKryoSerializer(Class<?> type, Class<? extends Serializer<?>> serializerClass) {
         config.addDefaultKryoSerializer(type, serializerClass);
     }
 
@@ -813,8 +806,7 @@ public class StreamExecutionEnvironment {
      * @param type The class of the types serialized with the given serializer.
      * @param serializer The serializer to use.
      */
-    public <T extends Serializer<?> & Serializable> void registerTypeWithKryoSerializer(Class<?> type,
-                                                                                        T serializer) {
+    public <T extends Serializer<?> & Serializable> void registerTypeWithKryoSerializer(Class<?> type, T serializer) {
         config.registerTypeWithKryoSerializer(type, serializer);
     }
 
@@ -826,8 +818,7 @@ public class StreamExecutionEnvironment {
      * @param serializerClass The class of the serializer to use.
      */
     @SuppressWarnings("rawtypes")
-    public void registerTypeWithKryoSerializer(Class<?> type,
-                                               Class<? extends Serializer> serializerClass) {
+    public void registerTypeWithKryoSerializer(Class<?> type, Class<? extends Serializer> serializerClass) {
         config.registerTypeWithKryoSerializer(type, serializerClass);
     }
 
@@ -928,8 +919,7 @@ public class StreamExecutionEnvironment {
      * @param classLoader a class loader to use when loading classes
      */
     @PublicEvolving
-    public void configure(ReadableConfig configuration,
-                          ClassLoader classLoader) {
+    public void configure(ReadableConfig configuration, ClassLoader classLoader) {
 
         // TODO_MA 马中华 注释： 一堆配置的解析
         configuration.getOptional(StreamPipelineOptions.TIME_CHARACTERISTIC).ifPresent(this::setStreamTimeCharacteristic);
@@ -973,8 +963,7 @@ public class StreamExecutionEnvironment {
         checkpointCfg.configure(configuration);
     }
 
-    private void registerCustomListeners(final ClassLoader classLoader,
-                                         final List<String> listeners) {
+    private void registerCustomListeners(final ClassLoader classLoader, final List<String> listeners) {
         for (String listener : listeners) {
             try {
                 final JobListener jobListener = InstantiationUtil.instantiate(listener, JobListener.class, classLoader);
@@ -985,8 +974,7 @@ public class StreamExecutionEnvironment {
         }
     }
 
-    private StateBackend loadStateBackend(ReadableConfig configuration,
-                                          ClassLoader classLoader) {
+    private StateBackend loadStateBackend(ReadableConfig configuration, ClassLoader classLoader) {
         try {
             return StateBackendLoader.loadStateBackendFromConfig(configuration, classLoader, null);
         } catch (DynamicCodeLoadingException | IOException e) {
@@ -1013,8 +1001,7 @@ public class StreamExecutionEnvironment {
      *         contains {@link org.apache.flink.api.connector.source.lib.NumberSequenceSource}.
      */
     @Deprecated
-    public DataStreamSource<Long> generateSequence(long from,
-                                                   long to) {
+    public DataStreamSource<Long> generateSequence(long from, long to) {
         if (from > to) {
             throw new IllegalArgumentException("Start of sequence must not be greater than the end");
         }
@@ -1040,8 +1027,7 @@ public class StreamExecutionEnvironment {
      * @param from The number to start at (inclusive)
      * @param to The number to stop at (inclusive)
      */
-    public DataStreamSource<Long> fromSequence(long from,
-                                               long to) {
+    public DataStreamSource<Long> fromSequence(long from, long to) {
         if (from > to) {
             throw new IllegalArgumentException("Start of sequence must not be greater than the end");
         }
@@ -1095,8 +1081,7 @@ public class StreamExecutionEnvironment {
      * @return The data stream representing the given array of elements
      */
     @SafeVarargs
-    public final <OUT> DataStreamSource<OUT> fromElements(Class<OUT> type,
-                                                          OUT... data) {
+    public final <OUT> DataStreamSource<OUT> fromElements(Class<OUT> type, OUT... data) {
         if (data.length == 0) {
             throw new IllegalArgumentException("fromElements needs at least one element as argument");
         }
@@ -1162,8 +1147,7 @@ public class StreamExecutionEnvironment {
      *
      * @return The data stream representing the given collection
      */
-    public <OUT> DataStreamSource<OUT> fromCollection(Collection<OUT> data,
-                                                      TypeInformation<OUT> typeInfo) {
+    public <OUT> DataStreamSource<OUT> fromCollection(Collection<OUT> data, TypeInformation<OUT> typeInfo) {
         Preconditions.checkNotNull(data, "Collection must not be null");
 
         // must not have null elements and mixed elements
@@ -1192,8 +1176,7 @@ public class StreamExecutionEnvironment {
      * @see #fromCollection(java.util.Iterator,
      *         org.apache.flink.api.common.typeinfo.TypeInformation)
      */
-    public <OUT> DataStreamSource<OUT> fromCollection(Iterator<OUT> data,
-                                                      Class<OUT> type) {
+    public <OUT> DataStreamSource<OUT> fromCollection(Iterator<OUT> data, Class<OUT> type) {
         return fromCollection(data, TypeExtractor.getForClass(type));
     }
 
@@ -1215,8 +1198,7 @@ public class StreamExecutionEnvironment {
      *
      * @return The data stream representing the elements in the iterator
      */
-    public <OUT> DataStreamSource<OUT> fromCollection(Iterator<OUT> data,
-                                                      TypeInformation<OUT> typeInfo) {
+    public <OUT> DataStreamSource<OUT> fromCollection(Iterator<OUT> data, TypeInformation<OUT> typeInfo) {
         Preconditions.checkNotNull(data, "The iterator must not be null");
 
         SourceFunction<OUT> function = new FromIteratorFunction<>(data);
@@ -1238,8 +1220,7 @@ public class StreamExecutionEnvironment {
      *
      * @return A data stream representing the elements in the iterator
      */
-    public <OUT> DataStreamSource<OUT> fromParallelCollection(SplittableIterator<OUT> iterator,
-                                                              Class<OUT> type) {
+    public <OUT> DataStreamSource<OUT> fromParallelCollection(SplittableIterator<OUT> iterator, Class<OUT> type) {
         return fromParallelCollection(iterator, TypeExtractor.getForClass(type));
     }
 
@@ -1261,14 +1242,12 @@ public class StreamExecutionEnvironment {
      *
      * @return A data stream representing the elements in the iterator
      */
-    public <OUT> DataStreamSource<OUT> fromParallelCollection(SplittableIterator<OUT> iterator,
-                                                              TypeInformation<OUT> typeInfo) {
+    public <OUT> DataStreamSource<OUT> fromParallelCollection(SplittableIterator<OUT> iterator, TypeInformation<OUT> typeInfo) {
         return fromParallelCollection(iterator, typeInfo, "Parallel Collection Source");
     }
 
     // private helper for passing different names
-    private <OUT> DataStreamSource<OUT> fromParallelCollection(SplittableIterator<OUT> iterator,
-                                                               TypeInformation<OUT> typeInfo,
+    private <OUT> DataStreamSource<OUT> fromParallelCollection(SplittableIterator<OUT> iterator, TypeInformation<OUT> typeInfo,
                                                                String operatorName) {
         return addSource(new FromSplittableIteratorFunction<>(iterator), operatorName, typeInfo, Boundedness.BOUNDED);
     }
@@ -1309,8 +1288,7 @@ public class StreamExecutionEnvironment {
      *
      * @return The data stream that represents the data read from the given file as text lines
      */
-    public DataStreamSource<String> readTextFile(String filePath,
-                                                 String charsetName) {
+    public DataStreamSource<String> readTextFile(String filePath, String charsetName) {
         Preconditions.checkArgument(!StringUtils.isNullOrWhitespaceOnly(filePath), "The file path must not be null or blank.");
 
         TextInputFormat format = new TextInputFormat(new Path(filePath));
@@ -1346,8 +1324,7 @@ public class StreamExecutionEnvironment {
      *
      * @return The data stream that represents the data read from the given file
      */
-    public <OUT> DataStreamSource<OUT> readFile(FileInputFormat<OUT> inputFormat,
-                                                String filePath) {
+    public <OUT> DataStreamSource<OUT> readFile(FileInputFormat<OUT> inputFormat, String filePath) {
         return readFile(inputFormat, filePath, FileProcessingMode.PROCESS_ONCE, -1);
     }
 
@@ -1375,11 +1352,8 @@ public class StreamExecutionEnvironment {
      */
     @PublicEvolving
     @Deprecated
-    public <OUT> DataStreamSource<OUT> readFile(FileInputFormat<OUT> inputFormat,
-                                                String filePath,
-                                                FileProcessingMode watchType,
-                                                long interval,
-                                                FilePathFilter filter) {
+    public <OUT> DataStreamSource<OUT> readFile(FileInputFormat<OUT> inputFormat, String filePath, FileProcessingMode watchType,
+                                                long interval, FilePathFilter filter) {
         inputFormat.setFilesFilter(filter);
 
         TypeInformation<OUT> typeInformation;
@@ -1428,9 +1402,7 @@ public class StreamExecutionEnvironment {
      * @return The data stream that represents the data read from the given file
      */
     @PublicEvolving
-    public <OUT> DataStreamSource<OUT> readFile(FileInputFormat<OUT> inputFormat,
-                                                String filePath,
-                                                FileProcessingMode watchType,
+    public <OUT> DataStreamSource<OUT> readFile(FileInputFormat<OUT> inputFormat, String filePath, FileProcessingMode watchType,
                                                 long interval) {
 
         TypeInformation<OUT> typeInformation;
@@ -1464,9 +1436,7 @@ public class StreamExecutionEnvironment {
      */
     @Deprecated
     @SuppressWarnings("deprecation")
-    public DataStream<String> readFileStream(String filePath,
-                                             long intervalMillis,
-                                             FileMonitoringFunction.WatchType watchType) {
+    public DataStream<String> readFileStream(String filePath, long intervalMillis, FileMonitoringFunction.WatchType watchType) {
         DataStream<Tuple3<String, Long, Long>> source = addSource(new FileMonitoringFunction(filePath, intervalMillis, watchType),
                 "Read File Stream source");
 
@@ -1502,11 +1472,8 @@ public class StreamExecutionEnvironment {
      * @return The data stream that represents the data read from the given file
      */
     @PublicEvolving
-    public <OUT> DataStreamSource<OUT> readFile(FileInputFormat<OUT> inputFormat,
-                                                String filePath,
-                                                FileProcessingMode watchType,
-                                                long interval,
-                                                TypeInformation<OUT> typeInformation) {
+    public <OUT> DataStreamSource<OUT> readFile(FileInputFormat<OUT> inputFormat, String filePath, FileProcessingMode watchType,
+                                                long interval, TypeInformation<OUT> typeInformation) {
 
         Preconditions.checkNotNull(inputFormat, "InputFormat must not be null.");
         Preconditions.checkArgument(!StringUtils.isNullOrWhitespaceOnly(filePath), "The file path must not be null or blank.");
@@ -1537,10 +1504,7 @@ public class StreamExecutionEnvironment {
      * @deprecated Use {@link #socketTextStream(String, int, String, long)} instead.
      */
     @Deprecated
-    public DataStreamSource<String> socketTextStream(String hostname,
-                                                     int port,
-                                                     char delimiter,
-                                                     long maxRetry) {
+    public DataStreamSource<String> socketTextStream(String hostname, int port, char delimiter, long maxRetry) {
         return socketTextStream(hostname, port, String.valueOf(delimiter), maxRetry);
     }
 
@@ -1564,10 +1528,7 @@ public class StreamExecutionEnvironment {
      * @return A data stream containing the strings received from the socket
      */
     @PublicEvolving
-    public DataStreamSource<String> socketTextStream(String hostname,
-                                                     int port,
-                                                     String delimiter,
-                                                     long maxRetry) {
+    public DataStreamSource<String> socketTextStream(String hostname, int port, String delimiter, long maxRetry) {
         return addSource(new SocketTextStreamFunction(hostname, port, delimiter, maxRetry), "Socket Stream");
     }
 
@@ -1587,9 +1548,7 @@ public class StreamExecutionEnvironment {
      */
     @Deprecated
     @SuppressWarnings("deprecation")
-    public DataStreamSource<String> socketTextStream(String hostname,
-                                                     int port,
-                                                     char delimiter) {
+    public DataStreamSource<String> socketTextStream(String hostname, int port, char delimiter) {
         return socketTextStream(hostname, port, delimiter, 0);
     }
 
@@ -1606,9 +1565,7 @@ public class StreamExecutionEnvironment {
      * @return A data stream containing the strings received from the socket
      */
     @PublicEvolving
-    public DataStreamSource<String> socketTextStream(String hostname,
-                                                     int port,
-                                                     String delimiter) {
+    public DataStreamSource<String> socketTextStream(String hostname, int port, String delimiter) {
         return socketTextStream(hostname, port, delimiter, 0);
     }
 
@@ -1624,8 +1581,7 @@ public class StreamExecutionEnvironment {
      * @return A data stream containing the strings received from the socket
      */
     @PublicEvolving
-    public DataStreamSource<String> socketTextStream(String hostname,
-                                                     int port) {
+    public DataStreamSource<String> socketTextStream(String hostname, int port) {
         return socketTextStream(hostname, port, "\n");
     }
 
@@ -1680,8 +1636,7 @@ public class StreamExecutionEnvironment {
      * @return The data stream that represents the data created by the input format
      */
     @PublicEvolving
-    public <OUT> DataStreamSource<OUT> createInput(InputFormat<OUT, ?> inputFormat,
-                                                   TypeInformation<OUT> typeInfo) {
+    public <OUT> DataStreamSource<OUT> createInput(InputFormat<OUT, ?> inputFormat, TypeInformation<OUT> typeInfo) {
         DataStreamSource<OUT> source;
 
         if (inputFormat instanceof FileInputFormat) {
@@ -1694,19 +1649,15 @@ public class StreamExecutionEnvironment {
         return source;
     }
 
-    private <OUT> DataStreamSource<OUT> createInput(InputFormat<OUT, ?> inputFormat,
-                                                    TypeInformation<OUT> typeInfo,
+    private <OUT> DataStreamSource<OUT> createInput(InputFormat<OUT, ?> inputFormat, TypeInformation<OUT> typeInfo,
                                                     String sourceName) {
 
         InputFormatSourceFunction<OUT> function = new InputFormatSourceFunction<>(inputFormat, typeInfo);
         return addSource(function, sourceName, typeInfo);
     }
 
-    private <OUT> DataStreamSource<OUT> createFileInput(FileInputFormat<OUT> inputFormat,
-                                                        TypeInformation<OUT> typeInfo,
-                                                        String sourceName,
-                                                        FileProcessingMode monitoringMode,
-                                                        long interval) {
+    private <OUT> DataStreamSource<OUT> createFileInput(FileInputFormat<OUT> inputFormat, TypeInformation<OUT> typeInfo,
+                                                        String sourceName, FileProcessingMode monitoringMode, long interval) {
 
         Preconditions.checkNotNull(inputFormat, "Unspecified file input format.");
         Preconditions.checkNotNull(typeInfo, "Unspecified output type information.");
@@ -1765,8 +1716,7 @@ public class StreamExecutionEnvironment {
      *
      * @return the data stream constructed
      */
-    public <OUT> DataStreamSource<OUT> addSource(SourceFunction<OUT> function,
-                                                 String sourceName) {
+    public <OUT> DataStreamSource<OUT> addSource(SourceFunction<OUT> function, String sourceName) {
         return addSource(function, sourceName, null);
     }
 
@@ -1781,8 +1731,12 @@ public class StreamExecutionEnvironment {
      *
      * @return the data stream constructed
      */
-    public <OUT> DataStreamSource<OUT> addSource(SourceFunction<OUT> function,
-                                                 TypeInformation<OUT> typeInfo) {
+    public <OUT> DataStreamSource<OUT> addSource(SourceFunction<OUT> function, TypeInformation<OUT> typeInfo) {
+
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释：
+         */
         return addSource(function, "Custom Source", typeInfo);
     }
 
@@ -1798,16 +1752,17 @@ public class StreamExecutionEnvironment {
      *
      * @return the data stream constructed
      */
-    public <OUT> DataStreamSource<OUT> addSource(SourceFunction<OUT> function,
-                                                 String sourceName,
-                                                 TypeInformation<OUT> typeInfo) {
+    public <OUT> DataStreamSource<OUT> addSource(SourceFunction<OUT> function, String sourceName, TypeInformation<OUT> typeInfo) {
+
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释：
+         */
         return addSource(function, sourceName, typeInfo, Boundedness.CONTINUOUS_UNBOUNDED);
     }
 
-    private <OUT> DataStreamSource<OUT> addSource(final SourceFunction<OUT> function,
-                                                  final String sourceName,
-                                                  @Nullable final TypeInformation<OUT> typeInfo,
-                                                  final Boundedness boundedness) {
+    private <OUT> DataStreamSource<OUT> addSource(final SourceFunction<OUT> function, final String sourceName,
+                                                  @Nullable final TypeInformation<OUT> typeInfo, final Boundedness boundedness) {
         checkNotNull(function);
         checkNotNull(sourceName);
         checkNotNull(boundedness);
@@ -1820,6 +1775,10 @@ public class StreamExecutionEnvironment {
 
         final StreamSource<OUT, ?> sourceOperator = new StreamSource<>(function);
 
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释：
+         */
         return new DataStreamSource<>(this, resolvedTypeInfo, sourceOperator, isParallel, sourceName, boundedness);
     }
 
@@ -1843,8 +1802,7 @@ public class StreamExecutionEnvironment {
      * @return the data stream constructed
      */
     @Experimental
-    public <OUT> DataStreamSource<OUT> fromSource(Source<OUT, ?, ?> source,
-                                                  WatermarkStrategy<OUT> timestampsAndWatermarks,
+    public <OUT> DataStreamSource<OUT> fromSource(Source<OUT, ?, ?> source, WatermarkStrategy<OUT> timestampsAndWatermarks,
                                                   String sourceName) {
         return fromSource(source, timestampsAndWatermarks, sourceName, null);
     }
@@ -1869,10 +1827,8 @@ public class StreamExecutionEnvironment {
      * @return the data stream constructed
      */
     @Experimental
-    public <OUT> DataStreamSource<OUT> fromSource(Source<OUT, ?, ?> source,
-                                                  WatermarkStrategy<OUT> timestampsAndWatermarks,
-                                                  String sourceName,
-                                                  TypeInformation<OUT> typeInfo) {
+    public <OUT> DataStreamSource<OUT> fromSource(Source<OUT, ?, ?> source, WatermarkStrategy<OUT> timestampsAndWatermarks,
+                                                  String sourceName, TypeInformation<OUT> typeInfo) {
 
         final TypeInformation<OUT> resolvedTypeInfo = getTypeInfo(source, sourceName, Source.class, typeInfo);
 
@@ -2289,8 +2245,7 @@ public class StreamExecutionEnvironment {
      *
      * @return A local execution environment with the specified parallelism.
      */
-    public static LocalStreamEnvironment createLocalEnvironment(int parallelism,
-                                                                Configuration configuration) {
+    public static LocalStreamEnvironment createLocalEnvironment(int parallelism, Configuration configuration) {
         Configuration copyOfConfiguration = new Configuration();
         copyOfConfiguration.addAll(configuration);
         copyOfConfiguration.set(CoreOptions.DEFAULT_PARALLELISM, parallelism);
@@ -2354,9 +2309,7 @@ public class StreamExecutionEnvironment {
      *
      * @return A remote environment that executes the program on a cluster.
      */
-    public static StreamExecutionEnvironment createRemoteEnvironment(String host,
-                                                                     int port,
-                                                                     String... jarFiles) {
+    public static StreamExecutionEnvironment createRemoteEnvironment(String host, int port, String... jarFiles) {
         return new RemoteStreamEnvironment(host, port, jarFiles);
     }
 
@@ -2375,10 +2328,7 @@ public class StreamExecutionEnvironment {
      *
      * @return A remote environment that executes the program on a cluster.
      */
-    public static StreamExecutionEnvironment createRemoteEnvironment(String host,
-                                                                     int port,
-                                                                     int parallelism,
-                                                                     String... jarFiles) {
+    public static StreamExecutionEnvironment createRemoteEnvironment(String host, int port, int parallelism, String... jarFiles) {
         RemoteStreamEnvironment env = new RemoteStreamEnvironment(host, port, jarFiles);
         env.setParallelism(parallelism);
         return env;
@@ -2399,9 +2349,7 @@ public class StreamExecutionEnvironment {
      *
      * @return A remote environment that executes the program on a cluster.
      */
-    public static StreamExecutionEnvironment createRemoteEnvironment(String host,
-                                                                     int port,
-                                                                     Configuration clientConfig,
+    public static StreamExecutionEnvironment createRemoteEnvironment(String host, int port, Configuration clientConfig,
                                                                      String... jarFiles) {
         return new RemoteStreamEnvironment(host, port, clientConfig, jarFiles);
     }
@@ -2457,8 +2405,7 @@ public class StreamExecutionEnvironment {
      *         "hdfs://host:port/and/path")
      * @param name The name under which the file is registered.
      */
-    public void registerCachedFile(String filePath,
-                                   String name) {
+    public void registerCachedFile(String filePath, String name) {
         registerCachedFile(filePath, name, false);
     }
 
@@ -2478,17 +2425,13 @@ public class StreamExecutionEnvironment {
      * @param name The name under which the file is registered.
      * @param executable flag indicating whether the file should be executable
      */
-    public void registerCachedFile(String filePath,
-                                   String name,
-                                   boolean executable) {
+    public void registerCachedFile(String filePath, String name, boolean executable) {
         this.cacheFile.add(new Tuple2<>(name, new DistributedCache.DistributedCacheEntry(filePath, executable)));
     }
 
     // Private helpers.
     @SuppressWarnings("unchecked")
-    private <OUT, T extends TypeInformation<OUT>> T getTypeInfo(Object source,
-                                                                String sourceName,
-                                                                Class<?> baseSourceClass,
+    private <OUT, T extends TypeInformation<OUT>> T getTypeInfo(Object source, String sourceName, Class<?> baseSourceClass,
                                                                 TypeInformation<OUT> typeInfo) {
         TypeInformation<OUT> resolvedTypeInfo = typeInfo;
         if (resolvedTypeInfo == null && source instanceof ResultTypeQueryable) {

@@ -245,7 +245,10 @@ public class OneInputStreamTask<IN, OUT> extends StreamTask<OUT, OneInputStreamO
 
             /*************************************************
              * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-             *  注释：
+             *  注释： 开始调用 Operator 来执行逻辑处理了。
+             *  operator = 看你的业务， flatMap, keyBy, map， filter， window
+             *  map算子 = StreamMap
+             *  flatMap = StreamFlatMap
              */
             operator.processElement(record);
         }

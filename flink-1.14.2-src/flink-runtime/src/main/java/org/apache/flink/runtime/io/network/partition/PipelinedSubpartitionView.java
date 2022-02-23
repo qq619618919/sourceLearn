@@ -54,7 +54,7 @@ public class PipelinedSubpartitionView implements ResultSubpartitionView {
     public void notifyDataAvailable() {
         /*************************************************
          * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-         *  注释：
+         *  注释： availabilityListener = CreditBasedSequenceNumberingViewReader
          */
         availabilityListener.notifyDataAvailable();
     }
